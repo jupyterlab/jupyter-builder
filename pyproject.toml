@@ -1,0 +1,106 @@
+# Copyright (c) Jupyter Development Team.
+# Distributed under the terms of the Modified BSD License.
+
+[build-system]
+requires = ["hatchling>=1.21.1"]
+build-backend = "hatchling.build"
+
+[project]
+name = "jupyter_builder"
+description = "JupyterLab build tools"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.8"
+authors = [
+    { name = "Jupyter Development Team", email = "jupyter@googlegroups.com" },
+]
+keywords = [
+    "ipython",
+    "jupyter",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Framework :: Jupyter",
+    "Framework :: Jupyter :: JupyterLab",
+    "Framework :: Jupyter :: JupyterLab :: 4",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+]
+dependencies = [
+    "traitlets",
+]
+dynamic = [
+    "version",
+]
+
+[project.urls]
+Homepage = "https://jupyter.org"
+Source = "https://github.com/jupyterlab/jupyterlab_builder"
+Issues = "https://github.com/jupyterlab/jupyterlab_builder/issues/new/choose"
+Gitter = "https://gitter.im/jupyterlab/jupyterlab"
+Pypi = "https://pypi.org/project/jupyter-builder"
+
+[project.optional-dependencies]
+test = [
+    "coverage",
+    "pytest>=7.0",
+    "pytest-check-links>=0.7",
+    "pytest-cov",
+]
+# Check ruff version is aligned with the one in .pre-commit-config.yaml
+dev = [
+    "build",
+    "mypy",
+    "pre-commit",
+    "pytest-cov",
+    "coverage",
+    "hatch",
+    "ruff==0.3.0",
+]
+
+# [project.scripts]
+
+
+[tool.check-wheel-contents]
+ignore = ["W002", "W004"]
+
+[tool.hatch.version]
+path = "jupyter_builder/_version.py"
+validate-bump = false
+
+[tool.mypy]
+python_version = "3.8"
+explicit_package_bases = true
+strict = true
+pretty = true
+warn_unreachable = true
+enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+
+[tool.pytest.ini_options]
+filterwarnings = ["error"]
+log_cli_level = "INFO"
+minversion = "7"
+testpaths = ["tests/"]
+norecursedirs = ".git _build .ipynb_checkpoints"
+addopts = ["-ra", "--strict-config", "--strict-markers", "--pdbcls=IPython.terminal.debugger:Pdb", "--junitxml=junit.xml"]
+xfail_strict = true
+
+[tool.repo-review]
+ignore = ["PC111", "PC180", "PY004", "PY007", "RTD100"]
+
+[tool.ruff]
+target-version = "py38"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+  "A", "B", "C", "DTZ", "E", "EM", "F", "FBT", "I", "ICN", "N",
+  "PLC", "PLE", "PLR", "PLW", "Q", "RUF", "S", "SIM", "T", "TID", "UP",
+  "W", "YTT",
+]
+ignore = []
