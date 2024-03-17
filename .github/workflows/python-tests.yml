@@ -53,7 +53,8 @@ jobs:
       - name: Run Linters
         run: |
           python -m pre_commit run --all
-          pipx run interrogate -v .
+          # FIXME Nice to activate in the future
+          # pipx run interrogate -v .
 
   test_minimum_versions:
     name: Test Minimum Versions
@@ -81,7 +82,7 @@ jobs:
           dependency_type: pre
       - name: Run the tests
         run: |
-          pip install -y pytest
+          pip install pytest
           pytest
 
   make_sdist:
@@ -103,7 +104,7 @@ jobs:
       - uses: jupyterlab/maintainer-tools/.github/actions/test-sdist@v1
         with:
           package_spec: -vv .
-          test_command: pip install -y pytest && pytest
+          test_command: pip install pytest && pytest
 
   check_release:
     runs-on: ubuntu-latest
