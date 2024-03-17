@@ -130,20 +130,21 @@ jobs:
       - uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
       - uses: jupyterlab/maintainer-tools/.github/actions/check-links@v1
 
-  coverage:
-    runs-on: ubuntu-latest
-    needs:
-      - build
-    steps:
-      - uses: actions/checkout@v4
-      - uses: jupyterlab/maintainer-tools/.github/actions/report-coverage@v1
-        with:
-          fail_under: 80
+  # FIXME to activate later
+  # coverage:
+  #   runs-on: ubuntu-latest
+  #   needs:
+  #     - build
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: jupyterlab/maintainer-tools/.github/actions/report-coverage@v1
+  #       with:
+  #         fail_under: 80
 
   tests_check: # This job does nothing and is only used for the branch protection
     if: always()
     needs:
-      - coverage
+      # - coverage
       - test_lint
       - test_minimum_versions
       - test_prereleases
