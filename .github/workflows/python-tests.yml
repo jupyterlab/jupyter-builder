@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Base Setup
         uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
-      - 
+      -
         run: pip install -e ".[test,dev]"
       - name: Run the tests
         run: pytest
@@ -48,7 +48,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
-      - 
+      -
         run: pip install -e ".[test,dev]"
       - name: Run Linters
         run: |
@@ -64,7 +64,7 @@ jobs:
       - uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
         with:
           dependency_type: minimum
-      - 
+      -
         run: pip install -e ".[test,dev]"
       - name: Run the unit tests
         run: |
@@ -81,6 +81,7 @@ jobs:
           dependency_type: pre
       - name: Run the tests
         run: |
+          pip install -y pytest
           pytest
 
   make_sdist:
@@ -102,7 +103,7 @@ jobs:
       - uses: jupyterlab/maintainer-tools/.github/actions/test-sdist@v1
         with:
           package_spec: -vv .
-          test_command: pytest
+          test_command: pip install -y pytest && pytest
 
   check_release:
     runs-on: ubuntu-latest
