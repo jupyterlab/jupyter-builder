@@ -1,4 +1,4 @@
-# jupyterlab-builder
+# jupyter-builder
 
 Build tools for JupyterLab (and remixes)
 
