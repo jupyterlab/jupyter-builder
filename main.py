@@ -1,3 +1,6 @@
+# Copyright (c) Jupyter Development Team.
+# Distributed under the terms of the Modified BSD License.
+
 import sys
 from traitlets.config.application import Application
 from .commands.develop import DevelopLabExtensionApp

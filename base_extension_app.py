@@ -1,3 +1,6 @@
+# Copyright (c) Jupyter Development Team.
+# Distributed under the terms of the Modified BSD License.
+
 import os
 from traitlets import Bool, Unicode, default, List, Instance
 from jupyterlab.labapp import LabApp

@@ -1,3 +1,6 @@
+# Copyright (c) Jupyter Development Team.
+# Distributed under the terms of the Modified BSD License.
+
 import os
 from traitlets import Bool, Unicode
 from ..base_extension_app import BaseExtensionApp
