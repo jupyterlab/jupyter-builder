@@ -22,10 +22,19 @@ except ImportError:
 from os.path import basename, normpath
 from os.path import join as pjoin
 
-from jupyter_core.paths import ENV_JUPYTER_PATH, SYSTEM_JUPYTER_PATH, jupyter_data_dir
-from jupyter_core.utils import ensure_dir_exists
-from jupyter_server.extension.serverextension import ArgumentConflict
-from jupyterlab_server.config import get_federated_extensions
+
+
+#from jupyter_core.paths import ENV_JUPYTER_PATH, SYSTEM_JUPYTER_PATH 
+#from jupyter_core.paths import jupyter_data_dir
+from .jupyter_core import jupyter_data_dir, ENV_JUPYTER_PATH, SYSTEM_JUPYTER_PATH
+#from jupyter_core.utils import ensure_dir_exists
+from .jupyter_core import ensure_dir_exists
+
+
+#from jupyter_server.extension.serverextension import ArgumentConflict
+from .jupyter_server import ArgumentConflict
+#from jupyterlab_server.config import get_federated_extensions
+from .jupyterlab_server import get_federated_extensions
 
 try:
     from tomllib import load  # Python 3.11+
