@@ -60,7 +60,7 @@ dev = [
     "pytest-cov",
     "coverage",
     "hatch",
-    "ruff==0.3.4",
+    "ruff==0.4.2",
 ]
 
 # [project.scripts]
