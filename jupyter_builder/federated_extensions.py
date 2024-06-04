@@ -17,31 +17,23 @@ from pathlib import Path
 try:
     from importlib.metadata import PackageNotFoundError, version
 except ImportError:
-    from importlib.metadata import PackageNotFoundError, version
+    from importlib_metadata import PackageNotFoundError, version
 
 from os.path import basename, normpath
 from os.path import join as pjoin
 
-
-
-#from jupyter_core.paths import ENV_JUPYTER_PATH, SYSTEM_JUPYTER_PATH 
-#from jupyter_core.paths import jupyter_data_dir
-from .jupyter_core import jupyter_data_dir, ENV_JUPYTER_PATH, SYSTEM_JUPYTER_PATH
-#from jupyter_core.utils import ensure_dir_exists
-from .jupyter_core import ensure_dir_exists
-
-
-#from jupyter_server.extension.serverextension import ArgumentConflict
-from .jupyter_server import ArgumentConflict
-#from jupyterlab_server.config import get_federated_extensions
-from .jupyterlab_server import get_federated_extensions
+from jupyter_core.paths import ENV_JUPYTER_PATH, SYSTEM_JUPYTER_PATH, jupyter_data_dir
+from jupyter_core.utils import ensure_dir_exists
+from jupyter_server.extension.serverextension import ArgumentConflict
+# from jupyterlab_server.config import get_federated_extensions
+from .federated_extensions_requirements import get_federated_extensions
 
 try:
     from tomllib import load  # Python 3.11+
 except ImportError:
-    from tomllib import load
+    from tomli import load
 
-from .commands import _test_overlap
+# from .commands import _test_overlap  TO BE DONE -----------------------------
 
 DEPRECATED_ARGUMENT = object()
 
@@ -425,6 +417,7 @@ def _get_labextension_metadata(module):  # noqa
     mod_path = osp.abspath(module)
     if not osp.exists(mod_path):
         msg = f"The path `{mod_path}` does not exist."
+        breakpoint()
         raise FileNotFoundError(msg)
 
     errors = []
@@ -491,3 +484,5 @@ def _get_labextension_metadata(module):  # noqa
 
     msg = f"There is no labextension at {module}. Errors encountered: {errors}"
     raise ModuleNotFoundError(msg)
+
+

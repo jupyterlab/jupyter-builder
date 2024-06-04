@@ -63,7 +63,9 @@ dev = [
     "ruff==0.3.0",
 ]
 
-# [project.scripts]
+[project.scripts]
+jupyter-builder = "jupyter_builder.main:main"
+
 
 
 [tool.check-wheel-contents]

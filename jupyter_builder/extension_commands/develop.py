@@ -11,7 +11,7 @@ class DevelopLabExtensionApp(BaseExtensionApp):
 
     user = Bool(False, config=True, help="Whether to do a user install")
     sys_prefix = Bool(True, config=True, help="Use the sys.prefix as the prefix")
-    overwrite = Bool(False, config=True, help="Whether to overwrite files")
+    overwrite = Bool(False, config=True, help="Whether to overwrite files") #flags
     symlink = Bool(True, config=False, help="Whether to use a symlink")
 
     labextensions_dir = Unicode(
