@@ -1,14 +1,25 @@
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
+from copy import copy
 import os
+
 from traitlets import Bool, Unicode
 from ..base_extension_app import BaseExtensionApp
 from ..federated_extensions import develop_labextension_py
+from jupyter_core.application import base_flags
+
+flags = dict(base_flags)
+develop_flags = copy(flags)
+develop_flags["overwrite"] = (
+    {"DevelopLabExtensionApp": {"overwrite": True}},
+    "Overwrite files",
+)
 
 class DevelopLabExtensionApp(BaseExtensionApp):
     description = "(developer) Develop labextension"
-
+    
+    flags = develop_flags
     user = Bool(False, config=True, help="Whether to do a user install")
     sys_prefix = Bool(True, config=True, help="Use the sys.prefix as the prefix")
     overwrite = Bool(False, config=True, help="Whether to overwrite files") #flags

@@ -11,8 +11,9 @@ from copy import copy
 
 from jupyter_core.application import JupyterApp, base_aliases, base_flags
 from traitlets import Bool, Instance, List, Unicode, default
+from jupyter_core.paths import jupyter_path
 
-from .coreconfig import CoreConfig
+#from .coreconfig import CoreConfig
 from .debug_log_file_mixin import DebugLogFileMixin
 
 # from .commands import (
@@ -118,11 +119,11 @@ class BaseExtensionApp(JupyterApp, DebugLogFileMixin):
     name = "lab"
 
     # Not configurable!
-    core_config = Instance(CoreConfig, allow_none=True)
+    #core_config = Instance(CoreConfig, allow_none=True)
 
     app_dir = Unicode("", config=True, help="The app directory to target")
 
-    should_build = Bool(True, config=True, help="Whether to build the app after the action")
+    # should_build = Bool(True, config=True, help="Whether to build the app after the action")
 
     dev_build = Bool(
         None,
@@ -137,25 +138,27 @@ class BaseExtensionApp(JupyterApp, DebugLogFileMixin):
         help="Whether to minimize a production build (defaults to True).",
     )
 
-    should_clean = Bool(
-        False,
-        config=True,
-        help="Whether temporary files should be cleaned up after building jupyterlab",
-    )
+    # should_clean = Bool(
+    #     False,
+    #     config=True,
+    #     help="Whether temporary files should be cleaned up after building jupyterlab",
+    # )
 
-    splice_source = Bool(False, config=True, help="Splice source packages into app directory.")
+    # splice_source = Bool(False, config=True, help="Splice source packages into app directory.")
 
     labextensions_path = List(
         Unicode(),
         help="The standard paths to look in for prebuilt JupyterLab extensions",
     )
 
-    @default("labextensions_path")
-    def _default_labextensions_path(self):
+    # @default("labextensions_path")
+    # def _default_labextensions_path(self):
         # lab = LabApp()
         # lab.load_config_file()
         # return lab.extra_labextensions_path + lab.labextensions_path
-        return "Ronan"
+    @default("labextensions_path")
+    def _default_labextensions_path(self) -> list[str]:
+        return jupyter_path("labextensions")
 
     @default("splice_source")
     def _default_splice_source(self):
