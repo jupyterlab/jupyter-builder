@@ -43,34 +43,6 @@ class BaseExtensionApp(JupyterApp, DebugLogFileMixin):
     aliases = aliases
     name = "lab"
 
-    # Not configurable!
-    #core_config = Instance(CoreConfig, allow_none=True)
-
-    app_dir = Unicode("", config=True, help="The app directory to target")
-
-    # should_build = Bool(True, config=True, help="Whether to build the app after the action")
-
-    dev_build = Bool(
-        None,
-        allow_none=True,
-        config=True,
-        help="Whether to build in dev mode. Defaults to True (dev mode) if there are any locally linked extensions, else defaults to False (production mode).",
-    )
-
-    minimize = Bool(
-        True,
-        config=True,
-        help="Whether to minimize a production build (defaults to True).",
-    )
-
-    # should_clean = Bool(
-    #     False,
-    #     config=True,
-    #     help="Whether temporary files should be cleaned up after building jupyterlab",
-    # )
-
-    # splice_source = Bool(False, config=True, help="Splice source packages into app directory.")
-
     labextensions_path = List(
         Unicode(),
         help="The standard paths to look in for prebuilt JupyterLab extensions",
