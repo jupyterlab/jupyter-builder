@@ -15,23 +15,6 @@ from jupyter_core.paths import jupyter_path
 
 from .debug_log_file_mixin import DebugLogFileMixin
 
-# from .commands import (
-#     HERE, # done
-#     AppOptions,# in prog
-#     build, #
-#     check_extension,
-#     disable_extension,
-#     enable_extension,
-#     get_app_version, #  170 - 183   108 162-163
-#     install_extension,
-#     link_package,
-#     list_extensions,
-#     lock_extension,
-#     uninstall_extension,
-#     unlink_package,
-#     unlock_extension,
-#     update_extension,
-# )
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
