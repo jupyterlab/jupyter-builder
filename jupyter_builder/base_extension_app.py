@@ -19,7 +19,6 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 # from .federated_labextensions import build_labextension, develop_labextension_py, watch_labextension
-#from .labapp import LabApp #TO BE DONE -------------line 255
 
 flags = dict(base_flags)
 
