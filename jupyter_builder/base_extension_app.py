@@ -31,21 +31,6 @@ develop_flags["overwrite"] = (
 aliases = dict(base_aliases)
 aliases["debug-log-path"] = "DebugLogFileMixin.debug_log_path"
 
-install_aliases = copy(aliases)
-install_aliases["pin-version-as"] = "InstallLabExtensionApp.pin"
-
-enable_aliases = copy(aliases)
-enable_aliases["level"] = "EnableLabExtensionsApp.level"
-
-disable_aliases = copy(aliases)
-disable_aliases["level"] = "DisableLabExtensionsApp.level"
-
-lock_aliases = copy(aliases)
-lock_aliases["level"] = "LockLabExtensionsApp.level"
-
-unlock_aliases = copy(aliases)
-unlock_aliases["level"] = "UnlockLabExtensionsApp.level"
-
 #VERSION = get_app_version()
 VERSION = 1
 
