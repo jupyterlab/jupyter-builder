@@ -64,11 +64,6 @@ class BaseExtensionApp(JupyterApp, DebugLogFileMixin):
     def run_task(self):
         pass
 
-    def deprecation_warning(self, msg):
-        return self.log.warning(
-            "\033[33m(Deprecated) %s\n\n%s \033[0m", msg, LABEXTENSION_COMMAND_WARNING
-        )
-
     def _log_format_default(self):
         """A default format for messages"""
         return "%(message)s"
