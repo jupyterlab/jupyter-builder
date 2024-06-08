@@ -29,9 +29,6 @@ develop_flags["overwrite"] = (
 )
 
 aliases = dict(base_aliases)
-aliases["app-dir"] = "BaseExtensionApp.app_dir"
-aliases["dev-build"] = "BaseExtensionApp.dev_build"
-aliases["minimize"] = "BaseExtensionApp.minimize"
 aliases["debug-log-path"] = "DebugLogFileMixin.debug_log_path"
 
 install_aliases = copy(aliases)
