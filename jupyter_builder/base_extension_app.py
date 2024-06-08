@@ -22,32 +22,6 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 #from .labapp import LabApp #TO BE DONE -------------line 255
 
 flags = dict(base_flags)
-flags["no-build"] = (
-    {"BaseExtensionApp": {"should_build": False}},
-    "Defer building the app after the action.",
-)
-flags["dev-build"] = (
-    {"BaseExtensionApp": {"dev_build": True}},
-    "Build in development mode.",
-)
-flags["no-minimize"] = (
-    {"BaseExtensionApp": {"minimize": False}},
-    "Do not minimize a production build.",
-)
-flags["clean"] = (
-    {"BaseExtensionApp": {"should_clean": True}},
-    "Cleanup intermediate files after the action.",
-)
-flags["splice-source"] = (
-    {"BaseExtensionApp": {"splice_source": True}},
-    "Splice source packages into app directory.",
-)
-
-check_flags = copy(flags)
-check_flags["installed"] = (
-    {"CheckLabExtensionsApp": {"should_check_installed_only": True}},
-    "Check only if the extension is installed.",
-)
 
 develop_flags = copy(flags)
 develop_flags["overwrite"] = (
