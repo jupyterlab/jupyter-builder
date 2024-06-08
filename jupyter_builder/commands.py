@@ -4,16 +4,8 @@
 # Distributed under the terms of the Modified BSD License.
 
 import itertools
-import logging
-from jupyterlab.semver import Range, gt, gte, lt, lte
-from traitlets import Bool, HasTraits, Instance, List, Unicode, default
-from .coreconfig import CoreConfig
-from threading import Event
 
-# Default Yarn registry used in default yarn.lock
-YARN_DEFAULT_REGISTRY = "https://registry.yarnpkg.com"
-
-
+from .jupyterlab_semver import Range, gt, gte, lt, lte
 
 
 def _test_overlap(spec1, spec2, drop_prerelease1=False, drop_prerelease2=False):
