@@ -29,18 +29,6 @@ develop_flags["overwrite"] = (
     "Overwrite files",
 )
 
-update_flags = copy(flags)
-update_flags["all"] = (
-    {"UpdateLabExtensionApp": {"all": True}},
-    "Update all extensions",
-)
-
-uninstall_flags = copy(flags)
-uninstall_flags["all"] = (
-    {"UninstallLabExtensionApp": {"all": True}},
-    "Uninstall all extensions",
-)
-
 aliases = dict(base_aliases)
 aliases["app-dir"] = "BaseExtensionApp.app_dir"
 aliases["dev-build"] = "BaseExtensionApp.dev_build"
