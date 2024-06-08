@@ -1,5 +1,0 @@
-{
-  "packageManager": "python",
-  "packageName": "dummy1",
-  "uninstallInstructions": "Use your Python package manager (pip, conda, etc.) to uninstall the package dummy1"
-}

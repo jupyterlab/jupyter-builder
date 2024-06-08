@@ -160,12 +160,16 @@ class BaseExtensionApp(JupyterApp, DebugLogFileMixin):
     def _default_labextensions_path(self) -> list[str]:
         return jupyter_path("labextensions")
 
-    @default("splice_source")
-    def _default_splice_source(self):
+    # @default("splice_source")
+    # def _default_splice_source(self):
         # version = get_app_version(AppOptions(app_dir=self.app_dir))
         # return version.endswith("-spliced")
-        return "Ronan"
-
+    
+    from jupyter_core.paths import jupyter_path
+    @default("labextensions_path")
+    def _default_labextensions_path(self) -> list[str]:
+        return jupyter_path("labextensions")
+        
     def start(self):
         if self.app_dir and self.app_dir.startswith(HERE):
             msg = "Cannot run lab extension commands in core app"
