@@ -13,7 +13,6 @@ from jupyter_core.application import JupyterApp, base_aliases, base_flags
 from traitlets import Bool, Instance, List, Unicode, default
 from jupyter_core.paths import jupyter_path
 
-#from .coreconfig import CoreConfig
 from .debug_log_file_mixin import DebugLogFileMixin
 
 # from .commands import (
