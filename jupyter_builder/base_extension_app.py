@@ -58,25 +58,8 @@ class BaseExtensionApp(JupyterApp, DebugLogFileMixin):
         return jupyter_path("labextensions")
 
     def start(self):
-        if self.app_dir and self.app_dir.startswith(HERE):
-            msg = "Cannot run lab extension commands in core app"
-            raise ValueError(msg)
         with self.debug_logging():
             ans = self.run_task()
-            # if ans and self.should_build:
-            #     production = None if self.dev_build is None else not self.dev_build
-            #     app_options = AppOptions(
-            #         app_dir=self.app_dir,
-            #         logger=self.log,
-            #         core_config=self.core_config,
-            #         splice_source=self.splice_source,
-            #     )
-            #     build(
-            #         clean_staging=self.should_clean,
-            #         production=production,
-            #         minimize=self.minimize,
-            #         app_options=app_options,
-            #     )
 
     def run_task(self):
         pass
