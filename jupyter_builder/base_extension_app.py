@@ -34,8 +34,6 @@ aliases["debug-log-path"] = "DebugLogFileMixin.debug_log_path"
 #VERSION = get_app_version()
 VERSION = 1
 
-LABEXTENSION_COMMAND_WARNING = "Users should manage prebuilt extensions with package managers like pip and conda, and extension authors are encouraged to distribute their extensions as prebuilt packages"
-
 
 class BaseExtensionApp(JupyterApp, DebugLogFileMixin):
     version = VERSION
