@@ -21,6 +21,7 @@ def _test_overlap(spec1, spec2, drop_prerelease1=False, drop_prerelease2=False):
         return
     return cmp == 0
 
+
 def _compare_ranges(spec1, spec2, drop_prerelease1=False, drop_prerelease2=False):  # noqa
     """Test whether two version specs overlap.
 
@@ -112,5 +113,3 @@ def _compare_ranges(spec1, spec2, drop_prerelease1=False, drop_prerelease2=False
     if return_value is False:
         return_value = None
     return return_value
-
-

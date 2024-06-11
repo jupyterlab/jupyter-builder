@@ -1,4 +1,3 @@
-# -*- coding:utf-8 -*-
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
@@ -29,7 +28,6 @@
 # SOFTWARE.
 
 
-
 def semver(version, loose):
     if isinstance(version, SemVer):
         if version.loose == loose:
@@ -37,7 +35,7 @@ def semver(version, loose):
         else:
             version = version.version
     elif not isinstance(version, string_type):  # xxx:
-        raise ValueError("Invalid Version: {}".format(version))
+        raise ValueError(f"Invalid Version: {version}")
 
     """
     if (!(this instanceof SemVer))
@@ -45,9 +43,11 @@ def semver(version, loose):
     """
     return SemVer(version, loose)
 
+
 make_semver = semver
 
-class SemVer(object):
+
+class SemVer:
     def __init__(self, version, loose):
         logger.debug("SemVer %s, %s", version, loose)
         self.loose = loose
@@ -56,7 +56,7 @@ class SemVer(object):
         m = regexp[LOOSE if loose else FULL].search(version.strip())
         if not m:
             if not loose:
-                raise ValueError("Invalid Version: {}".format(version))
+                raise ValueError(f"Invalid Version: {version}")
             m = regexp[RECOVERYVERSIONNAME].search(version.strip())
             self.major = int(m.group(1)) if m.group(1) else 0
             self.minor = int(m.group(2)) if m.group(2) else 0
@@ -76,7 +76,6 @@ class SemVer(object):
             if not m.group(4):
                 self.prerelease = []
             else:
-
                 self.prerelease = [
                     (int(id) if NUMERIC.search(id) else id) for id in m.group(4).split(".")
                 ]
@@ -88,13 +87,13 @@ class SemVer(object):
         self.format()  # xxx:
 
     def format(self):
-        self.version = "{}.{}.{}".format(self.major, self.minor, self.patch)
+        self.version = f"{self.major}.{self.minor}.{self.patch}"
         if len(self.prerelease) > 0:
             self.version += "-{}".format(".".join(str(v) for v in self.prerelease))
         return self.version
 
     def __repr__(self):
-        return "<SemVer {} >".format(self)
+        return f"<SemVer {self} >"
 
     def __str__(self):
         return self.version
@@ -227,7 +226,7 @@ class SemVer(object):
                 else:
                     self.prerelease = [identifier, 0]
         else:
-            raise ValueError("invalid increment argument: {}".format(release))
+            raise ValueError(f"invalid increment argument: {release}")
         self.format()
         self.raw = self.version
         return self
@@ -235,6 +234,7 @@ class SemVer(object):
 
 def compare(a, b, loose):
     return make_semver(a, loose).compare(b)
+
 
 def gt(a, b, loose):
     return compare(a, b, loose) > 0

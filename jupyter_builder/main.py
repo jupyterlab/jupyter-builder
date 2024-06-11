@@ -5,22 +5,22 @@
 # # Distributed under the terms of the Modified BSD License.
 
 import sys
-from traitlets.config.application import Application
-from jupyter_builder.extension_commands.develop import DevelopLabExtensionApp
+
 from jupyter_core.application import JupyterApp
+
+from jupyter_builder.extension_commands.develop import DevelopLabExtensionApp
+
 # from .commands.build import BuildLabExtensionApp
 # from .commands.watch import WatchLabExtensionApp
-
-
 
 
 class LabExtensionApp(JupyterApp):
     """Base jupyter labextension command entry point"""
 
     name = "jupyter labextension"
-    #version = VERSION
+    # version = VERSION
     description = "Work with JupyterLab extensions"
-    #examples = _EXAMPLES
+    # examples = _EXAMPLES
 
     subcommands = {
         # "install": (InstallLabExtensionApp, "Install labextension(s)"),

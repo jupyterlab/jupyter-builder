@@ -3,7 +3,6 @@
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
-
 import importlib
 import json
 import os
@@ -25,6 +24,7 @@ from os.path import join as pjoin
 from jupyter_core.paths import ENV_JUPYTER_PATH, SYSTEM_JUPYTER_PATH, jupyter_data_dir
 from jupyter_core.utils import ensure_dir_exists
 from jupyter_server.extension.serverextension import ArgumentConflict
+
 # from jupyterlab_server.config import get_federated_extensions
 from .federated_extensions_requirements import get_federated_extensions
 
@@ -484,5 +484,3 @@ def _get_labextension_metadata(module):  # noqa
 
     msg = f"There is no labextension at {module}. Errors encountered: {errors}"
     raise ModuleNotFoundError(msg)
-
-

@@ -1,13 +1,14 @@
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
-from copy import copy
 import os
+from copy import copy
 
+from jupyter_core.application import base_flags
 from traitlets import Bool, Unicode
+
 from ..base_extension_app import BaseExtensionApp
 from ..federated_extensions import develop_labextension_py
-from jupyter_core.application import base_flags
 
 flags = dict(base_flags)
 develop_flags = copy(flags)
@@ -16,13 +17,14 @@ develop_flags["overwrite"] = (
     "Overwrite files",
 )
 
+
 class DevelopLabExtensionApp(BaseExtensionApp):
     description = "(developer) Develop labextension"
-    
+
     flags = develop_flags
     user = Bool(False, config=True, help="Whether to do a user install")
     sys_prefix = Bool(True, config=True, help="Use the sys.prefix as the prefix")
-    overwrite = Bool(False, config=True, help="Whether to overwrite files") #flags
+    overwrite = Bool(False, config=True, help="Whether to overwrite files")  # flags
     symlink = Bool(True, config=False, help="Whether to use a symlink")
 
     labextensions_dir = Unicode(
@@ -45,10 +47,12 @@ class DevelopLabExtensionApp(BaseExtensionApp):
                 symlink=self.symlink,
             )
 
+
 def main():
     app = DevelopLabExtensionApp()
     app.initialize()
     app.start()
+
 
 if __name__ == "__main__":
     main()

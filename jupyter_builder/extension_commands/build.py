@@ -2,11 +2,14 @@
 # Distributed under the terms of the Modified BSD License.
 
 import os
+
 from traitlets import Bool, Unicode
+
 from ..base_extension_app import BaseExtensionApp
 from ..federated_extensions import build_labextension
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+
 
 class BuildLabExtensionApp(BaseExtensionApp):
     description = "(developer) Build labextension"
@@ -41,10 +44,12 @@ class BuildLabExtensionApp(BaseExtensionApp):
             core_path=self.core_path or None,
         )
 
+
 def main():
     app = BuildLabExtensionApp()
     app.initialize()
     app.start()
+
 
 if __name__ == "__main__":
     main()

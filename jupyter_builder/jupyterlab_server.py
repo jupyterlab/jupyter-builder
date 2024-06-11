@@ -64,5 +64,3 @@ def get_federated_extensions(labextensions_path: list[str]) -> dict[str, Any]:
                         data["install"] = json.load(fid)
                 federated_extensions[data["name"]] = data
     return federated_extensions
-
-

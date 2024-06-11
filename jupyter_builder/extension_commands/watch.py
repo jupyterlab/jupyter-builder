@@ -2,11 +2,14 @@
 # Distributed under the terms of the Modified BSD License.
 
 import os
+
 from traitlets import Bool, Unicode
+
 from ..base_extension_app import BaseExtensionApp
 from ..federated_extensions import watch_labextension
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+
 
 class WatchLabExtensionApp(BaseExtensionApp):
     description = "(developer) Watch labextension"
@@ -39,10 +42,12 @@ class WatchLabExtensionApp(BaseExtensionApp):
             core_path=self.core_path or None,
         )
 
+
 def main():
     app = WatchLabExtensionApp()
     app.initialize()
     app.start()
+
 
 if __name__ == "__main__":
     main()

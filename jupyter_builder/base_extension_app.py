@@ -1,17 +1,14 @@
-
-
 """Jupyter LabExtension Entry Points."""
 
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
 import os
-import sys
 from copy import copy
 
 from jupyter_core.application import JupyterApp, base_aliases, base_flags
-from traitlets import Bool, Instance, List, Unicode, default
 from jupyter_core.paths import jupyter_path
+from traitlets import List, Unicode, default
 
 from .debug_log_file_mixin import DebugLogFileMixin
 
@@ -31,7 +28,7 @@ develop_flags["overwrite"] = (
 aliases = dict(base_aliases)
 aliases["debug-log-path"] = "DebugLogFileMixin.debug_log_path"
 
-#VERSION = get_app_version()
+# VERSION = get_app_version()
 VERSION = 1
 
 
@@ -48,9 +45,9 @@ class BaseExtensionApp(JupyterApp, DebugLogFileMixin):
 
     # @default("labextensions_path")
     # def _default_labextensions_path(self):
-        # lab = LabApp()
-        # lab.load_config_file()
-        # return lab.extra_labextensions_path + lab.labextensions_path
+    # lab = LabApp()
+    # lab.load_config_file()
+    # return lab.extra_labextensions_path + lab.labextensions_path
     @default("labextensions_path")
     def _default_labextensions_path(self) -> list[str]:
         return jupyter_path("labextensions")
