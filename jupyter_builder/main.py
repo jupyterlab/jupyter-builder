@@ -10,7 +10,7 @@ from jupyter_core.application import JupyterApp
 
 from jupyter_builder.extension_commands.develop import DevelopLabExtensionApp
 
-# from .commands.build import BuildLabExtensionApp
+from jupyter_builder.extension_commands.build import BuildLabExtensionApp
 # from .commands.watch import WatchLabExtensionApp
 
 
@@ -35,7 +35,7 @@ class LabExtensionApp(JupyterApp):
         # "unlock": (UnlockLabExtensionsApp, "Unlock labextension(s)"),
         # "check": (CheckLabExtensionsApp, "Check labextension(s)"),
         "develop": (DevelopLabExtensionApp, "(developer) Develop labextension(s)"),
-        # "build": (BuildLabExtensionApp, "(developer) Build labextension"),
+        "build": (BuildLabExtensionApp, "(developer) Build labextension"),
         # "watch": (WatchLabExtensionApp, "(developer) Watch labextension"),
     }
 

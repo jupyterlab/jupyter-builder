@@ -54,7 +54,7 @@ class BaseExtensionApp(JupyterApp, DebugLogFileMixin):
 
     def start(self):
         with self.debug_logging():
-            ans = self.run_task()
+            self.run_task()
 
     def run_task(self):
         pass

@@ -417,7 +417,7 @@ def _get_labextension_metadata(module):  # noqa
     mod_path = osp.abspath(module)
     if not osp.exists(mod_path):
         msg = f"The path `{mod_path}` does not exist."
-        breakpoint()
+        # breakpoint()
         raise FileNotFoundError(msg)
 
     errors = []
