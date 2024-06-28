@@ -194,16 +194,20 @@ def develop_labextension_py(
 
     return full_dests
 
+
 from pathlib import Path
 
 from .core_path import default_core_path
+
 
 def build_labextension(
     path, logger=None, development=False, static_url=None, source_map=False, core_path=None
 ):
     """Build a labextension in the given path"""
-    # core_path = osp.join(HERE, "staging") if core_path is None else str(Path(core_path).resolve())
+
+    
     core_path = default_core_path() if core_path is None else str(Path(core_path).resolve())
+
 
     ext_path = str(Path(path).resolve())
 
