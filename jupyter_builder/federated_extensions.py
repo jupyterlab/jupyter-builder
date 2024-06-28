@@ -295,21 +295,23 @@ def _ensure_builder(ext_path, core_path):
             raise ValueError(msg)
         target = osp.dirname(target)
 
-    overlap = _test_overlap(
-        dep_version1, dep_version2, drop_prerelease1=True, drop_prerelease2=True
-    )
-    if not overlap:
-        with open(
-            osp.join(target, "node_modules", "@jupyterlab", "builder", "package.json")
-        ) as fid:
-            dep_version2 = json.load(fid).get("version")
-        overlap = _test_overlap(
-            dep_version1, dep_version2, drop_prerelease1=True, drop_prerelease2=True
-        )
+    # IGNORING Test Overlap ---------------------------------
 
-    if not overlap:
-        msg = f"Extensions require a devDependency on @jupyterlab/builder@{dep_version1}, you have a dependency on {dep_version2}"
-        raise ValueError(msg)
+    # overlap = _test_overlap(
+    #     dep_version1, dep_version2, drop_prerelease1=True, drop_prerelease2=True
+    # )
+    # if not overlap:
+    #     with open(
+    #         osp.join(target, "node_modules", "@jupyterlab", "builder", "package.json")
+    #     ) as fid:
+    #         dep_version2 = json.load(fid).get("version")
+    #     overlap = _test_overlap(
+    #         dep_version1, dep_version2, drop_prerelease1=True, drop_prerelease2=True
+    #     )
+
+    # if not overlap:
+    #     msg = f"Extensions require a devDependency on @jupyterlab/builder@{dep_version1}, you have a dependency on {dep_version2}"
+    #     raise ValueError(msg)
 
     return osp.join(
         target, "node_modules", "@jupyterlab", "builder", "lib", "build-labextension.js"
