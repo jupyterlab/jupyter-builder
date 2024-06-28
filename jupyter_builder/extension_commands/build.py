@@ -7,7 +7,9 @@ from traitlets import Bool, Unicode
 
 from ..base_extension_app import BaseExtensionApp
 from ..federated_extensions import build_labextension
+
 from ..core_path import default_core_path
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -21,8 +23,10 @@ class BuildLabExtensionApp(BaseExtensionApp):
     source_map = Bool(False, config=True, help="Generate source maps")
 
     core_path = Unicode(
-        # os.path.join(HERE, "staging"),
+
+       
         default_core_path(),
+
         config=True,
         help="Directory containing core application package.json file",
     )
