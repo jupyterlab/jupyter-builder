@@ -22,6 +22,8 @@ def helper(dest):
         cwd=dest,
         check=True,
     )
+    log = dest / "yarn.lock"
+    log.touch()
 
 
 def test_files_build(tmp_path):
