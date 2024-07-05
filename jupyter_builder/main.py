@@ -8,9 +8,9 @@ import sys
 
 from jupyter_core.application import JupyterApp
 
+from jupyter_builder.extension_commands.build import BuildLabExtensionApp
 from jupyter_builder.extension_commands.develop import DevelopLabExtensionApp
 
-from jupyter_builder.extension_commands.build import BuildLabExtensionApp
 # from .commands.watch import WatchLabExtensionApp
 
 

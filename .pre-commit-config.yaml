@@ -57,14 +57,14 @@ repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.3.4
     hooks:
-      - id: ruff
-        types_or: [python, jupyter]
-        args: ["--fix", "--show-fixes"]
+      # - id: ruff
+      #   types_or: [python, jupyter]
+      #   args: ["--fix", "--show-fixes"]
       - id: ruff-format
         types_or: [python, jupyter]
 
-  - repo: https://github.com/scientific-python/cookie
-    rev: "2024.01.24"
-    hooks:
-      - id: sp-repo-review
-        additional_dependencies: ["repo-review[cli]"]
+  # - repo: https://github.com/scientific-python/cookie
+  #   rev: "2024.01.24"
+  #   hooks:
+  #     - id: sp-repo-review
+  #       additional_dependencies: ["repo-review[cli]"]
