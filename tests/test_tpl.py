@@ -5,6 +5,7 @@ import os
 from subprocess import run
 from pathlib import Path
 
+
 def helper(dest):
     run(
         [
@@ -31,7 +32,12 @@ def test_files_build(tmp_path):
     extension_folder.mkdir()
     helper(str(extension_folder))
 
-    run(["jlpm", "install"], cwd=extension_folder, check=True, env={"YARN_ENABLE_IMMUTABLE_INSTALLS":False})
+    run(
+        ["jlpm", "install"],
+        cwd=extension_folder,
+        check=True,
+        env={"YARN_ENABLE_IMMUTABLE_INSTALLS": "false"},
+    )
     run(["jlpm", "run", "build:prod"], cwd=extension_folder, check=True)
 
     run(["jupyter-builder", "build", str(extension_folder)], cwd=extension_folder, check=True)
@@ -50,7 +56,12 @@ def test_files_build_development(tmp_path):
     extension_folder.mkdir()
     helper(str(extension_folder))
 
-    run(["jlpm", "install"], cwd=extension_folder, check=True, env={"YARN_ENABLE_IMMUTABLE_INSTALLS":False})
+    run(
+        ["jlpm", "install"],
+        cwd=extension_folder,
+        check=True,
+        env={"YARN_ENABLE_IMMUTABLE_INSTALLS": "false"},
+    )
     run(["jlpm", "run", "build:prod"], cwd=extension_folder, check=True)
 
     run(
