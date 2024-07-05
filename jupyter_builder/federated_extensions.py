@@ -195,8 +195,6 @@ def develop_labextension_py(
     return full_dests
 
 
-from pathlib import Path
-
 from .core_path import default_core_path
 
 
@@ -205,9 +203,7 @@ def build_labextension(
 ):
     """Build a labextension in the given path"""
 
-    
     core_path = default_core_path() if core_path is None else str(Path(core_path).resolve())
-
 
     ext_path = str(Path(path).resolve())
 
