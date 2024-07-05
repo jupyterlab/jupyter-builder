@@ -32,11 +32,13 @@ def test_files_build(tmp_path):
     extension_folder.mkdir()
     helper(str(extension_folder))
 
+    env = os.environ.copy()
+    env.update({"YARN_ENABLE_IMMUTABLE_INSTALLS": "false"})
     run(
         ["jlpm", "install"],
         cwd=extension_folder,
         check=True,
-        env={"YARN_ENABLE_IMMUTABLE_INSTALLS": "false"},
+        env=env,
     )
     run(["jlpm", "run", "build:prod"], cwd=extension_folder, check=True)
 
@@ -56,11 +58,13 @@ def test_files_build_development(tmp_path):
     extension_folder.mkdir()
     helper(str(extension_folder))
 
+    env = os.environ.copy()
+    env.update({"YARN_ENABLE_IMMUTABLE_INSTALLS": "false"})
     run(
         ["jlpm", "install"],
         cwd=extension_folder,
         check=True,
-        env={"YARN_ENABLE_IMMUTABLE_INSTALLS": "false"},
+        env=env,
     )
     run(["jlpm", "run", "build:prod"], cwd=extension_folder, check=True)
 
