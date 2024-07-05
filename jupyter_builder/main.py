@@ -10,9 +10,7 @@ from jupyter_core.application import JupyterApp
 
 from jupyter_builder.extension_commands.build import BuildLabExtensionApp
 from jupyter_builder.extension_commands.develop import DevelopLabExtensionApp
-
-# from .commands.watch import WatchLabExtensionApp
-
+from jupyter_builder.extension_commands.watch import WatchLabExtensionApp
 
 class LabExtensionApp(JupyterApp):
     """Base jupyter labextension command entry point"""
@@ -36,7 +34,7 @@ class LabExtensionApp(JupyterApp):
         # "check": (CheckLabExtensionsApp, "Check labextension(s)"),
         "develop": (DevelopLabExtensionApp, "(developer) Develop labextension(s)"),
         "build": (BuildLabExtensionApp, "(developer) Build labextension"),
-        # "watch": (WatchLabExtensionApp, "(developer) Watch labextension"),
+        "watch": (WatchLabExtensionApp, "(developer) Watch labextension"),
     }
 
     def start(self):

@@ -227,7 +227,8 @@ def watch_labextension(
     path, labextensions_path, logger=None, development=False, source_map=False, core_path=None
 ):
     """Watch a labextension in a given path"""
-    core_path = osp.join(HERE, "staging") if core_path is None else str(Path(core_path).resolve())
+    # core_path = osp.join(HERE, "staging") if core_path is None else str(Path(core_path).resolve())
+    core_path = default_core_path() if core_path is None else str(Path(core_path).resolve())
     ext_path = str(Path(path).resolve())
 
     if logger:
