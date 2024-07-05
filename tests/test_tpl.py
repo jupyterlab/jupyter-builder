@@ -3,7 +3,7 @@
 
 import os
 from subprocess import run
-
+from pathlib import Path
 
 def helper(dest):
     run(
@@ -22,7 +22,7 @@ def helper(dest):
         cwd=dest,
         check=True,
     )
-    log = dest / "yarn.lock"
+    log = Path(dest) / "yarn.lock"
     log.touch()
 
 
