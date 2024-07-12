@@ -12,6 +12,7 @@ from jupyter_builder.extension_commands.build import BuildLabExtensionApp
 from jupyter_builder.extension_commands.develop import DevelopLabExtensionApp
 from jupyter_builder.extension_commands.watch import WatchLabExtensionApp
 
+
 class LabExtensionApp(JupyterApp):
     """Base jupyter labextension command entry point"""
 
