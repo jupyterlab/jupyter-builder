@@ -20,7 +20,6 @@ class WatchLabExtensionApp(BaseExtensionApp):
     source_map = Bool(False, config=True, help="Generate source maps")
 
     core_path = Unicode(
-        # os.path.join(HERE, "staging"),
         default_core_path(),
         config=True,
         help="Directory containing core application package.json file",
