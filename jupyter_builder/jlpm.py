@@ -9,7 +9,7 @@ import sys
 from jupyterlab_server.process import subprocess, which
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-YARN_PATH = os.path.join(HERE, "staging", "yarn.js")
+YARN_PATH = os.path.join(HERE, "yarn.js")
 
 
 def execvp(cmd, argv):

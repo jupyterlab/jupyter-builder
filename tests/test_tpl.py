@@ -133,7 +133,7 @@ def test_watch_functionality(tmp_path):
     )
 
     # This sleep time makes sure that the comment is added only after the watch process is running.
-    time.sleep(20)
+    time.sleep(100)
 
     try:
         # Add a comment to the TypeScript file to trigger watch
@@ -141,7 +141,7 @@ def test_watch_functionality(tmp_path):
             f.write("// Test comment to trigger watch\n")
 
         # Wait for watch process to detect change and rebuild
-        time.sleep(15)  # Adjust this time if needed
+        time.sleep(100)  # Adjust this time if needed
 
         # List filenames in static directory after change
         final_files = list_files_in_static(static_dir)

@@ -68,7 +68,7 @@ dev = [
 
 [project.scripts]
 jupyter-builder = "jupyter_builder.main:main"
-
+jlpm = "jupyter_builder.jlpm:main"
 
 
 [tool.check-wheel-contents]
