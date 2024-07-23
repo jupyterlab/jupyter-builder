@@ -16,5 +16,7 @@ header:
     - '**/build'
     - '**/.*'
     - 'LICENSE'
+    - tsconfig.tsbuildinfo 
+    - node_modules/**
 
   comment: on-failure
