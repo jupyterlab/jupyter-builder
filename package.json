@@ -43,8 +43,6 @@
         "prettier:check": "jlpm prettier:base --check",
         "watch": "tsc -w --sourceMap"
     },
-    "dependencies": {
-    },
     "devDependencies": {
         "@typescript-eslint/eslint-plugin": "^6.1.0",
         "@typescript-eslint/parser": "^6.1.0",
