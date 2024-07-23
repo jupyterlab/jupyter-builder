@@ -19,5 +19,6 @@ header:
     - tsconfig.tsbuildinfo
     - node_modules/**
     - node_modules/.**
+    - 'yarn.lock'
 
   comment: on-failure
