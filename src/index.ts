@@ -3,3 +3,4 @@
  * Distributed under the terms of the Modified BSD License.
  */
 
+console.log('hello');
