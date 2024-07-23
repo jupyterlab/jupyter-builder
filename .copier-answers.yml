@@ -1,0 +1,14 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: v4.3.4
+_src_path: https://github.com/jupyterlab/extension-template
+author_email: jupyter@googlegroups.com
+author_name: Jupyter Development Team
+has_binder: false
+has_settings: false
+kind: frontend
+labextension_name: '@jupyterlab/builder'
+project_short_description: Jupyter build tools.
+python_name: jupyter_builder
+repository: https://github.com/jupyterlab/jupyterlab-builder
+test: false
+
