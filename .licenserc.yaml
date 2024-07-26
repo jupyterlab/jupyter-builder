@@ -16,7 +16,7 @@ header:
     - '**/build'
     - '**/.*'
     - 'LICENSE'
-    - tsconfig.tsbuildinfo 
+    - tsconfig.tsbuildinfo
     - node_modules/**
     - node_modules/.**
 
