@@ -25,7 +25,7 @@ pip install jupyter_builder
       ```
       jupyter-builder build <path to extension folder>
       ```
-  - `develop` :  Install the Jupyter extension JavaScript assets in dev mode for consumption in the Jupyter app. It similar to [editable install mode of pip](https://setuptools.pypa.io/en/latest/userguide/development_mode.html)
+  - `develop` :  Install the Jupyter extension JavaScript assets in dev mode for consumption in the Jupyter app. It similar to [editable install mode of pip](https://pip.pypa.io/en/stable/topics/local-project-installs/#editable-installs)
       ```
       jupyter-builder develop --overwrite (path to extension folder)
       ```
