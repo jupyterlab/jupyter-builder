@@ -20,7 +20,7 @@ Execute the following command in a terminal:
 pip install jupyter_builder
 ```
 ## What does it do?
-- Provides a CLI for building Jupyter extensions. There are 3 subcommands-
+- Provides a CLI for building Jupyter extensions. There are 3 subcommands
   - `build` : Builds the Jupyter extension JavaScript assets to be consumed by the Jupyter app.
       ```
       jupyter-builder build <path to extension folder>
