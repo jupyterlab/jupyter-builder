@@ -13,6 +13,9 @@ of core and extension developers who can now focus on their respective parts of 
 codebase instead of the earlier intertwined code. It will in particular reduce the need to update the maintenance tooling to produce extension compatible with newer version of Jupyter app.
 
 ## How to install the package?
+
+Execute the following command in a terminal:
+
 ```
 pip install jupyter_builder
 ```
