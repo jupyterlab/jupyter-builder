@@ -33,6 +33,9 @@ pip install jupyter_builder
 - Provides a NPM package manager: `jlpm`
 
 ## How to uninstall the package?
+
+Execute the following command in a terminal:
+
 ```
 pip uninstall jupyter_builder
 ```
