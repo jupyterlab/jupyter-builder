@@ -10,7 +10,7 @@ Build tools for JupyterLab (and remixes)
 - This would also solve some chicken-and-egg problems like jupyterlab/jupyterlab_pygments#23.
 - Isolating the builder functionalities will simplify the work
 of core and extension developers who can now focus on their respective parts of the
-codebase instead of the earlier intertwined code.
+codebase instead of the earlier intertwined code. It will in particular reduce the need to update the maintenance tooling to produce extension compatible with newer version of Jupyter app.
 
 ## How to install the package?
 ```
