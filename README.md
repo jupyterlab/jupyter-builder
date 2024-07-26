@@ -20,7 +20,7 @@ pip install jupyter_builder
 - Provides a CLI for building Jupyter extensions. There are 3 subcommands-
   - `build` : Builds the Jupyter extension JavaScript assets to be consumed by the Jupyter app.
       ```
-      jupyter-builder build (path to extension folder)
+      jupyter-builder build <path to extension folder>
       ```
   - `develop` :  Install the Jupyter extension JavaScript assets in dev mode for consumption in the Jupyter app. It similar to [editable install mode of pip](https://setuptools.pypa.io/en/latest/userguide/development_mode.html)
       ```
