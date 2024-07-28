@@ -14,10 +14,7 @@ requires-python = ">=3.8"
 authors = [
     { name = "Jupyter Development Team", email = "jupyter@googlegroups.com" },
 ]
-keywords = [
-    "ipython",
-    "jupyter",
-]
+keywords = ["ipython", "jupyter"]
 classifiers = [
     "Framework :: Jupyter",
     "Framework :: Jupyter :: JupyterLab",
@@ -32,9 +29,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
-dependencies = [
-    "traitlets",
-]
+dependencies = ["traitlets"]
 dynamic = ["version"]
 
 [project.urls]
@@ -52,7 +47,7 @@ test = [
     "pytest-cov",
     "copier>=9.2,<10",
     "jinja2-time",
-    "jupyterlab"
+    "jupyterlab",
 ]
 # Check ruff version is aligned with the one in .pre-commit-config.yaml
 dev = [
@@ -86,7 +81,7 @@ version_cmd = "hatch version"
 before-build-npm = [
     "python -m pip install 'jupyterlab>=4.0.0,<5'",
     "jlpm",
-    "jlpm build:prod"
+    "jlpm build:prod",
 ]
 before-build-python = ["jlpm clean:all"]
 
@@ -99,14 +94,24 @@ warn_unreachable = true
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 
 [tool.pytest.ini_options]
-filterwarnings = ["error", "module:pkg_resources is deprecated:DeprecationWarning",
-"module:This template was designed for Copier 7.1.0:copier.errors.OldTemplateWarning"]
+filterwarnings = [
+    "error",
+    "module:pkg_resources is deprecated:DeprecationWarning",
+    "module:This template was designed for Copier 7.1.0:copier.errors.OldTemplateWarning",
+    "module:can't resolve package from __spec__ or __package__:ImportWarning",
+]
 
 log_cli_level = "INFO"
 minversion = "7"
 testpaths = ["tests/"]
 norecursedirs = ".git _build .ipynb_checkpoints"
-addopts = ["-ra", "--strict-config", "--strict-markers", "--pdbcls=IPython.terminal.debugger:Pdb", "--junitxml=junit.xml"]
+addopts = [
+    "-ra",
+    "--strict-config",
+    "--strict-markers",
+    "--pdbcls=IPython.terminal.debugger:Pdb",
+    "--junitxml=junit.xml",
+]
 xfail_strict = true
 
 [tool.repo-review]
@@ -118,9 +123,30 @@ line-length = 100
 
 [tool.ruff.lint]
 select = [
-  "A", "B", "C", "DTZ", "E", "EM", "F", "FBT", "I", "ICN", "N",
-  "PLC", "PLE", "PLR", "PLW", "Q", "RUF", "S", "SIM", "T", "TID", "UP",
-  "W", "YTT",
+    "A",
+    "B",
+    "C",
+    "DTZ",
+    "E",
+    "EM",
+    "F",
+    "FBT",
+    "I",
+    "ICN",
+    "N",
+    "PLC",
+    "PLE",
+    "PLR",
+    "PLW",
+    "Q",
+    "RUF",
+    "S",
+    "SIM",
+    "T",
+    "TID",
+    "UP",
+    "W",
+    "YTT",
 ]
 ignore = []
 
