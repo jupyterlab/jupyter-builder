@@ -96,7 +96,7 @@ filterwarnings = [
     "error",
     "module:pkg_resources is deprecated:DeprecationWarning",
     "module:This template was designed for Copier 7.1.0:copier.errors.OldTemplateWarning",
-    "module:can't resolve package from __spec__ or __package__:ImportWarning",
+    "ignore::ImportWarning",
 ]
 
 log_cli_level = "INFO"
