@@ -95,7 +95,7 @@ enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 filterwarnings = [
     "error",
     "module:pkg_resources is deprecated:DeprecationWarning",
-    "module:This template was designed for Copier 7.1.0:copier.errors.OldTemplateWarning",
+    "module:This template was designed for Copier:copier.errors.OldTemplateWarning",
     "ignore::ImportWarning",
 ]
 
