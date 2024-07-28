@@ -11,6 +11,7 @@ on:
       steps_to_skip:
         description: "Comma separated list of steps to skip"
         required: false
+        default: 'build-npm'
 
 jobs:
   publish_release:
