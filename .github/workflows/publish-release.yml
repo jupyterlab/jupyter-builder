@@ -11,6 +11,7 @@ on:
       steps_to_skip:
         description: "Comma separated list of steps to skip"
         required: false
+        default: 'build-npm'
 
 jobs:
   publish_release:
@@ -38,6 +39,8 @@ jobs:
 
       - name: Finalize Release
         id: finalize-release
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         uses: jupyter-server/jupyter_releaser/.github/actions/finalize-release@v2
         with:
           token: ${{ steps.app-token.outputs.token }}

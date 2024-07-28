@@ -1,0 +1,136 @@
+{
+    "name": "@jupyterlab/builder",
+    "version": "0.0.1",
+    "private": true,
+    "description": "Jupyter build tools.",
+    "keywords": [
+        "jupyter",
+        "jupyterlab"
+    ],
+    "homepage": "https://github.com/jupyterlab/jupyterlab-builder",
+    "bugs": {
+        "url": "https://github.com/jupyterlab/jupyterlab-builder/issues"
+    },
+    "license": "BSD-3-Clause",
+    "author": {
+        "name": "Jupyter Development Team",
+        "email": "jupyter@googlegroups.com"
+    },
+    "files": [
+        "lib/**/*.{d.ts,eot,gif,html,jpg,js,js.map,json,png,svg,woff2,ttf}",
+        "src/**/*.{ts,tsx}"
+    ],
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/jupyterlab/jupyterlab-builder.git"
+    },
+    "scripts": {
+        "build": "jlpm build:lib",
+        "build:prod": "jlpm clean && jlpm build:lib:prod",
+        "build:lib": "tsc --sourceMap",
+        "build:lib:prod": "tsc",
+        "clean": "jlpm clean:lib",
+        "clean:lib": "rimraf lib tsconfig.tsbuildinfo",
+        "clean:lintcache": "rimraf .eslintcache",
+        "clean:all": "jlpm clean:lib && jlpm clean:lintcache",
+        "eslint": "jlpm eslint:check --fix",
+        "eslint:check": "eslint . --cache --ext .ts,.tsx",
+        "lint": "jlpm prettier && jlpm eslint",
+        "lint:check": "jlpm prettier:check && jlpm eslint:check",
+        "prettier": "jlpm prettier:base --write --list-different",
+        "prettier:base": "prettier \"**/*{.ts,.tsx,.js,.jsx,.css,.json,.md}\"",
+        "prettier:check": "jlpm prettier:base --check",
+        "watch": "tsc -w --sourceMap"
+    },
+    "devDependencies": {
+        "@typescript-eslint/eslint-plugin": "^6.1.0",
+        "@typescript-eslint/parser": "^6.1.0",
+        "eslint": "^8.36.0",
+        "eslint-config-prettier": "^8.8.0",
+        "eslint-plugin-prettier": "^5.0.0",
+        "npm-run-all": "^4.1.5",
+        "prettier": "^3.0.0",
+        "rimraf": "^5.0.1",
+        "source-map-loader": "^1.0.2",
+        "typescript": "~5.0.2"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "eslintIgnore": [
+        "node_modules",
+        "dist",
+        "coverage",
+        "**/*.d.ts"
+    ],
+    "eslintConfig": {
+        "extends": [
+            "eslint:recommended",
+            "plugin:@typescript-eslint/eslint-recommended",
+            "plugin:@typescript-eslint/recommended",
+            "plugin:prettier/recommended"
+        ],
+        "parser": "@typescript-eslint/parser",
+        "parserOptions": {
+            "project": "tsconfig.json",
+            "sourceType": "module"
+        },
+        "plugins": [
+            "@typescript-eslint"
+        ],
+        "rules": {
+            "@typescript-eslint/naming-convention": [
+                "error",
+                {
+                    "selector": "interface",
+                    "format": [
+                        "PascalCase"
+                    ],
+                    "custom": {
+                        "regex": "^I[A-Z]",
+                        "match": true
+                    }
+                }
+            ],
+            "@typescript-eslint/no-unused-vars": [
+                "warn",
+                {
+                    "args": "none"
+                }
+            ],
+            "@typescript-eslint/no-explicit-any": "off",
+            "@typescript-eslint/no-namespace": "off",
+            "@typescript-eslint/no-use-before-define": "off",
+            "@typescript-eslint/quotes": [
+                "error",
+                "single",
+                {
+                    "avoidEscape": true,
+                    "allowTemplateLiterals": false
+                }
+            ],
+            "curly": [
+                "error",
+                "all"
+            ],
+            "eqeqeq": "error",
+            "prefer-arrow-callback": "error"
+        }
+    },
+    "prettier": {
+        "singleQuote": true,
+        "trailingComma": "none",
+        "arrowParens": "avoid",
+        "endOfLine": "auto",
+        "overrides": [
+            {
+                "files": "package.json",
+                "options": {
+                    "tabWidth": 4
+                }
+            }
+        ]
+    }
+}

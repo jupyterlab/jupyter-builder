@@ -14,29 +14,23 @@ requires-python = ">=3.8"
 authors = [
     { name = "Jupyter Development Team", email = "jupyter@googlegroups.com" },
 ]
-keywords = [
-    "ipython",
-    "jupyter",
-]
+keywords = ["ipython", "jupyter"]
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
     "Framework :: Jupyter",
     "Framework :: Jupyter :: JupyterLab",
     "Framework :: Jupyter :: JupyterLab :: 4",
     "Intended Audience :: Developers",
-    "Intended Audience :: Science/Research",
-    "Intended Audience :: System Administrators",
     "License :: OSI Approved :: BSD License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
-dependencies = [
-    "traitlets",
-]
-dynamic = [
-    "version",
-]
+dependencies = ["traitlets"]
+dynamic = ["version"]
 
 [project.urls]
 Homepage = "https://jupyter.org"
@@ -53,15 +47,13 @@ test = [
     "pytest-cov",
     "copier>=9.2,<10",
     "jinja2-time",
-    "jupyterlab"
+    "jupyterlab",
 ]
 # Check ruff version is aligned with the one in .pre-commit-config.yaml
 dev = [
     "build",
     "mypy",
     "pre-commit",
-    "pytest-cov",
-    "coverage",
     "hatch",
     "ruff==0.4.7",
 ]
@@ -70,13 +62,26 @@ dev = [
 jupyter-builder = "jupyter_builder.main:main"
 jlpm = "jupyter_builder.jlpm:main"
 
-
 [tool.check-wheel-contents]
 ignore = ["W002", "W004"]
 
 [tool.hatch.version]
 path = "jupyter_builder/_version.py"
 validate-bump = false
+
+[tool.hatch.build.targets.sdist]
+exclude = [".github"]
+
+[tool.jupyter-releaser.options]
+version_cmd = "hatch version"
+
+[tool.jupyter-releaser.hooks]
+before-build-npm = [
+    "python -m pip install 'jupyterlab>=4.0.0,<5'",
+    "jlpm",
+    "jlpm build:prod",
+]
+before-build-python = ["jlpm clean:all"]
 
 [tool.mypy]
 python_version = "3.8"
@@ -87,14 +92,24 @@ warn_unreachable = true
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 
 [tool.pytest.ini_options]
-filterwarnings = ["error", "module:pkg_resources is deprecated:DeprecationWarning",
-"module:This template was designed for Copier 7.1.0:copier.errors.OldTemplateWarning"]
+filterwarnings = [
+    "error",
+    "module:pkg_resources is deprecated:DeprecationWarning",
+    "module:This template was designed for Copier:copier.errors.OldTemplateWarning",
+    "ignore::ImportWarning",
+]
 
 log_cli_level = "INFO"
 minversion = "7"
 testpaths = ["tests/"]
 norecursedirs = ".git _build .ipynb_checkpoints"
-addopts = ["-ra", "--strict-config", "--strict-markers", "--pdbcls=IPython.terminal.debugger:Pdb", "--junitxml=junit.xml"]
+addopts = [
+    "-ra",
+    "--strict-config",
+    "--strict-markers",
+    "--pdbcls=IPython.terminal.debugger:Pdb",
+    "--junitxml=junit.xml",
+]
 xfail_strict = true
 
 [tool.repo-review]
@@ -106,9 +121,30 @@ line-length = 100
 
 [tool.ruff.lint]
 select = [
-  "A", "B", "C", "DTZ", "E", "EM", "F", "FBT", "I", "ICN", "N",
-  "PLC", "PLE", "PLR", "PLW", "Q", "RUF", "S", "SIM", "T", "TID", "UP",
-  "W", "YTT",
+    "A",
+    "B",
+    "C",
+    "DTZ",
+    "E",
+    "EM",
+    "F",
+    "FBT",
+    "I",
+    "ICN",
+    "N",
+    "PLC",
+    "PLE",
+    "PLR",
+    "PLW",
+    "Q",
+    "RUF",
+    "S",
+    "SIM",
+    "T",
+    "TID",
+    "UP",
+    "W",
+    "YTT",
 ]
 ignore = []
 
