@@ -50,13 +50,7 @@ test = [
     "jupyterlab",
 ]
 # Check ruff version is aligned with the one in .pre-commit-config.yaml
-dev = [
-    "build",
-    "mypy",
-    "pre-commit",
-    "hatch",
-    "ruff==0.5.5",
-]
+dev = ["build", "mypy", "pre-commit", "hatch", "ruff==0.5.5"]
 
 [project.scripts]
 jupyter-builder = "jupyter_builder.main:main"
@@ -146,8 +140,26 @@ select = [
     "W",
     "YTT",
 ]
-ignore = []
+ignore = ["FBT002", "FBT003"]
 
 [tool.ruff.lint.per-file-ignores]
 # S101 Use of `assert` detected
-"tests/*" = ["S101"]
+"tests/*" = ["S101", "S603", "S607"]
+"jupyter_builder/main.py" = ["RUF012"]
+# N806 Variable `tM` in function should be lowercase
+# N816 Variable `comparatorTrimReplace` in global scope should not be mixedCase
+# PLC1901 test can be simplified as an empty string is falsey
+# PLR1714 Consider merging multiple comparisons
+# PLR5501 Use `elif` instead of `else` then `if`, to reduce indentation
+"jupyter_builder/jupyterlab_semver.py" = [
+    "C901",
+    "EM101",
+    "EM102",
+    "N806",
+    "N816",
+    "PLC1901",
+    "PLR0912",
+    "PLR0915",
+    "PLR1714",
+    "PLR5501",
+]

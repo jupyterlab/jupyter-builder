@@ -5,9 +5,9 @@ import os
 
 from traitlets import Bool, Unicode
 
-from ..base_extension_app import BaseExtensionApp
-from ..core_path import default_core_path
-from ..federated_extensions import build_labextension
+from jupyter_builder.base_extension_app import BaseExtensionApp
+from jupyter_builder.core_path import default_core_path
+from jupyter_builder.federated_extensions import build_labextension
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -27,7 +27,7 @@ class BuildLabExtensionApp(BaseExtensionApp):
         help="Directory containing core application package.json file",
     )
 
-    aliases = {
+    aliases = {  # noqa: RUF012
         "static-url": "BuildLabExtensionApp.static_url",
         "development": "BuildLabExtensionApp.development",
         "source-map": "BuildLabExtensionApp.source_map",

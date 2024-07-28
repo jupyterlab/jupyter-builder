@@ -7,8 +7,8 @@ from copy import copy
 from jupyter_core.application import base_flags
 from traitlets import Bool, Unicode
 
-from ..base_extension_app import BaseExtensionApp
-from ..federated_extensions import develop_labextension_py
+from jupyter_builder.base_extension_app import BaseExtensionApp
+from jupyter_builder.federated_extensions import develop_labextension_py
 
 flags = dict(base_flags)
 develop_flags = copy(flags)

@@ -47,18 +47,18 @@ class DebugLogFileMixin(Configurable):
             for line in msg:
                 self.log.debug(line)
             if isinstance(ex, SystemExit):
-                warnings.warn(f"An error occurred. See the log file for details: {log_path}")
+                warnings.warn(
+                    f"An error occurred. See the log file for details: {log_path}", stacklevel=1
+                )
                 raise
-            warnings.warn("An error occurred.")
-            warnings.warn(msg[-1].strip())
-            warnings.warn(f"See the log file for details: {log_path}")
+            warnings.warn("An error occurred.", stacklevel=1)
+            warnings.warn(msg[-1].strip(), stacklevel=1)
+            warnings.warn(f"See the log file for details: {log_path}", stacklevel=1)
             self.exit(1)
         else:
             log.removeHandler(_debug_handler)
             _debug_handler.flush()
             _debug_handler.close()
-            try:
+            with contextlib.suppress(FileNotFoundError):
                 os.remove(log_path)
-            except FileNotFoundError:
-                pass
         log.removeHandler(_debug_handler)

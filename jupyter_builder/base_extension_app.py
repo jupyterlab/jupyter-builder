@@ -4,6 +4,7 @@
 # Distributed under the terms of the Modified BSD License.
 
 from __future__ import annotations
+
 import os
 from copy import copy
 
@@ -14,9 +15,6 @@ from traitlets import List, Unicode, default
 from .debug_log_file_mixin import DebugLogFileMixin
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-
-
-# from .federated_labextensions import build_labextension, develop_labextension_py, watch_labextension
 
 flags = dict(base_flags)
 
