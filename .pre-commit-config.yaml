@@ -18,6 +18,7 @@ repos:
       - id: check-yaml
       - id: debug-statements
       - id: end-of-file-fixer
+        exclude: \.copier-answers\.yml
       - id: trailing-whitespace
 
   - repo: https://github.com/python-jsonschema/check-jsonschema
