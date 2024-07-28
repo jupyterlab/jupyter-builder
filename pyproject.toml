@@ -54,8 +54,6 @@ dev = [
     "build",
     "mypy",
     "pre-commit",
-    "pytest-cov",
-    "coverage",
     "hatch",
     "ruff==0.4.7",
 ]
