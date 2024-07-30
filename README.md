@@ -45,17 +45,24 @@ Execute the following command in a terminal:
 pip uninstall jupyter_builder
 ```
 
-See https://github.com/jupyterlab/jupyterlab/issues/13456
-
+# GSoC 2024 Anecdote by [@cronan03](https://github.com/cronan03)
 ## Goal
 The goals of this project are:
 - to extract that tooling as a new separate package to ease maintenance (for core and extension developers)
 - update the existing package to use the new one
 - make it configurable to be reused for other applications.
-
+  
+## What I did
+1. Suceessfully created a CLI with the processes `develop`, `build` and `watch` mentioned above.
+2. Created extensive unit tests using `Pytest` to ensure the processes run efficiently on any OS.
+3. Reduced ecternal dependancies by bringing `jlpm` and `jupyterlab_semver` to the package.
+4. Pre released the package. It can be found on Pypi here https://pypi.org/project/jupyter-builder/
+5. Initiated a solution to the issue https://github.com/jupyterlab/jupyterlab/issues/13456
+   
 ## What's left to do
-We should bring `@jupyterlab/builder` within this package and make it generic.
+1. We should bring `@jupyterlab/builder` within this package and make it generic.
 For now the code lives there: https://github.com/jupyterlab/jupyterlab/tree/main/builder
+2. https://github.com/jupyterlab/jupyter-builder/blob/fffb100fc57ecb147bface4441f91bfd0cb6ff9a/jupyter_builder/federated_extensions.py#L296 which is responsible for checking version overlap has been temporarily ignored to make the build feature work.
 
 ## Merged PRs
 1. https://github.com/jupyterlab/jupyter-builder/pull/11
@@ -68,6 +75,15 @@ For now the code lives there: https://github.com/jupyterlab/jupyterlab/tree/main
    - It will always result in the creation of a file `static/style.js` in `<extension_folder>/myextension/labextension`.
    - Tests have been crafted using `Pytest` to check for the existence of files mentioned above on running the `build` command.
 3. https://github.com/jupyterlab/jupyter-builder/pull/18
+   - The `watch` feature on running will rebuild the JS assets on being triggered. This happens on changing contents in `<extension_folder>/src/index.ts`
+   - To test this feature we deliberately make a change in `index.ts` triggering `watch`. This replaces old JS assets with new ones having different hash values in the file names. We create 2 vectors of filenames before and after triggering `watch` which will tell us if it actually worked.
 4. https://github.com/jupyterlab/jupyter-builder/pull/20
+   - To reduce external dependancies, we added `jlpm` to this package.
+   - It existed [here](https://github.com/jupyterlab/jupyterlab/blob/main/jupyterlab/jlpmapp.py) with the [entrypoint](https://github.com/jupyterlab/jupyterlab/blob/e048f27548969c0e4403417ac04bc186f119128f/pyproject.toml#L60).
 5. https://github.com/jupyterlab/jupyter-builder/pull/22
-
+   - Documented the working of the Jupyter builder along with installation guide.
+  
+## Challenges and Learning
+1. One of the main challenges was starting this project from scratch with no pre existing code to rely on. I thank my mentor [@fcollonval](https://github.com/fcollonval) for creating the skeleton in https://github.com/jupyterlab/jupyter-builder/pull/2 which gave me a base to work on.
+2. Selecting relevant features for Jupyter builder from [labextension.py](https://github.com/jupyterlab/jupyterlab/blob/main/jupyterlab/labextensions.py) was relly tough without a thorough understanding on which functions Jupyter builder would actually rely on.
+3. Creating tests for the `watch` feature was tricky as I had to carefully adjust sleep times to make sure the function was running before a change in `<extension_folder>/src/index.ts` was made. Otherwise the change happended before `watch` ran and never triggered it.
