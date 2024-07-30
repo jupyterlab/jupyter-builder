@@ -50,21 +50,21 @@ def get_federated_extensions(labextensions_path: list[str]) -> dict[str, Any]:
             with open(ext_path, encoding="utf-8") as fid:
                 pkgdata = json.load(fid)
             if pkgdata["name"] not in federated_extensions:
-                data = dict(
-                    name=pkgdata["name"],
-                    version=pkgdata["version"],
-                    description=pkgdata.get("description", ""),
-                    url=get_package_url(pkgdata),
-                    ext_dir=ext_dir,
-                    ext_path=osp.dirname(ext_path),
-                    is_local=False,
-                    dependencies=pkgdata.get("dependencies", dict()),
-                    jupyterlab=pkgdata.get("jupyterlab", dict()),
-                )
+                data = {
+                    "name": pkgdata["name"],
+                    "version": pkgdata["version"],
+                    "description": pkgdata.get("description", ""),
+                    "url": get_package_url(pkgdata),
+                    "ext_dir": ext_dir,
+                    "ext_path": osp.dirname(ext_path),
+                    "is_local": False,
+                    "dependencies": pkgdata.get("dependencies", {}),
+                    "jupyterlab": pkgdata.get("jupyterlab", {}),
+                }
 
                 # Add repository info if available
                 if "repository" in pkgdata and "url" in pkgdata.get("repository", {}):
-                    data["repository"] = dict(url=pkgdata.get("repository").get("url"))
+                    data["repository"] = {"url": pkgdata.get("repository").get("url")}
 
                 install_path = osp.join(osp.dirname(ext_path), "install.json")
                 if osp.exists(install_path):

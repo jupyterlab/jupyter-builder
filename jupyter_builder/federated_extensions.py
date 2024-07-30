@@ -25,13 +25,14 @@ from jupyter_core.paths import ENV_JUPYTER_PATH, SYSTEM_JUPYTER_PATH, jupyter_da
 from jupyter_core.utils import ensure_dir_exists
 from jupyter_server.extension.serverextension import ArgumentConflict
 
-# from jupyterlab_server.config import get_federated_extensions
 from .federated_extensions_requirements import get_federated_extensions
 
 try:
     from tomllib import load  # Python 3.11+
 except ImportError:
     from tomli import load
+
+from .core_path import default_core_path
 
 # from .commands import _test_overlap  TO BE DONE -----------------------------
 
@@ -95,7 +96,7 @@ def develop_labextension(  # noqa
     ensure_dir_exists(labext)
 
     if isinstance(path, (list, tuple)):
-        msg = "path must be a string pointing to a single extension to install; call this function multiple times to install multiple extensions"
+        msg = "path must be a string pointing to a single extension to install; call this function multiple times to install multiple extensions"  # noqa: E501
         raise TypeError(msg)
 
     if not destination:
@@ -104,7 +105,7 @@ def develop_labextension(  # noqa
     full_dest = normpath(pjoin(labext, destination))
     if overwrite and os.path.lexists(full_dest):
         if logger:
-            logger.info("Removing: %s" % full_dest)
+            logger.info("Removing: %s", full_dest)
         if os.path.isdir(full_dest) and not os.path.islink(full_dest):
             shutil.rmtree(full_dest)
         else:
@@ -124,14 +125,15 @@ def develop_labextension(  # noqa
                 if platform.platform().startswith("Windows"):
                     msg = (
                         "Symlinks can be activated on Windows 10 for Python version 3.8 or higher"
-                        " by activating the 'Developer Mode'. That may not be allowed by your administrators.\n"
+                        " by activating the 'Developer Mode'. That may not be allowed by your administrators.\n"  # noqa: E501
                         "See https://docs.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development"
                     )
                     raise OSError(msg) from e
                 raise
 
         elif not os.path.islink(full_dest):
-            raise ValueError("%s exists and is not a symlink" % full_dest)
+            msg = f"{full_dest} exists and is not a symlink"
+            raise ValueError(msg)
 
     elif os.path.isdir(path):
         path = pjoin(os.path.abspath(path), "")  # end in path separator
@@ -139,7 +141,7 @@ def develop_labextension(  # noqa
             dest_dir = pjoin(full_dest, parent[len(path) :])
             if not os.path.exists(dest_dir):
                 if logger:
-                    logger.info("Making directory: %s" % dest_dir)
+                    logger.info("Making directory: %s", dest_dir)
                 os.makedirs(dest_dir)
             for file_name in files:
                 src = pjoin(parent, file_name)
@@ -152,7 +154,7 @@ def develop_labextension(  # noqa
     return full_dest
 
 
-def develop_labextension_py(
+def develop_labextension_py(  # noqa: PLR0913
     module,
     user=False,
     sys_prefix=False,
@@ -195,10 +197,7 @@ def develop_labextension_py(
     return full_dests
 
 
-from .core_path import default_core_path
-
-
-def build_labextension(
+def build_labextension(  # noqa: PLR0913
     path, logger=None, development=False, static_url=None, source_map=False, core_path=None
 ):
     """Build a labextension in the given path"""
@@ -208,7 +207,7 @@ def build_labextension(
     ext_path = str(Path(path).resolve())
 
     if logger:
-        logger.info("Building extension in %s" % path)
+        logger.info("Building extension in %s", path)
 
     builder = _ensure_builder(ext_path, core_path)
 
@@ -223,7 +222,7 @@ def build_labextension(
     subprocess.check_call(arguments, cwd=ext_path)  # noqa S603
 
 
-def watch_labextension(
+def watch_labextension(  # noqa: PLR0913
     path, labextensions_path, logger=None, development=False, source_map=False, core_path=None
 ):
     """Watch a labextension in a given path"""
@@ -231,7 +230,7 @@ def watch_labextension(
     ext_path = str(Path(path).resolve())
 
     if logger:
-        logger.info("Building extension in %s" % path)
+        logger.info("Building extension in %s", path)
 
     # Check to see if we need to create a symlink
     federated_extensions = get_federated_extensions(labextensions_path)
@@ -274,9 +273,8 @@ def _ensure_builder(ext_path, core_path):
     dep_version2 = ext_data.get("devDependencies", {}).get("@jupyterlab/builder")
     dep_version2 = dep_version2 or ext_data.get("dependencies", {}).get("@jupyterlab/builder")
     if dep_version2 is None:
-        raise ValueError(
-            "Extensions require a devDependency on @jupyterlab/builder@%s" % dep_version1
-        )
+        msg = f"Extensions require a devDependency on @jupyterlab/builder@{dep_version1}"
+        raise ValueError(msg)
 
     # if we have installed from disk (version is a path), assume we know what
     # we are doing and do not check versions.
@@ -310,7 +308,7 @@ def _ensure_builder(ext_path, core_path):
     #     )
 
     # if not overlap:
-    #     msg = f"Extensions require a devDependency on @jupyterlab/builder@{dep_version1}, you have a dependency on {dep_version2}"
+    #     msg = f"Extensions require a devDependency on @jupyterlab/builder@{dep_version1}, you have a dependency on {dep_version2}"  # noqa: E501
     #     raise ValueError(msg)
 
     return osp.join(
@@ -339,10 +337,10 @@ def _should_copy(src, dest, logger=None):
         # we add a fudge factor to work around a bug in python 2.x
         # that was fixed in python 3.x: https://bugs.python.org/issue12904
         if logger:
-            logger.warning("Out of date: %s" % dest)
+            logger.warning("Out of date: %s", dest)
         return True
     if logger:
-        logger.info("Up to date: %s" % dest)
+        logger.info("Up to date: %s", dest)
     return False
 
 
@@ -388,9 +386,8 @@ def _get_labextension_dir(user=False, sys_prefix=False, prefix=None, labextensio
     ]
     conflicting_set = [f"{n}={v!r}" for n, v in conflicting if v]
     if len(conflicting_set) > 1:
-        msg = "cannot specify more than one of user, sys_prefix, prefix, or labextensions_dir, but got: {}".format(
-            ", ".join(conflicting_set)
-        )
+        conflict = ", ".join(conflicting_set)
+        msg = f"cannot specify more than one of user, sys_prefix, prefix, or labextensions_dir, but got: {conflict}"  # noqa: E501
         raise ArgumentConflict(msg)
     if user:
         labext = pjoin(jupyter_data_dir(), "labextensions")
@@ -449,8 +446,8 @@ def _get_labextension_metadata(module):  # noqa
     if not package:
         try:
             package = (
-                subprocess.check_output(
-                    [sys.executable, "setup.py", "--name"],  # noqa S603
+                subprocess.check_output(  # noqa: S603
+                    [sys.executable, "setup.py", "--name"],
                     cwd=mod_path,
                 )
                 .decode("utf8")

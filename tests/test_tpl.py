@@ -3,11 +3,10 @@
 
 import os
 import platform
-import signal
 import subprocess
 import time
-from subprocess import run, Popen
 from pathlib import Path
+from subprocess import Popen, run
 
 
 def helper(dest):
@@ -123,10 +122,7 @@ def test_watch_functionality(tmp_path):
     initial_files = list_files_in_static(static_dir)
 
     is_windows = platform.system() == "Windows"
-    if is_windows:
-        kwargs = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
-    else:
-        kwargs = {}
+    kwargs = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if is_windows else {}
 
     watch_process = Popen(
         ["jupyter-builder", "watch", str(extension_folder)], cwd=extension_folder, **kwargs

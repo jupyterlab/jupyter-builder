@@ -5,9 +5,9 @@ import os
 
 from traitlets import Bool, Unicode
 
-from ..base_extension_app import BaseExtensionApp
-from ..federated_extensions import watch_labextension
-from ..core_path import default_core_path
+from jupyter_builder.base_extension_app import BaseExtensionApp
+from jupyter_builder.core_path import default_core_path
+from jupyter_builder.federated_extensions import watch_labextension
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -25,7 +25,7 @@ class WatchLabExtensionApp(BaseExtensionApp):
         help="Directory containing core application package.json file",
     )
 
-    aliases = {
+    aliases = {  # noqa: RUF012
         "core-path": "WatchLabExtensionApp.core_path",
         "development": "WatchLabExtensionApp.development",
         "source-map": "WatchLabExtensionApp.source_map",

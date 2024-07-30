@@ -27,6 +27,329 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import logging
+import re
+
+logger = logging.getLogger(__name__)
+
+SEMVER_SPEC_VERSION = "2.0.0"
+
+string_type = str
+
+
+class _R:
+    def __init__(self, i):
+        self.i = i
+
+    def __call__(self):
+        v = self.i
+        self.i += 1
+        return v
+
+    def value(self):
+        return self.i
+
+
+class Extendlist(list):
+    def __setitem__(self, i, v):
+        try:
+            list.__setitem__(self, i, v)
+        except IndexError:
+            if len(self) == i:
+                self.append(v)
+            else:
+                raise
+
+
+def list_get(xs, i):
+    try:
+        return xs[i]
+    except IndexError:
+        return None
+
+
+R = _R(0)
+src = Extendlist()
+regexp = {}
+
+# The following Regular Expressions can be used for tokenizing,
+# validating, and parsing SemVer version strings.
+
+# ## Numeric Identifier
+# A single `0`, or a non-zero digit followed by zero or more digits.
+
+NUMERICIDENTIFIER = R()
+src[NUMERICIDENTIFIER] = "0|[1-9]\\d*"
+
+NUMERICIDENTIFIERLOOSE = R()
+src[NUMERICIDENTIFIERLOOSE] = "[0-9]+"
+
+
+# ## Non-numeric Identifier
+# Zero or more digits, followed by a letter or hyphen, and then zero or
+# more letters, digits, or hyphens.
+
+NONNUMERICIDENTIFIER = R()
+src[NONNUMERICIDENTIFIER] = "\\d*[a-zA-Z-][a-zA-Z0-9-]*"
+
+# ## Main Version
+# Three dot-separated numeric identifiers.
+
+MAINVERSION = R()
+src[MAINVERSION] = (
+    "("
+    + src[NUMERICIDENTIFIER]
+    + ")\\."
+    + "("
+    + src[NUMERICIDENTIFIER]
+    + ")\\."
+    + "("
+    + src[NUMERICIDENTIFIER]
+    + ")"
+)
+
+MAINVERSIONLOOSE = R()
+src[MAINVERSIONLOOSE] = (
+    "("
+    + src[NUMERICIDENTIFIERLOOSE]
+    + ")\\."
+    + "("
+    + src[NUMERICIDENTIFIERLOOSE]
+    + ")\\."
+    + "("
+    + src[NUMERICIDENTIFIERLOOSE]
+    + ")"
+)
+
+
+# ## Pre-release Version Identifier
+# A numeric identifier, or a non-numeric identifier.
+
+PRERELEASEIDENTIFIER = R()
+src[PRERELEASEIDENTIFIER] = "(?:" + src[NUMERICIDENTIFIER] + "|" + src[NONNUMERICIDENTIFIER] + ")"
+
+PRERELEASEIDENTIFIERLOOSE = R()
+src[PRERELEASEIDENTIFIERLOOSE] = (
+    "(?:" + src[NUMERICIDENTIFIERLOOSE] + "|" + src[NONNUMERICIDENTIFIER] + ")"
+)
+
+
+# ## Pre-release Version
+# Hyphen, followed by one or more dot-separated pre-release version
+# identifiers.
+
+PRERELEASE = R()
+src[PRERELEASE] = (
+    "(?:-(" + src[PRERELEASEIDENTIFIER] + "(?:\\." + src[PRERELEASEIDENTIFIER] + ")*))"
+)
+
+PRERELEASELOOSE = R()
+src[PRERELEASELOOSE] = (
+    "(?:-?(" + src[PRERELEASEIDENTIFIERLOOSE] + "(?:\\." + src[PRERELEASEIDENTIFIERLOOSE] + ")*))"
+)
+
+# ## Build Metadata Identifier
+# Any combination of digits, letters, or hyphens.
+
+BUILDIDENTIFIER = R()
+src[BUILDIDENTIFIER] = "[0-9A-Za-z-]+"
+
+# ## Build Metadata
+# Plus sign, followed by one or more period-separated build metadata
+# identifiers.
+
+BUILD = R()
+src[BUILD] = "(?:\\+(" + src[BUILDIDENTIFIER] + "(?:\\." + src[BUILDIDENTIFIER] + ")*))"
+
+#  ## Full Version String
+#  A main version, followed optionally by a pre-release version and
+#  build metadata.
+
+#  Note that the only major, minor, patch, and pre-release sections of
+#  the version string are capturing groups.  The build metadata is not a
+#  capturing group, because it should not ever be used in version
+#  comparison.
+
+FULL = R()
+FULLPLAIN = "v?" + src[MAINVERSION] + src[PRERELEASE] + "?" + src[BUILD] + "?"
+
+src[FULL] = "^" + FULLPLAIN + "$"
+
+#  like full, but allows v1.2.3 and =1.2.3, which people do sometimes.
+#  also, 1.0.0alpha1 (prerelease without the hyphen) which is pretty
+#  common in the npm registry.
+LOOSEPLAIN = "[v=\\s]*" + src[MAINVERSIONLOOSE] + src[PRERELEASELOOSE] + "?" + src[BUILD] + "?"
+
+LOOSE = R()
+src[LOOSE] = "^" + LOOSEPLAIN + "$"
+
+GTLT = R()
+src[GTLT] = "((?:<|>)?=?)"
+
+#  Something like "2.*" or "1.2.x".
+#  Note that "x.x" is a valid xRange identifier, meaning "any version"
+#  Only the first item is strictly required.
+XRANGEIDENTIFIERLOOSE = R()
+src[XRANGEIDENTIFIERLOOSE] = src[NUMERICIDENTIFIERLOOSE] + "|x|X|\\*"
+XRANGEIDENTIFIER = R()
+src[XRANGEIDENTIFIER] = src[NUMERICIDENTIFIER] + "|x|X|\\*"
+
+XRANGEPLAIN = R()
+src[XRANGEPLAIN] = (
+    "[v=\\s]*("
+    + src[XRANGEIDENTIFIER]
+    + ")"
+    + "(?:\\.("
+    + src[XRANGEIDENTIFIER]
+    + ")"
+    + "(?:\\.("
+    + src[XRANGEIDENTIFIER]
+    + ")"
+    + "(?:"
+    + src[PRERELEASE]
+    + ")?"
+    + src[BUILD]
+    + "?"
+    + ")?)?"
+)
+
+XRANGEPLAINLOOSE = R()
+src[XRANGEPLAINLOOSE] = (
+    "[v=\\s]*("
+    + src[XRANGEIDENTIFIERLOOSE]
+    + ")"
+    + "(?:\\.("
+    + src[XRANGEIDENTIFIERLOOSE]
+    + ")"
+    + "(?:\\.("
+    + src[XRANGEIDENTIFIERLOOSE]
+    + ")"
+    + "(?:"
+    + src[PRERELEASELOOSE]
+    + ")?"
+    + src[BUILD]
+    + "?"
+    + ")?)?"
+)
+
+XRANGE = R()
+src[XRANGE] = "^" + src[GTLT] + "\\s*" + src[XRANGEPLAIN] + "$"
+XRANGELOOSE = R()
+src[XRANGELOOSE] = "^" + src[GTLT] + "\\s*" + src[XRANGEPLAINLOOSE] + "$"
+
+#  Tilde ranges.
+#  Meaning is "reasonably at or greater than"
+LONETILDE = R()
+src[LONETILDE] = "(?:~>?)"
+
+TILDETRIM = R()
+src[TILDETRIM] = "(\\s*)" + src[LONETILDE] + "\\s+"
+regexp[TILDETRIM] = re.compile(src[TILDETRIM], re.M)
+tildeTrimReplace = r"\1~"
+
+TILDE = R()
+src[TILDE] = "^" + src[LONETILDE] + src[XRANGEPLAIN] + "$"
+TILDELOOSE = R()
+src[TILDELOOSE] = "^" + src[LONETILDE] + src[XRANGEPLAINLOOSE] + "$"
+
+#  Caret ranges.
+#  Meaning is "at least and backwards compatible with"
+LONECARET = R()
+src[LONECARET] = "(?:\\^)"
+
+CARETTRIM = R()
+src[CARETTRIM] = "(\\s*)" + src[LONECARET] + "\\s+"
+regexp[CARETTRIM] = re.compile(src[CARETTRIM], re.M)
+caretTrimReplace = r"\1^"
+
+CARET = R()
+src[CARET] = "^" + src[LONECARET] + src[XRANGEPLAIN] + "$"
+CARETLOOSE = R()
+src[CARETLOOSE] = "^" + src[LONECARET] + src[XRANGEPLAINLOOSE] + "$"
+
+#  A simple gt/lt/eq thing, or just "" to indicate "any version"
+COMPARATORLOOSE = R()
+src[COMPARATORLOOSE] = "^" + src[GTLT] + "\\s*(" + LOOSEPLAIN + ")$|^$"
+COMPARATOR = R()
+src[COMPARATOR] = "^" + src[GTLT] + "\\s*(" + FULLPLAIN + ")$|^$"
+
+
+#  An expression to strip any whitespace between the gtlt and the thing
+#  it modifies, so that `> 1.2.3` ==> `>1.2.3`
+COMPARATORTRIM = R()
+src[COMPARATORTRIM] = "(\\s*)" + src[GTLT] + "\\s*(" + LOOSEPLAIN + "|" + src[XRANGEPLAIN] + ")"
+
+#  this one has to use the /g flag
+regexp[COMPARATORTRIM] = re.compile(src[COMPARATORTRIM], re.M)
+comparatorTrimReplace = r"\1\2\3"
+
+
+#  Something like `1.2.3 - 1.2.4`
+#  Note that these all use the loose form, because they'll be
+#  checked against either the strict or loose comparator form
+#  later.
+HYPHENRANGE = R()
+src[HYPHENRANGE] = (
+    "^\\s*(" + src[XRANGEPLAIN] + ")" + "\\s+-\\s+" + "(" + src[XRANGEPLAIN] + ")" + "\\s*$"
+)
+
+HYPHENRANGELOOSE = R()
+src[HYPHENRANGELOOSE] = (
+    "^\\s*("
+    + src[XRANGEPLAINLOOSE]
+    + ")"
+    + "\\s+-\\s+"
+    + "("
+    + src[XRANGEPLAINLOOSE]
+    + ")"
+    + "\\s*$"
+)
+
+#  Star ranges basically just allow anything at all.
+STAR = R()
+src[STAR] = "(<|>)?=?\\s*\\*"
+
+# version name recovery for convenient
+RECOVERYVERSIONNAME = R()
+_n = src[NUMERICIDENTIFIER]
+_pre = src[PRERELEASELOOSE]
+src[RECOVERYVERSIONNAME] = f"v?({_n})(?:\\.({_n}))?{_pre}?"
+
+#  Compile to actual regexp objects.
+#  All are flag-free, unless they were created above with a flag.
+for i in range(R.value()):
+    logger.debug("genregxp %s %s", i, src[i])
+    if i not in regexp:
+        regexp[i] = re.compile(src[i])
+
+
+def parse(version, loose):
+    r = regexp[LOOSE] if loose else regexp[FULL]
+    m = r.search(version)
+    if m:
+        return semver(version, loose)
+    else:
+        return None
+
+
+def valid(version, loose):
+    v = parse(version, loose)
+    if v.version:
+        return v
+    else:
+        return None
+
+
+def clean(version, loose):
+    s = parse(version, loose)
+    if s:
+        return s.version
+    else:
+        return None
+
+
+NUMERIC = re.compile(r"^\d+$")
+
 
 def semver(version, loose):
     if isinstance(version, SemVer):
@@ -65,7 +388,7 @@ class SemVer:
                 self.prerelease = []
             else:
                 self.prerelease = [
-                    (int(id) if NUMERIC.search(id) else id) for id in m.group(3).split(".")
+                    (int(id_) if NUMERIC.search(id_) else id_) for id_ in m.group(3).split(".")
                 ]
         else:
             #  these are actually numbers
@@ -77,7 +400,7 @@ class SemVer:
                 self.prerelease = []
             else:
                 self.prerelease = [
-                    (int(id) if NUMERIC.search(id) else id) for id in m.group(4).split(".")
+                    (int(id_) if NUMERIC.search(id_) else id_) for id_ in m.group(4).split(".")
                 ]
             if m.group(5):
                 self.build = m.group(5).split(".")
@@ -116,7 +439,7 @@ class SemVer:
             or compare_identifiers(str(self.patch), str(other.patch))
         )
 
-    def compare_pre(self, other):
+    def compare_pre(self, other):  # noqa PLR0911
         if not isinstance(other, SemVer):
             other = make_semver(other, self.loose)
 
@@ -226,14 +549,86 @@ class SemVer:
                 else:
                     self.prerelease = [identifier, 0]
         else:
-            raise ValueError(f"invalid increment argument: {release}")
+            msg = f"invalid increment argument: {release}"
+            raise ValueError(msg)
         self.format()
         self.raw = self.version
         return self
 
 
+def inc(version, release, loose, identifier=None):  # wow!
+    try:
+        return make_semver(version, loose).inc(release, identifier=identifier).version
+    except Exception as e:
+        logger.debug(e, exc_info=5)
+        return None
+
+
+def compare_identifiers(a, b):
+    anum = NUMERIC.search(a)
+    bnum = NUMERIC.search(b)
+
+    if anum and bnum:
+        a = int(a)
+        b = int(b)
+
+    if anum and not bnum:
+        return -1
+    elif bnum and not anum:
+        return 1
+    elif a < b:
+        return -1
+    elif a > b:
+        return 1
+    else:
+        return 0
+
+
+def rcompare_identifiers(a, b):
+    return compare_identifiers(b, a)
+
+
 def compare(a, b, loose):
     return make_semver(a, loose).compare(b)
+
+
+def compare_loose(a, b):
+    return compare(a, b, True)
+
+
+def rcompare(a, b, loose):
+    return compare(b, a, loose)
+
+
+def make_key_function(loose):
+    def key_function(version):
+        v = make_semver(version, loose)
+        key = (v.major, v.minor, v.patch)
+        if v.prerelease:  # noqa SIM108
+            key = key + tuple(v.prerelease)
+        else:
+            #  NOT having a prerelease is > having one
+            key = (*key, float("inf"))
+
+        return key
+
+    return key_function
+
+
+loose_key_function = make_key_function(True)
+full_key_function = make_key_function(True)
+
+
+def sort(list_, loose):
+    keyf = loose_key_function if loose else full_key_function
+    list_.sort(key=keyf)
+    return list_
+
+
+def rsort(list_, loose):
+    keyf = loose_key_function if loose else full_key_function
+    list_.sort(key=keyf, reverse=True)
+    return list_
 
 
 def gt(a, b, loose):
