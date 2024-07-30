@@ -2,6 +2,22 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 0.1.0a3
+
+([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v0.1.0a2...464a12d6a8288e06646f0c364ee1477d643c7261))
+
+### Maintenance and upkeep improvements
+
+- Bump ruff from 0.4.7 to 0.5.5 in the pip group across 1 directory [#24](https://github.com/jupyterlab/jupyter-builder/pull/24) ([@dependabot](https://github.com/dependabot))
+
+### Contributors to this release
+
+([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2024-07-29&to=2024-07-30&type=c))
+
+[@dependabot](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Adependabot+updated%3A2024-07-29..2024-07-30&type=Issues)
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 0.1.0a2
 
 ([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/ac6bb51518d309b96658dc45784f4d47a7cd559c...02764ce51fd919bdb5739e06d545656ee0e5b2c9))
@@ -36,5 +52,3 @@
 ([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2024-03-04&to=2024-07-29&type=c))
 
 [@cronan03](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Acronan03+updated%3A2024-03-04..2024-07-29&type=Issues) | [@dependabot](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Adependabot+updated%3A2024-03-04..2024-07-29&type=Issues) | [@fcollonval](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Afcollonval+updated%3A2024-03-04..2024-07-29&type=Issues) | [@kloczek](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akloczek+updated%3A2024-03-04..2024-07-29&type=Issues) | [@welcome](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Awelcome+updated%3A2024-03-04..2024-07-29&type=Issues)
-
-<!-- <END NEW CHANGELOG ENTRY> -->
