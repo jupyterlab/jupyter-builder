@@ -58,7 +58,7 @@ The goals of this project are:
 ## What I did
 1. Successfully created a CLI with the processes `develop`, `build` and `watch` mentioned above.
 2. Created extensive unit tests using `Pytest` to ensure the processes run efficiently on any OS.
-3. Reduced ecternal dependancies by bringing `jlpm` and `jupyterlab_semver` to the package.
+3. Reduced external dependencies by bringing `jlpm` and `jupyterlab.semver` to the package.
 4. Pre released the package. It can be found on Pypi here https://pypi.org/project/jupyter-builder/
 5. Initiated a solution to the issue https://github.com/jupyterlab/jupyterlab/issues/13456
    
