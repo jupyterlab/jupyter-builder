@@ -74,7 +74,7 @@ For now the code lives there: https://github.com/jupyterlab/jupyterlab/tree/main
    - Each of the features will inherit from the class `BaseExtensionApp` present [here](https://github.com/jupyterlab/jupyter-builder/blob/main/jupyter_builder/base_extension_app.py)
    - The [federated_extensions.py](https://github.com/jupyterlab/jupyter-builder/blob/main/jupyter_builder/federated_extensions.py)  sets up and executes commands to build, develop and waatch a JupyterLab extension. It resolves paths, constructs the appropriate command-line arguments, and executes the build process using `subprocess.check_call`. Optional parameters allow for customization of the build process, including logging, development mode, and source map generation.
 2. https://github.com/jupyterlab/jupyter-builder/pull/13
-   - This PR focuses on extracting the `build` feature which is responsible for creating the Javascript assests which will be consumed by the Jupyter App.
+   - This PR focuses on extracting the `build` feature which is responsible for creating the Javascript assets which will be consumed by the Jupyter App.
    - It will always result in the creation of a file `static/style.js` in `<extension_folder>/myextension/labextension`.
    - Tests have been crafted using `Pytest` to check for the existence of files mentioned above on running the `build` command.
 3. https://github.com/jupyterlab/jupyter-builder/pull/18
