@@ -56,7 +56,7 @@ The goals of this project are:
 - make it configurable to be reused for other applications.
   
 ## What I did
-1. Suceessfully created a CLI with the processes `develop`, `build` and `watch` mentioned above.
+1. Successfully created a CLI with the processes `develop`, `build` and `watch` mentioned above.
 2. Created extensive unit tests using `Pytest` to ensure the processes run efficiently on any OS.
 3. Reduced ecternal dependancies by bringing `jlpm` and `jupyterlab_semver` to the package.
 4. Pre released the package. It can be found on Pypi here https://pypi.org/project/jupyter-builder/
