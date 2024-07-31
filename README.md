@@ -91,7 +91,7 @@ The goals of this project are:
    - The `watch` feature on running will rebuild the JS assets on being triggered. This happens on changing contents in `<extension_folder>/src/index.ts`
    - To test this feature we deliberately make a change in `index.ts` triggering `watch`. This replaces old JS assets with new ones having different hash values in the file names. We create 2 vectors of filenames before and after triggering `watch` which will tell us if it actually worked.
 1. https://github.com/jupyterlab/jupyter-builder/pull/20
-   - To reduce external dependancies, we added `jlpm` to this package.
+   - To reduce external dependencies, we added `jlpm` to this package.
    - It existed [here](https://github.com/jupyterlab/jupyterlab/blob/main/jupyterlab/jlpmapp.py) with the [entrypoint](https://github.com/jupyterlab/jupyterlab/blob/e048f27548969c0e4403417ac04bc186f119128f/pyproject.toml#L60).
 1. https://github.com/jupyterlab/jupyter-builder/pull/22
    - Documented the working of the Jupyter builder along with installation guide.
