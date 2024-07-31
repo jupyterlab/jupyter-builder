@@ -66,7 +66,7 @@ The goals of this project are:
 1. We should bring `@jupyterlab/builder` within this package and make it generic.
 For now the code lives there: https://github.com/jupyterlab/jupyterlab/tree/main/builder
 2. https://github.com/jupyterlab/jupyter-builder/blob/fffb100fc57ecb147bface4441f91bfd0cb6ff9a/jupyter_builder/federated_extensions.py#L296 which is responsible for checking version overlap has been temporarily ignored to make the build feature work.
-
+3. Update JupyterLab core to use this new package
 ## Merged PRs
 1. https://github.com/jupyterlab/jupyter-builder/pull/11
    - This PR focuses on extracting the `develop` feature which is responsible for installing the Jupyter extension JS assets in dev mode.
