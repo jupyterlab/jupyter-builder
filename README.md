@@ -88,5 +88,5 @@ For now the code lives there: https://github.com/jupyterlab/jupyterlab/tree/main
   
 ## Challenges and Learning
 1. One of the main challenges was starting this project from scratch with no pre existing code to rely on. I thank my mentor [@fcollonval](https://github.com/fcollonval) for creating the skeleton in https://github.com/jupyterlab/jupyter-builder/pull/2 which gave me a base to work on.
-2. Selecting relevant features for Jupyter builder from [labextension.py](https://github.com/jupyterlab/jupyterlab/blob/main/jupyterlab/labextensions.py) was relly tough without a thorough understanding on which functions Jupyter builder would actually rely on.
+2. Selecting relevant features for Jupyter builder from [labextension.py](https://github.com/jupyterlab/jupyterlab/blob/main/jupyterlab/labextensions.py) was really tough without a thorough understanding on which functions Jupyter builder would actually rely on.
 3. Creating tests for the `watch` feature was tricky as I had to carefully adjust sleep times to make sure the function was running before a change in `<extension_folder>/src/index.ts` was made. Otherwise the change happended before `watch` ran and never triggered it.
