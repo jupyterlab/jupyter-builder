@@ -45,7 +45,10 @@ Execute the following command in a terminal:
 pip uninstall jupyter_builder
 ```
 
-# GSoC 2024 Anecdote by [@cronan03](https://github.com/cronan03)
+
+---
+
+## GSoC 2024 Anecdote by [@cronan03](https://github.com/cronan03)
 ## Goal
 The goals of this project are:
 - to extract that tooling as a new separate package to ease maintenance (for core and extension developers)
