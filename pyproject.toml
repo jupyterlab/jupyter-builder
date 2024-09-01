@@ -50,7 +50,7 @@ test = [
     "jupyterlab",
 ]
 # Check ruff version is aligned with the one in .pre-commit-config.yaml
-dev = ["build", "mypy", "pre-commit", "hatch", "ruff==0.5.5"]
+dev = ["build", "mypy", "pre-commit", "hatch", "ruff==0.6.3"]
 
 [project.scripts]
 jupyter-builder = "jupyter_builder.main:main"
