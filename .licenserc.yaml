@@ -20,5 +20,6 @@ header:
     - node_modules/**
     - node_modules/.**
     - 'yarn.lock'
+    - 'jupyter_builder/yarn.js'
 
   comment: on-failure
