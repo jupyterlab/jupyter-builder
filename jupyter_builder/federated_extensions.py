@@ -34,7 +34,7 @@ except ImportError:
 
 from .core_path import default_core_path
 
-# from .commands import _test_overlap  TO BE DONE -----------------------------
+from .commands import _test_overlap
 
 DEPRECATED_ARGUMENT = object()
 
@@ -202,7 +202,6 @@ def build_labextension(  # noqa: PLR0913
 ):
     """Build a labextension in the given path"""
     core_path = default_core_path() if core_path is None else str(Path(core_path).resolve())
-
     ext_path = str(Path(path).resolve())
 
     if logger:
@@ -292,29 +291,23 @@ def _ensure_builder(ext_path, core_path):
             raise ValueError(msg)
         target = osp.dirname(target)
 
-    # IGNORING Test Overlap ---------------------------------
-
-    # overlap = _test_overlap(
-    #     dep_version1, dep_version2, drop_prerelease1=True, drop_prerelease2=True
-    # )
-    # if not overlap:
-    #     with open(
-    #         osp.join(target, "node_modules", "@jupyterlab", "builder", "package.json")
-    #     ) as fid:
-    #         dep_version2 = json.load(fid).get("version")
-    #     overlap = _test_overlap(
-    #         dep_version1, dep_version2, drop_prerelease1=True, drop_prerelease2=True
-    #     )
-
-    # if not overlap:
-    #     msg = f"Extensions require a devDependency on @jupyterlab/builder@{dep_version1}, you have a dependency on {dep_version2}"  # noqa: E501
-    #     raise ValueError(msg)
-
-    new_builder = osp.join(
-        target, "node_modules", "@jupyter-builder", "builder", "lib", "build-labextension.js"
+    # Check for compatible versions
+    overlap = _test_overlap(
+        dep_version1, dep_version2, drop_prerelease1=True, drop_prerelease2=True
     )
-    if(osp.exists(new_builder)):
-        return new_builder
+    if not overlap:
+        with open(
+            osp.join(target, "node_modules", "@jupyterlab", "builder", "package.json")
+        ) as fid:
+            dep_version2 = json.load(fid).get("version")
+        overlap = _test_overlap(
+            dep_version1, dep_version2, drop_prerelease1=True, drop_prerelease2=True
+        )
+
+    if not overlap:
+        msg = f"Extensions require a devDependency on @jupyterlab/builder@{dep_version1}, you have a dependency on {dep_version2}"  # noqa: E501
+        raise ValueError(msg)
+
     return osp.join(
         target, "node_modules", "@jupyterlab", "builder", "lib", "build-labextension.js"
     )
