@@ -310,6 +310,11 @@ def _ensure_builder(ext_path, core_path):
     #     msg = f"Extensions require a devDependency on @jupyterlab/builder@{dep_version1}, you have a dependency on {dep_version2}"  # noqa: E501
     #     raise ValueError(msg)
 
+    new_builder = osp.join(
+        target, "node_modules", "@jupyter-builder", "builder", "lib", "build-labextension.js"
+    )
+    if(osp.exists(new_builder)):
+        return new_builder
     return osp.join(
         target, "node_modules", "@jupyterlab", "builder", "lib", "build-labextension.js"
     )
