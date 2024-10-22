@@ -32,9 +32,8 @@ try:
 except ImportError:
     from tomli import load
 
-from .core_path import default_core_path
-
 from .commands import _test_overlap
+from .core_path import default_core_path
 
 DEPRECATED_ARGUMENT = object()
 

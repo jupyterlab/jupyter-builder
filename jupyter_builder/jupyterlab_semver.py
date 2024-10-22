@@ -472,7 +472,7 @@ class SemVer:
             else:
                 return compare_identifiers(str(a), str(b))
 
-    def inc(self, release, identifier=None):  # noqa PLR0915
+    def inc(self, release, identifier=None):
         logger.debug("inc release %s %s", self.prerelease, release)
         if release == "premajor":
             self.prerelease = []
@@ -901,7 +901,7 @@ def replace_carets(comp, loose):
 def replace_caret(comp, loose):
     r = regexp[CARETLOOSE] if loose else regexp[CARET]
 
-    def repl(mob):  # noqa PLR0911
+    def repl(mob):
         m0 = mob.group(0)
         M, m, p, pr, _ = mob.groups()
         logger.debug("caret %s %s %s %s %s %s", comp, m0, M, m, p, pr)
@@ -1001,7 +1001,7 @@ def replace_xrange(comp, loose):
     comp = comp.strip()
     r = regexp[XRANGELOOSE] if loose else regexp[XRANGE]
 
-    def repl(mob):  # noqa PLR0911
+    def repl(mob):
         ret = mob.group(0)
         gtlt, M, m, p, pr, _ = mob.groups()
 
@@ -1076,7 +1076,7 @@ def replace_stars(comp, loose):
 #  1.2.3 - 3.4 => >=1.2.0 <3.5.0 Any 3.4.x will do
 #  1.2 - 3.4 => >=1.2.0 <3.5.0
 def hyphen_replace(mob):
-    from_, fM, fm, fp, fpr, fb, to, tM, tm, tp, tpr, tb = mob.groups()
+    from_, fM, fm, fp, to, tM, tm, tp, tpr, tb = mob.groups()
     if is_x(fM):
         from_ = ""
     elif is_x(fm):
