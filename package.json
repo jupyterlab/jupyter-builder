@@ -1,6 +1,9 @@
 {
-    "name": "@jupyterlab/builder",
+    "name": "@jupyter/builder",
     "version": "0.0.1",
+    "workspaces": [
+        "builder"
+    ],
     "private": true,
     "description": "Jupyter build tools.",
     "keywords": [
