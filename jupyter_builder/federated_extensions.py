@@ -264,32 +264,31 @@ def watch_labextension(  # noqa: PLR0913
 def _ensure_builder(ext_path, core_path):
     """Ensure that we can build the extension and return the builder script path"""
     # Test for compatible dependency on @jupyterlab/builder
-    # with open(osp.join(core_path, "package.json")) as fid:
-    #     core_data = json.load(fid)
-    # with open(osp.join(ext_path, "package.json")) as fid:
-    #     ext_data = json.load(fid)
-    # dep_version1 = core_data["devDependencies"]["@jupyterlab/builder"]
-    # dep_version2 = ext_data.get("devDependencies", {}).get("@jupyterlab/builder")
-    # dep_version2 = dep_version2 or ext_data.get("dependencies", {}).get("@jupyterlab/builder")
-    # if dep_version2 is None:
-    #     msg = f"Extensions require a devDependency on @jupyterlab/builder@{dep_version1}"
-    #     raise ValueError(msg)
+    with open(osp.join(core_path, "package.json")) as fid:
+        core_data = json.load(fid)
+    with open(osp.join(ext_path, "package.json")) as fid:
+        ext_data = json.load(fid)
+    dep_version1 = core_data["devDependencies"]["@jupyterlab/builder"]
+    dep_version2 = ext_data.get("devDependencies", {}).get("@jupyterlab/builder")
+    dep_version2 = dep_version2 or ext_data.get("dependencies", {}).get("@jupyterlab/builder")
+    if dep_version2 is None:
+        msg = f"Extensions require a devDependency on @jupyterlab/builder@{dep_version1}"
+        raise ValueError(msg)
 
     # if we have installed from disk (version is a path), assume we know what
     # we are doing and do not check versions.
-    # --------- Understand this logic
-    # if "/" in dep_version2:
-    #     with open(osp.join(ext_path, dep_version2, "package.json")) as fid:
-    #         dep_version2 = json.load(fid).get("version")
+    if "/" in dep_version2:
+        with open(osp.join(ext_path, dep_version2, "package.json")) as fid:
+            dep_version2 = json.load(fid).get("version")
     if not osp.exists(osp.join(ext_path, "node_modules")):
         subprocess.check_call(["jlpm"], cwd=ext_path)  # noqa S603 S607
 
     # Find @jupyterlab/builder using node module resolution
     # We cannot use a script because the script path is a shell script on Windows
     target = ext_path
-    while not osp.exists(osp.join(target, "node_modules", "@jupyter-builder", "builder")):
+    while not osp.exists(osp.join(target, "node_modules", "@jupyterlab", "builder")):
         if osp.dirname(target) == target:
-            msg = "Could not find @jupyter-builder/builder"
+            msg = "Could not find @jupyterlab/builder"
             raise ValueError(msg)
         target = osp.dirname(target)
 
@@ -312,7 +311,7 @@ def _ensure_builder(ext_path, core_path):
     #     raise ValueError(msg)
 
     return osp.join(
-        target, "node_modules", "@jupyter-builder", "builder", "lib", "build-labextension.js"
+        target, "node_modules", "@jupyterlab", "builder", "lib", "build-labextension.js"
     )
 
 
