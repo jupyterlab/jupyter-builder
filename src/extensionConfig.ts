@@ -9,8 +9,9 @@ import { merge } from 'webpack-merge';
 import * as fs from 'fs-extra';
 import * as glob from 'glob';
 import Ajv from 'ajv';
+import * as baseConfig from './webpack.config.base';
+import metadataSchema from './metadata_schema.json';
 
-const baseConfig = require('./webpack.config.base');
 const { ModuleFederationPlugin } = webpack.container;
 
 export interface IOptions {
@@ -30,11 +31,12 @@ function generateConfig({
   devtool = mode === 'development' ? 'source-map' : undefined,
   watchMode = false
 }: IOptions = {}): webpack.Configuration[] {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const data = require(path.join(packagePath, 'package.json'));
 
   const ajv = new Ajv({ useDefaults: true, strict: false });
-  const validate = ajv.compile(require('../metadata_schema.json'));
-  let valid = validate(data.jupyterlab ?? {});
+  const validate = ajv.compile(metadataSchema);
+  const valid = validate(data.jupyterlab ?? {});
   if (!valid) {
     console.error(validate.errors);
     process.exit(1);
@@ -68,7 +70,7 @@ function generateConfig({
   } else if (typeof data.style === 'string') {
     exposes['./style'] = path.join(packagePath, data.style);
   }
-
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const coreData = require(path.join(corePath, 'package.json'));
 
   let shared: any = {};
@@ -222,7 +224,7 @@ function generateConfig({
     }
   }
 
-  let plugins = [
+  const plugins = [
     new ModuleFederationPlugin({
       name: data.name,
       library: {
@@ -284,15 +286,16 @@ function generateConfig({
     )
   ].concat(extras);
 
+  function regExpReplacer(key: any, value: any) {
+    if (value instanceof RegExp) {
+      return value.toString();
+    } else {
+      return value;
+    }
+  }
+
   if (mode === 'development') {
     const logPath = path.join(outputPath, 'build_log.json');
-    function regExpReplacer(key: any, value: any) {
-      if (value instanceof RegExp) {
-        return value.toString();
-      } else {
-        return value;
-      }
-    }
     fs.writeFileSync(logPath, JSON.stringify(config, regExpReplacer, '  '));
   }
   return config;

@@ -89,7 +89,9 @@ export namespace WPPlugin {
           changedFiles: any,
           removedFiles: any
         ) => {
-          if (err) return callback(err);
+          if (err) {
+            return callback(err);
+          }
           for (const path of ignoredFiles) {
             fileTimestamps.set(path, IGNORE_TIME_ENTRY);
           }

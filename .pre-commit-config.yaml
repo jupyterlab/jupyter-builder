@@ -38,7 +38,7 @@ repos:
     hooks:
       - id: codespell
         args: ["-L", "sur,nd"]
-        exclude: jupyter_builder/yarn.js
+        exclude: "jupyter_builder/yarn.js|jupyter_builder/jupyterlab_semver.py"
 
   - repo: https://github.com/pre-commit/pygrep-hooks
     rev: "v1.10.0"

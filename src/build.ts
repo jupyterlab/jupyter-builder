@@ -124,7 +124,7 @@ export namespace Build {
 
     const packagePaths: string[] = options.packagePaths?.slice() || [];
 
-    let cssImports: string[] = [];
+    const cssImports: string[] = [];
 
     packageNames.forEach(name => {
       packagePaths.push(
@@ -255,7 +255,8 @@ ${cssImports.map(x => `import '${x}';`).join('\n')}
    * Returns JupyterLab extension metadata from a module.
    */
   export function normalizeExtension(module: IModule): ILabExtension {
-    let { jupyterlab, main, name } = module;
+    const { jupyterlab, name } = module;
+    let { main } = module;
 
     main = main || 'index.js';
 
@@ -263,7 +264,8 @@ ${cssImports.map(x => `import '${x}';`).join('\n')}
       throw new Error(`Module ${name} does not contain JupyterLab metadata.`);
     }
 
-    let { extension, mimeExtension, schemaDir, themePath } = jupyterlab;
+    const { schemaDir, themePath } = jupyterlab;
+    let { extension, mimeExtension } = jupyterlab;
 
     extension = extension === true ? main : extension;
     mimeExtension = mimeExtension === true ? main : mimeExtension;
