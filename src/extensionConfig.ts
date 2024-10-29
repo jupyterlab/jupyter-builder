@@ -31,9 +31,11 @@ function generateConfig({
   devtool = mode === 'development' ? 'source-map' : undefined,
   watchMode = false
 }: IOptions = {}): webpack.Configuration[] {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const data = require(path.join(packagePath, 'package.json'));
-
+  const data = JSON.parse(
+    fs.readFileSync(path.join(packagePath, 'package.json'), {
+      encoding: 'utf8'
+    })
+  );
   const ajv = new Ajv({ useDefaults: true, strict: false });
   const validate = ajv.compile(metadataSchema);
   const valid = validate(data.jupyterlab ?? {});
@@ -70,8 +72,9 @@ function generateConfig({
   } else if (typeof data.style === 'string') {
     exposes['./style'] = path.join(packagePath, data.style);
   }
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const coreData = require(path.join(corePath, 'package.json'));
+  const coreData = JSON.parse(
+    fs.readFileSync(path.join(corePath, 'package.json'), { encoding: 'utf8' })
+  );
 
   let shared: any = {};
 
