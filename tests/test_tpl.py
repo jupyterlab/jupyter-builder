@@ -178,13 +178,19 @@ def test_builder_version_mismatch(tmp_path):
     # Modify the @jupyterlab/builder version to an incompatible range
     with package_json_path.open("r+", encoding="utf-8") as f:
         package_data = json.load(f)
-        package_data["devDependencies"]["@jupyterlab/builder"] = "3.1.0"
+        package_data["devDependencies"]["@jupyterlab/builder"] = "4.0.0"
         f.seek(0)
         json.dump(package_data, f, indent=2)
         f.truncate()
 
     env = os.environ.copy()
     env.update({"YARN_ENABLE_IMMUTABLE_INSTALLS": "false"})
+    run(
+        ["jlpm", "install"],
+        cwd=extension_folder,
+        check=True,
+        env=env,
+    )
 
     with pytest.raises(subprocess.CalledProcessError) as excinfo:
         run(
@@ -198,7 +204,7 @@ def test_builder_version_mismatch(tmp_path):
     assert re.search(
         (
             r"ValueError: Extensions require a devDependency on @jupyterlab/builder@\^.+?, "
-            r"you have a dependency on 3\.1\.0"
+            r"you have a dependency on 4\.0\.0"
         ),
         excinfo.value.stderr,
     ), "Expected version mismatch error message not found in output!"
