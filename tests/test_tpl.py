@@ -1,12 +1,16 @@
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
+import json
 import os
 import platform
+import re
 import subprocess
 import time
 from pathlib import Path
 from subprocess import Popen, run
+
+import pytest
 
 
 def helper(dest):
@@ -162,3 +166,39 @@ def test_watch_functionality(tmp_path):
     #     else:
     #         watch_process.send_signal(signal.SIGINT)
     #     watch_process.wait()
+
+
+def test_builder_version_mismatch(tmp_path):
+    extension_folder = tmp_path / "ext"
+    extension_folder.mkdir()
+    helper(str(extension_folder))
+
+    package_json_path = extension_folder / "package.json"
+
+    # Modify the @jupyterlab/builder version to an incompatible range
+    with package_json_path.open("r+", encoding="utf-8") as f:
+        package_data = json.load(f)
+        package_data["devDependencies"]["@jupyterlab/builder"] = "4.0.0"
+        f.seek(0)
+        json.dump(package_data, f, indent=2)
+        f.truncate()
+
+    env = os.environ.copy()
+    env.update({"YARN_ENABLE_IMMUTABLE_INSTALLS": "false"})
+
+    with pytest.raises(subprocess.CalledProcessError) as excinfo:
+        run(
+            ["jupyter-builder", "build", str(extension_folder)],
+            cwd=extension_folder,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    # Check if the expected error message is in the output
+    assert re.search(
+        (
+            r"ValueError: Extensions require a devDependency on @jupyterlab/builder@\^.+?, "
+            r"you have a dependency on 4\.0\.0"
+        ),
+        excinfo.value.stderr,
+    ), "Expected version mismatch error message not found in output!"
