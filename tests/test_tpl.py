@@ -176,12 +176,9 @@ def test_builder_version_mismatch(tmp_path):
     package_json_path = extension_folder / "package.json"
 
     # Modify the @jupyterlab/builder version to an incompatible range
-    with package_json_path.open("r+", encoding="utf-8") as f:
-        package_data = json.load(f)
-        package_data["devDependencies"]["@jupyterlab/builder"] = "4.0.0"
-        f.seek(0)
-        json.dump(package_data, f, indent=2)
-        f.truncate()
+    package_data = json.loads(package_json_path.read_text())
+    package_data["devDependencies"]["@jupyterlab/builder"] = "4.0.0"
+    package_json_path.write_text(json.dumps(package_data, indent=2))
 
     env = os.environ.copy()
     env.update({"YARN_ENABLE_IMMUTABLE_INSTALLS": "false"})
