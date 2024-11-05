@@ -1,8 +1,3 @@
-/*
- * Copyright (c) Jupyter Development Team.
- * Distributed under the terms of the Modified BSD License.
- */
-
 #!/usr/bin/env node
 /* eslint-disable */
 //prettier-ignore

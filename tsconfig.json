@@ -1,4 +1,5 @@
 {
+  "$schema": "http://json.schemastore.org/tsconfig",
   "compilerOptions": {
     "allowSyntheticDefaultImports": true,
     "composite": true,
@@ -6,7 +7,7 @@
     "esModuleInterop": true,
     "incremental": true,
     "jsx": "react",
-    "module": "esnext",
+    "module": "commonjs",
     "moduleResolution": "node",
     "noEmitOnError": true,
     "noImplicitAny": true,
@@ -15,9 +16,12 @@
     "resolveJsonModule": true,
     "outDir": "lib",
     "rootDir": "src",
-    "strict": true,
     "strictNullChecks": true,
-    "target": "ES2018"
+    "target": "ES2018",
+    "lib": ["DOM", "DOM.Iterable", "ES2018", "ES2020.Intl"],
+    "sourceMap": true,
+    "types": []
   },
-  "include": ["src/*"]
+  "include": ["src/*", "src/metadata_schema.json"],
+  "references": []
 }
