@@ -18,7 +18,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Base Setup
       uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
@@ -56,7 +56,7 @@ jobs:
       with:
         python-version: '3.9'
         architecture: 'x64'
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@v5
       with:
         name: extension-artifacts
     - name: Install and Test
@@ -71,6 +71,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
       - uses: jupyterlab/maintainer-tools/.github/actions/check-links@v1
