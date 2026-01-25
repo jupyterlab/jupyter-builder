@@ -29,7 +29,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
-dependencies = ["traitlets"]
+dependencies = ["traitlets", "jupyterlab_server"]
 dynamic = ["version"]
 
 [project.urls]
