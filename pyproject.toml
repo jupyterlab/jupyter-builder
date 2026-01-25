@@ -45,7 +45,7 @@ test = [
     "pytest>=7.0",
     "pytest-check-links>=0.7",
     "pytest-cov",
-    "copier>=9.2,<10",
+    "copier>=9.3,<10",
     "jinja2-time",
     "jupyterlab",
 ]
