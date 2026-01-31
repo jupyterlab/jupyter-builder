@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.8", "3.12"]
+        python-version: ["3.10", "3.14"]
         # include:
         #   - os: ubuntu-latest
         #     python-version: "pypy-3.8"
@@ -59,8 +59,10 @@ jobs:
       - uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
         with:
           dependency_type: minimum
-      -
-        run: pip install -e ".[test,dev]"
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - run: pip install -e ".[test,dev]"
       - name: Run the unit tests
         run: pytest
 
