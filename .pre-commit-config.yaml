@@ -20,6 +20,7 @@ repos:
       - id: end-of-file-fixer
         exclude: \.copier-answers\.yml
       - id: trailing-whitespace
+        exclude: yarn.js
 
   - repo: https://github.com/python-jsonschema/check-jsonschema
     rev: 0.27.4

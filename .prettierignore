@@ -5,3 +5,4 @@ node_modules
 !/package.json
 jupyter_builder
 *.md
+jupyter_builder/yarn.js
