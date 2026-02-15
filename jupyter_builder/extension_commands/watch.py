@@ -6,7 +6,6 @@ import os
 from traitlets import Bool, Unicode
 
 from jupyter_builder.base_extension_app import BaseExtensionApp
-from jupyter_builder.core_path import default_core_path
 from jupyter_builder.federated_extensions import watch_labextension
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -20,15 +19,22 @@ class WatchLabExtensionApp(BaseExtensionApp):
     source_map = Bool(False, config=True, help="Generate source maps")
 
     core_path = Unicode(
-        default_core_path(),
+        "",
         config=True,
         help="Directory containing core application package.json file",
+    )
+
+    core_version = Unicode(
+        "main",
+        config=True,
+        help="Version of JupyterLab core to use when watching (ignored if core-path is set)",
     )
 
     aliases = {  # noqa: RUF012
         "core-path": "WatchLabExtensionApp.core_path",
         "development": "WatchLabExtensionApp.development",
         "source-map": "WatchLabExtensionApp.source_map",
+        "core-version": "WatchLabExtensionApp.core_version",
     }
 
     def run_task(self):
@@ -41,6 +47,7 @@ class WatchLabExtensionApp(BaseExtensionApp):
             development=self.development,
             source_map=self.source_map,
             core_path=self.core_path or None,
+            core_version=self.core_version or None,
         )
 
 
