@@ -1,32 +1,34 @@
-# Copyright (c) Jupyter Development Team.
-# Distributed under the terms of the Modified BSD License.
-
-import tempfile
 from pathlib import Path
 
 import requests
 
 
-def create_temp_core_path(core_version=None) -> str:
+def get_core_staging(version: str = "main") -> str:
     """
-    Download JupyterLab staging/package.json into a temporary directory
-    and return the path to that staging directory.
+    Fetch and cache JupyterLab core staging metadata.
+    Returns path to the cached staging directory.
     """
-    version = core_version or "main"
+
+    cache_root = Path.home() / ".cache" / "jupyterlab_builder" / "core"
+    staging_path = cache_root / version
+
+    package_json_path = staging_path / "package.json"
+
+    # If already cached, reuse
+    if package_json_path.exists():
+        return str(staging_path)
+
+    # Otherwise download
+    staging_path.mkdir(parents=True, exist_ok=True)
+
     url = (
         "https://raw.githubusercontent.com/"
         f"jupyterlab/jupyterlab/{version}/"
         "jupyterlab/staging/package.json"
     )
 
-    # Create persistent temporary directory
-    tmpdir = tempfile.mkdtemp(prefix="jupyterlab-staging-")
-    staging_path = Path(tmpdir)
+    r = requests.get(url, timeout=10)
+    r.raise_for_status()
 
-    # Download package.json
-    response = requests.get(url, timeout=10)
-    response.raise_for_status()
-
-    (staging_path / "package.json").write_bytes(response.content)
-
+    package_json_path.write_bytes(r.content)
     return str(staging_path)

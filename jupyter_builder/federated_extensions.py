@@ -33,7 +33,7 @@ except ImportError:
     from tomli import load
 
 from .commands import _test_overlap
-from .core_path import create_temp_core_path
+from .core_path import get_core_staging
 
 DEPRECATED_ARGUMENT = object()
 
@@ -207,7 +207,7 @@ def build_labextension(  # noqa: PLR0913
 ):
     """Build a labextension in the given path"""
     core_path = (
-        create_temp_core_path(core_version) if core_path is None else str(Path(core_path).resolve())
+        get_core_staging(core_version) if core_path is None else str(Path(core_path).resolve())
     )
     ext_path = str(Path(path).resolve())
 
@@ -238,7 +238,7 @@ def watch_labextension(  # noqa: PLR0913
 ):
     """Watch a labextension in a given path"""
     core_path = (
-        create_temp_core_path(core_version) if core_path is None else str(Path(core_path).resolve())
+        get_core_staging(core_version) if core_path is None else str(Path(core_path).resolve())
     )
     ext_path = str(Path(path).resolve())
 
