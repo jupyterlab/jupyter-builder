@@ -33,7 +33,7 @@ except ImportError:
     from tomli import load
 
 from .commands import _test_overlap
-from .core_path import default_core_path
+from .core_path import get_core_staging
 
 DEPRECATED_ARGUMENT = object()
 
@@ -197,10 +197,18 @@ def develop_labextension_py(  # noqa: PLR0913
 
 
 def build_labextension(  # noqa: PLR0913
-    path, logger=None, development=False, static_url=None, source_map=False, core_path=None
+    path,
+    logger=None,
+    development=False,
+    static_url=None,
+    source_map=False,
+    core_path=None,
+    core_version=None,
 ):
     """Build a labextension in the given path"""
-    core_path = default_core_path() if core_path is None else str(Path(core_path).resolve())
+    core_path = (
+        get_core_staging(core_version) if core_path is None else str(Path(core_path).resolve())
+    )
     ext_path = str(Path(path).resolve())
 
     if logger:
@@ -220,10 +228,18 @@ def build_labextension(  # noqa: PLR0913
 
 
 def watch_labextension(  # noqa: PLR0913
-    path, labextensions_path, logger=None, development=False, source_map=False, core_path=None
+    path,
+    labextensions_path,
+    logger=None,
+    development=False,
+    source_map=False,
+    core_path=None,
+    core_version=None,
 ):
     """Watch a labextension in a given path"""
-    core_path = default_core_path() if core_path is None else str(Path(core_path).resolve())
+    core_path = (
+        get_core_staging(core_version) if core_path is None else str(Path(core_path).resolve())
+    )
     ext_path = str(Path(path).resolve())
 
     if logger:
