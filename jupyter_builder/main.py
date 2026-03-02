@@ -12,27 +12,22 @@ from jupyter_builder.extension_commands.build import BuildLabExtensionApp
 from jupyter_builder.extension_commands.develop import DevelopLabExtensionApp
 from jupyter_builder.extension_commands.watch import WatchLabExtensionApp
 
+_EXAMPLES = """
+jupyter-builder build                       # (developer) build a prebuilt labextension
+jupyter-builder develop                     # (developer) develop a prebuilt labextension
+jupyter-builder watch                       # (developer) watch a prebuilt labextension
+"""
+
 
 class LabExtensionApp(JupyterApp):
-    """Base jupyter labextension command entry point"""
+    """Base jupyter-builder command entry point"""
 
-    name = "jupyter labextension"
+    name = "jupyter builder"
     # version = VERSION
-    description = "Work with JupyterLab extensions"
-    # examples = _EXAMPLES
+    description = "Build JupyterLab extensions"
+    examples = _EXAMPLES
 
     subcommands = {
-        # "install": (InstallLabExtensionApp, "Install labextension(s)"),
-        # "update": (UpdateLabExtensionApp, "Update labextension(s)"),
-        # "uninstall": (UninstallLabExtensionApp, "Uninstall labextension(s)"),
-        # "list": (ListLabExtensionsApp, "List labextensions"),
-        # "link": (LinkLabExtensionApp, "Link labextension(s)"),
-        # "unlink": (UnlinkLabExtensionApp, "Unlink labextension(s)"),
-        # "enable": (EnableLabExtensionsApp, "Enable labextension(s)"),
-        # "disable": (DisableLabExtensionsApp, "Disable labextension(s)"),
-        # "lock": (LockLabExtensionsApp, "Lock labextension(s)"),
-        # "unlock": (UnlockLabExtensionsApp, "Unlock labextension(s)"),
-        # "check": (CheckLabExtensionsApp, "Check labextension(s)"),
         "develop": (DevelopLabExtensionApp, "(developer) Develop labextension(s)"),
         "build": (BuildLabExtensionApp, "(developer) Build labextension"),
         "watch": (WatchLabExtensionApp, "(developer) Watch labextension"),
