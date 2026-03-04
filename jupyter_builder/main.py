@@ -1,9 +1,6 @@
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
-# # Copyright (c) Jupyter Development Team.
-# # Distributed under the terms of the Modified BSD License.
-
 import sys
 
 from jupyter_core.application import JupyterApp
@@ -12,6 +9,8 @@ from jupyter_builder.extension_commands.build import BuildLabExtensionApp
 from jupyter_builder.extension_commands.develop import DevelopLabExtensionApp
 from jupyter_builder.extension_commands.watch import WatchLabExtensionApp
 
+from ._version import __version__
+
 _EXAMPLES = """
 jupyter-builder build                       # (developer) build a prebuilt labextension
 jupyter-builder develop                     # (developer) develop a prebuilt labextension
@@ -19,11 +18,11 @@ jupyter-builder watch                       # (developer) watch a prebuilt labex
 """
 
 
-class LabExtensionApp(JupyterApp):
+class BuilderApp(JupyterApp):
     """Base jupyter-builder command entry point"""
 
     name = "jupyter builder"
-    # version = VERSION
+    version = __version__
     description = "Build JupyterLab extensions"
     examples = _EXAMPLES
 
@@ -43,7 +42,7 @@ class LabExtensionApp(JupyterApp):
         self.exit(f"Please supply at least one subcommand: {subcmds}")
 
 
-main = LabExtensionApp.launch_instance
+main = BuilderApp.launch_instance
 
 if __name__ == "__main__":
     sys.exit(main())
