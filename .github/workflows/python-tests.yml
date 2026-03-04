@@ -75,8 +75,7 @@ jobs:
       - uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
         with:
           dependency_type: pre
-      -
-        run: pip install -e ".[test,dev]"
+      - run: PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1 pip install -e ".[test,dev]"
       - name: Run the tests
         run: pytest
 
