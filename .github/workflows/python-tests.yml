@@ -75,8 +75,8 @@ jobs:
       - uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
         with:
           dependency_type: pre
-      -
-        run: pip install -e ".[test,dev]"
+          python_version: "3.14"   # TODO: remove once rpds-py supports 3.15
+      - run: pip install -e ".[test,dev]"
       - name: Run the tests
         run: pytest
 
