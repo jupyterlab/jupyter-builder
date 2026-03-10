@@ -19,7 +19,7 @@ develop_flags["overwrite"] = (
 
 
 class DevelopLabExtensionApp(BaseExtensionApp):
-    description = "(developer) Develop labextension"
+    description = "Develop labextension"
 
     flags = develop_flags
     user = Bool(False, config=True, help="Whether to do a user install")

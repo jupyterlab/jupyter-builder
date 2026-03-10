@@ -12,9 +12,9 @@ from jupyter_builder.extension_commands.watch import WatchLabExtensionApp
 from ._version import __version__
 
 _EXAMPLES = """
-jupyter-builder build                       # (developer) build a prebuilt labextension
-jupyter-builder develop                     # (developer) develop a prebuilt labextension
-jupyter-builder watch                       # (developer) watch a prebuilt labextension
+jupyter-builder build                       # build a prebuilt labextension
+jupyter-builder develop                     # develop a prebuilt labextension
+jupyter-builder watch                       # watch a prebuilt labextension
 """
 
 
@@ -27,9 +27,9 @@ class BuilderApp(JupyterApp):
     examples = _EXAMPLES
 
     subcommands = {
-        "develop": (DevelopLabExtensionApp, "(developer) Develop labextension(s)"),
-        "build": (BuildLabExtensionApp, "(developer) Build labextension"),
-        "watch": (WatchLabExtensionApp, "(developer) Watch labextension"),
+        "develop": (DevelopLabExtensionApp, "Develop labextension(s)"),
+        "build": (BuildLabExtensionApp, "Build labextension"),
+        "watch": (WatchLabExtensionApp, "Watch labextension"),
     }
 
     def start(self):

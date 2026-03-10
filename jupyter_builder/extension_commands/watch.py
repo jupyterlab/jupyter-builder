@@ -12,7 +12,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 class WatchLabExtensionApp(BaseExtensionApp):
-    description = "(developer) Watch labextension"
+    description = "Watch labextension"
 
     development = Bool(True, config=True, help="Build in development mode")
 
