@@ -21,7 +21,13 @@ class WatchLabExtensionApp(BaseExtensionApp):
     core_path = Unicode(
         "",
         config=True,
-        help="Directory containing core application package.json file",
+        help="Directory containing the core application package definition",
+    )
+
+    core_package_file = Unicode(
+        "package.json",
+        config=True,
+        help="Filename of the core application package definition within core-path",
     )
 
     core_version = Unicode(
@@ -32,6 +38,7 @@ class WatchLabExtensionApp(BaseExtensionApp):
 
     aliases = {  # noqa: RUF012
         "core-path": "WatchLabExtensionApp.core_path",
+        "core-package-file": "WatchLabExtensionApp.core_package_file",
         "development": "WatchLabExtensionApp.development",
         "source-map": "WatchLabExtensionApp.source_map",
         "core-version": "WatchLabExtensionApp.core_version",
@@ -48,6 +55,7 @@ class WatchLabExtensionApp(BaseExtensionApp):
             source_map=self.source_map,
             core_path=self.core_path or None,
             core_version=self.core_version or None,
+            core_package_file=self.core_package_file or "package.json",
         )
 
 

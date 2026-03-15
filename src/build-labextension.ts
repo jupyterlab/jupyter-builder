@@ -53,6 +53,11 @@ commander
   .option('--source-map', 'generate source maps')
   .requiredOption('--core-path <path>', 'the core package directory')
   .option(
+    '--core-package-file <file>',
+    'the core package filename',
+    'package.json'
+  )
+  .option(
     '--static-url <url>',
     'url for build assets, if hosted outside the built extension'
   )
@@ -60,6 +65,7 @@ commander
   .action(async (options, command) => {
     const mode = options.development ? 'development' : 'production';
     const corePath = path.resolve(options.corePath || process.cwd());
+    const corePackageFile = options.corePackageFile || 'package.json';
     const packagePath = path.resolve(command.args[0]);
     const devtool = options.sourceMap ? 'source-map' : undefined;
 
@@ -67,6 +73,7 @@ commander
       packagePath,
       mode,
       corePath,
+      corePackageFile,
       staticUrl: options.staticUrl,
       devtool,
       watchMode: options.watch
