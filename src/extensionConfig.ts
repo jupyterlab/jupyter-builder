@@ -33,7 +33,7 @@ function generateConfig({
   const data = require(path.join(packagePath, 'package.json'));
 
   const ajv = new Ajv({ useDefaults: true, strict: false });
-  const validate = ajv.compile(require('../metadata_schema.json'));
+  const validate = ajv.compile(require('./metadata_schema.json'));
   const valid = validate(data.jupyterlab ?? {});
   if (!valid) {
     console.error(validate.errors);
