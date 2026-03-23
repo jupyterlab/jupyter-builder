@@ -25,7 +25,7 @@ class WatchLabExtensionApp(BaseExtensionApp):
     )
 
     core_version = Unicode(
-        "main",
+        "",
         config=True,
         help=(
             "Version of JupyterLab core to use when watching (ignored if core-package-file is set)"

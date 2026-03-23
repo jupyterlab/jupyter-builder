@@ -27,7 +27,7 @@ class BuildLabExtensionApp(BaseExtensionApp):
     )
 
     core_version = Unicode(
-        "main",
+        "",
         config=True,
         help=(
             "Version of JupyterLab core to use when building (ignored if core-package-file is set)"
