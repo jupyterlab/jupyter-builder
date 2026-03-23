@@ -149,6 +149,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@jupyterlab/builder@workspace:."
   dependencies:
+    "@jupyterlab/core-meta": 4.6.0-alpha.4
     "@types/fs-extra": ^9.0.1
     "@types/glob": ^7.1.1
     "@types/node": ^20.11.27
@@ -183,6 +184,13 @@ __metadata:
     worker-loader: ^3.0.2
   languageName: unknown
   linkType: soft
+
+"@jupyterlab/core-meta@npm:4.6.0-alpha.4":
+  version: 4.6.0-alpha.4
+  resolution: "@jupyterlab/core-meta@npm:4.6.0-alpha.4"
+  checksum: 9ee7870b1a5f41a15d20bddd716bb916bc65888bb08b6d8fe6f51d71b9d7110e701b37dd0ae3fc83342839c74555da6d7b49006c638fd32808269e3558324c06
+  languageName: node
+  linkType: hard
 
 "@nodelib/fs.scandir@npm:2.1.5":
   version: 2.1.5

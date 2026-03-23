@@ -21,15 +21,17 @@ class BuildLabExtensionApp(BaseExtensionApp):
     source_map = Bool(False, config=True, help="Generate source maps")
 
     core_package_file = Unicode(
-        "package.json",
+        "",
         config=True,
-        help="Filename of the core application package definition within core-path",
+        help="Path to the core application package definition file",
     )
 
     core_version = Unicode(
         "main",
         config=True,
-        help="Version of JupyterLab core to use when building (ignored if core-path is set)",
+        help=(
+            "Version of JupyterLab core to use when building (ignored if core-package-file is set)"
+        ),
     )
 
     aliases = {  # noqa: RUF012
@@ -49,7 +51,7 @@ class BuildLabExtensionApp(BaseExtensionApp):
             static_url=self.static_url or None,
             source_map=self.source_map,
             core_version=self.core_version or None,
-            core_package_file=self.core_package_file or "package.json",
+            core_package_file=self.core_package_file or None,
         )
 
 

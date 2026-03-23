@@ -16,7 +16,6 @@ const { ModuleFederationPlugin } = webpack.container;
 
 export interface IOptions {
   packagePath?: string;
-  corePath?: string;
   corePackageFile?: string;
   staticUrl?: string;
   mode?: 'development' | 'production';
@@ -26,7 +25,6 @@ export interface IOptions {
 
 function generateConfig({
   packagePath = '',
-  corePath = '',
   corePackageFile = 'package.json',
   staticUrl = '',
   mode = 'production',
@@ -75,7 +73,7 @@ function generateConfig({
     exposes['./style'] = path.join(packagePath, data.style);
   }
   const coreData = JSON.parse(
-    fs.readFileSync(path.join(corePath, corePackageFile), {
+    fs.readFileSync(corePackageFile, {
       encoding: 'utf8'
     })
   );

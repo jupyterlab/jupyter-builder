@@ -207,20 +207,17 @@ def build_labextension(  # noqa: PLR0913
 ):
     """Build a labextension in the given path"""
     ext_path = str(Path(path).resolve())
-    core_meta = get_core_meta(core_version or "main", ext_path=ext_path)
-    core_path = core_meta.path
-    core_package_file = core_meta.package_file
+    core_package_file = core_package_file or get_core_meta(core_version, ext_path=ext_path)
+    core_package_file = str(Path(core_package_file).resolve())
 
     if logger:
         logger.info("Building extension in %s", path)
 
-    builder = _ensure_builder(ext_path, core_path, core_package_file)
+    builder = _ensure_builder(ext_path, core_package_file)
 
     arguments = [
         "node",
         builder,
-        "--core-path",
-        core_path,
         "--core-package-file",
         core_package_file,
         ext_path,
@@ -241,19 +238,13 @@ def watch_labextension(  # noqa: PLR0913
     logger=None,
     development=False,
     source_map=False,
-    core_path=None,
     core_version=None,
     core_package_file=None,
 ):
     """Watch a labextension in a given path"""
     ext_path = str(Path(path).resolve())
-    if core_path is None:
-        core_meta = get_core_meta(core_version or "main", ext_path=ext_path)
-        core_path = core_meta.path
-        core_package_file = core_meta.package_file
-    else:
-        core_path = str(Path(core_path).resolve())
-        core_package_file = core_package_file or "package.json"
+    core_package_file = core_package_file or get_core_meta(core_version, ext_path=ext_path)
+    core_package_file = str(Path(core_package_file).resolve())
 
     if logger:
         logger.info("Building extension in %s", path)
@@ -273,12 +264,10 @@ def watch_labextension(  # noqa: PLR0913
             shutil.rmtree(full_dest)
             os.symlink(output_dir, full_dest)
 
-    builder = _ensure_builder(ext_path, core_path, core_package_file)
+    builder = _ensure_builder(ext_path, core_package_file)
     arguments = [
         "node",
         builder,
-        "--core-path",
-        core_path,
         "--core-package-file",
         core_package_file,
         "--watch",
@@ -297,10 +286,10 @@ def watch_labextension(  # noqa: PLR0913
 # ------------------------------------------------------------------------------
 
 
-def _ensure_builder(ext_path, core_path, core_package_file="package.json"):
+def _ensure_builder(ext_path, core_package_file):
     """Ensure that we can build the extension and return the builder script path"""
     # Test for compatible dependency on @jupyterlab/builder
-    with open(osp.join(core_path, core_package_file)) as fid:
+    with open(core_package_file) as fid:
         core_data = json.load(fid)
     with open(osp.join(ext_path, "package.json")) as fid:
         ext_data = json.load(fid)
