@@ -12,7 +12,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 class BuildLabExtensionApp(BaseExtensionApp):
-    description = "(developer) Build labextension"
+    description = "Build labextension"
 
     static_url = Unicode("", config=True, help="Sets the url for static assets when building")
 
