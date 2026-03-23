@@ -20,12 +20,6 @@ class BuildLabExtensionApp(BaseExtensionApp):
 
     source_map = Bool(False, config=True, help="Generate source maps")
 
-    core_path = Unicode(
-        "",
-        config=True,
-        help="Directory containing the core application package definition",
-    )
-
     core_package_file = Unicode(
         "package.json",
         config=True,
@@ -42,7 +36,6 @@ class BuildLabExtensionApp(BaseExtensionApp):
         "static-url": "BuildLabExtensionApp.static_url",
         "development": "BuildLabExtensionApp.development",
         "source-map": "BuildLabExtensionApp.source_map",
-        "core-path": "BuildLabExtensionApp.core_path",
         "core-package-file": "BuildLabExtensionApp.core_package_file",
         "core-version": "BuildLabExtensionApp.core_version",
     }
@@ -55,7 +48,6 @@ class BuildLabExtensionApp(BaseExtensionApp):
             development=self.development,
             static_url=self.static_url or None,
             source_map=self.source_map,
-            core_path=self.core_path or None,
             core_version=self.core_version or None,
             core_package_file=self.core_package_file or "package.json",
         )

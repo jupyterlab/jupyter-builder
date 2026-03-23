@@ -202,19 +202,14 @@ def build_labextension(  # noqa: PLR0913
     development=False,
     static_url=None,
     source_map=False,
-    core_path=None,
     core_version=None,
     core_package_file=None,
 ):
     """Build a labextension in the given path"""
     ext_path = str(Path(path).resolve())
-    if core_path is None:
-        core_meta = get_core_meta(core_version or "main", ext_path=ext_path)
-        core_path = core_meta.path
-        core_package_file = core_meta.package_file
-    else:
-        core_path = str(Path(core_path).resolve())
-        core_package_file = core_package_file or "package.json"
+    core_meta = get_core_meta(core_version or "main", ext_path=ext_path)
+    core_path = core_meta.path
+    core_package_file = core_meta.package_file
 
     if logger:
         logger.info("Building extension in %s", path)
