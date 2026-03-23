@@ -2,17 +2,16 @@
 // Distributed under the terms of the Modified BSD License.
 
 import * as path from 'path';
-import * as webpack from 'webpack';
+import * as rspack from '@rspack/core';
 import { Build } from './build';
 import { WPPlugin } from './webpack-plugins';
 import { merge } from 'webpack-merge';
 import * as fs from 'fs-extra';
 import * as glob from 'glob';
 import Ajv from 'ajv';
-import * as baseConfig from './webpack.config.base';
-import metadataSchema from './metadata_schema.json';
 
-const { ModuleFederationPlugin } = webpack.container;
+const baseConfig = require('./webpack.config.base');
+const { ModuleFederationPlugin } = rspack.container;
 
 export interface IOptions {
   packagePath?: string;
@@ -30,14 +29,11 @@ function generateConfig({
   mode = 'production',
   devtool = mode === 'development' ? 'source-map' : undefined,
   watchMode = false
-}: IOptions = {}): webpack.Configuration[] {
-  const data = JSON.parse(
-    fs.readFileSync(path.join(packagePath, 'package.json'), {
-      encoding: 'utf8'
-    })
-  );
+}: IOptions = {}): rspack.Configuration[] {
+  const data = require(path.join(packagePath, 'package.json'));
+
   const ajv = new Ajv({ useDefaults: true, strict: false });
-  const validate = ajv.compile(metadataSchema);
+  const validate = ajv.compile(require('../metadata_schema.json'));
   const valid = validate(data.jupyterlab ?? {});
   if (!valid) {
     console.error(validate.errors);
@@ -72,9 +68,8 @@ function generateConfig({
   } else if (typeof data.style === 'string') {
     exposes['./style'] = path.join(packagePath, data.style);
   }
-  const coreData = JSON.parse(
-    fs.readFileSync(path.join(corePath, 'package.json'), { encoding: 'utf8' })
-  );
+
+  const coreData = require(path.join(corePath, 'package.json'));
 
   let shared: any = {};
 
@@ -289,16 +284,15 @@ function generateConfig({
     )
   ].concat(extras);
 
-  function regExpReplacer(key: any, value: any) {
-    if (value instanceof RegExp) {
-      return value.toString();
-    } else {
-      return value;
-    }
-  }
-
   if (mode === 'development') {
     const logPath = path.join(outputPath, 'build_log.json');
+    function regExpReplacer(key: any, value: any) {
+      if (value instanceof RegExp) {
+        return value.toString();
+      } else {
+        return value;
+      }
+    }
     fs.writeFileSync(logPath, JSON.stringify(config, regExpReplacer, '  '));
   }
   return config;
