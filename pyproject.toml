@@ -72,7 +72,7 @@ version_cmd = "hatch version"
 [tool.jupyter-releaser.hooks]
 before-build-npm = [
     "node jupyter_builder/yarn.js",
-    "node jupyter_builder/yarn.js build:prod",
+    "npx tsc",
 ]
 before-build-python = ["node jupyter_builder/yarn.js run clean:all"]
 
