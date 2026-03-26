@@ -75,8 +75,8 @@ before-build-npm = [
     "npx tsc",
 ]
 before-build-python = [
-    "npx tsc rimraf lib tsconfig.tsbuildinfo",
-    "npx tsc rimraf .eslintcache"
+    "npx rimraf lib tsconfig.tsbuildinfo",
+    "npx rimraf .eslintcache"
 ]
 
 [tool.mypy]
