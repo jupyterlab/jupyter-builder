@@ -74,7 +74,10 @@ before-build-npm = [
     "node jupyter_builder/yarn.js",
     "npx tsc",
 ]
-before-build-python = ["node jupyter_builder/yarn.js run clean:all"]
+before-build-python = [
+    "npx tsc rimraf lib tsconfig.tsbuildinfo",
+    "npx tsc rimraf .eslintcache"
+]
 
 [tool.mypy]
 python_version = "3.8"
