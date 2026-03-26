@@ -71,10 +71,10 @@ version_cmd = "hatch version"
 
 [tool.jupyter-releaser.hooks]
 before-build-npm = [
-    "jlpm",
-    "jlpm build:prod",
+    "node jupyter_builder/yarn.js run build  ",
+    "node jupyter_builder/yarn.js build:prod",
 ]
-before-build-python = ["jlpm clean:all"]
+before-build-python = ["node jupyter_builder/yarn.js run clean:all"]
 
 [tool.mypy]
 python_version = "3.8"
