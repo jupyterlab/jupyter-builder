@@ -1,5 +1,5 @@
 {
-    "name": "@jupyterlab/builder",
+    "name": "@jupyter/builder",
     "version": "0.0.1",
     "private": true,
     "description": "Jupyter build tools.",
