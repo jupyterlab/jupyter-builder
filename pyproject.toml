@@ -72,11 +72,12 @@ version_cmd = "hatch version"
 [tool.jupyter-releaser.hooks]
 before-build-npm = [
     "node jupyter_builder/yarn.js",
-    "npx tsc",
+    "node jupyter_builder/yarn.js clean:lib",
+    "node jupyter_builder/yarn.js build:lib:prod",
 ]
 before-build-python = [
-    "npx rimraf lib tsconfig.tsbuildinfo",
-    "npx rimraf .eslintcache"
+    "node jupyter_builder/yarn.js clean:lib",
+    "node jupyter_builder/yarn.js clean:lintcache",
 ]
 
 [tool.mypy]
