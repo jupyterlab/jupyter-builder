@@ -114,9 +114,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jupyterlab/builder@workspace:.":
+"@jupyter/builder@workspace:.":
   version: 0.0.0-use.local
-  resolution: "@jupyterlab/builder@workspace:."
+  resolution: "@jupyter/builder@workspace:."
   dependencies:
     "@jupyterlab/core-meta": 4.6.0-alpha.4
     "@rspack/core": ^1.7.7
