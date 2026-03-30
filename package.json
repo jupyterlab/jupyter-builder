@@ -1,15 +1,14 @@
 {
     "name": "@jupyter/builder",
     "version": "0.0.1",
-    "private": true,
     "description": "Jupyter build tools.",
     "keywords": [
         "jupyter",
         "jupyterlab"
     ],
-    "homepage": "https://github.com/jupyterlab/jupyterlab-builder",
+    "homepage": "https://github.com/jupyterlab/jupyter-builder",
     "bugs": {
-        "url": "https://github.com/jupyterlab/jupyterlab-builder/issues"
+        "url": "https://github.com/jupyterlab/jupyter-builder/issues"
     },
     "license": "BSD-3-Clause",
     "author": {
@@ -24,7 +23,7 @@
     "types": "lib/index.d.ts",
     "repository": {
         "type": "git",
-        "url": "https://github.com/jupyterlab/jupyterlab-builder.git"
+        "url": "https://github.com/jupyterlab/jupyter-builder.git"
     },
     "scripts": {
         "build": "jlpm build:lib",
