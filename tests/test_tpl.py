@@ -48,6 +48,12 @@ def test_files_build(tmp_path):
         check=True,
         env=env,
     )
+    run(
+        ["jlpm", "add", "-D", "@jupyter/builder"],
+        cwd=extension_folder,
+        check=True,
+        env=env,
+    )
     run(["jlpm", "run", "build:prod"], cwd=extension_folder, check=True)
 
     run(["jupyter-builder", "build", str(extension_folder)], cwd=extension_folder, check=True)
@@ -70,6 +76,12 @@ def test_files_build_development(tmp_path):
     env.update({"YARN_ENABLE_IMMUTABLE_INSTALLS": "false"})
     run(
         ["jlpm", "install"],
+        cwd=extension_folder,
+        check=True,
+        env=env,
+    )
+    run(
+        ["jlpm", "add", "-D", "@jupyter/builder"],
         cwd=extension_folder,
         check=True,
         env=env,
@@ -108,6 +120,12 @@ def test_watch_functionality(tmp_path):
     env.update({"YARN_ENABLE_IMMUTABLE_INSTALLS": "false"})
     run(
         ["jlpm", "install"],
+        cwd=extension_folder,
+        check=True,
+        env=env,
+    )
+    run(
+        ["jlpm", "add", "-D", "@jupyter/builder"],
         cwd=extension_folder,
         check=True,
         env=env,
@@ -189,6 +207,12 @@ def test_builder_version_mismatch(tmp_path):
         env=env,
     )
 
+    run(
+        ["jlpm", "add", "-D", "@jupyter/builder"],
+        cwd=extension_folder,
+        check=True,
+        env=env,
+    )
     with pytest.raises(subprocess.CalledProcessError) as excinfo:
         run(
             ["jupyter-builder", "build", str(extension_folder)],
