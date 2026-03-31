@@ -2,6 +2,35 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 0.0.2
+
+([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v0.1.0a5...5d328483cbf722a959a10876b56e04ddb8fc2a5b))
+
+### Enhancements made
+
+- Rename Package [#60](https://github.com/jupyterlab/jupyter-builder/pull/60) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+- Build NPM package via releaser [#59](https://github.com/jupyterlab/jupyter-builder/pull/59) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+- Use `@jupyterlab/core-meta` package [#57](https://github.com/jupyterlab/jupyter-builder/pull/57) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+
+### Maintenance and upkeep improvements
+
+- Add build and version badges to README [#63](https://github.com/jupyterlab/jupyter-builder/pull/63) ([@krassowski](https://github.com/krassowski), [@Darshan808](https://github.com/Darshan808))
+- Make builder public and fix URLs in package.json [#62](https://github.com/jupyterlab/jupyter-builder/pull/62) ([@krassowski](https://github.com/krassowski), [@Darshan808](https://github.com/Darshan808))
+- Workaround to make pre-releases check green [#56](https://github.com/jupyterlab/jupyter-builder/pull/56) ([@krassowski](https://github.com/krassowski), [@Darshan808](https://github.com/Darshan808))
+- Clean and rename to `BuilderApp` [#55](https://github.com/jupyterlab/jupyter-builder/pull/55) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+- Migrate to `rspack` [#54](https://github.com/jupyterlab/jupyter-builder/pull/54) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-02-22&to=2026-03-31&type=c))
+
+@Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-02-22..2026-03-31&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-02-22..2026-03-31&type=Issues))
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 0.1.0a5
 
 ([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v0.1.0a4...88ec34f5d3708e44b2f84a922a0a4f2e612f57f9))
@@ -18,8 +47,6 @@ See [our definition of contributors](https://github-activity.readthedocs.io/en/l
 ([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-02-05&to=2026-02-22&type=c))
 
 @Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-02-05..2026-02-22&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-02-05..2026-02-22&type=Issues))
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 0.1.0a4
 
