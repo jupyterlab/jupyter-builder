@@ -51,7 +51,7 @@ commander
   .description('Build an extension')
   .option('--development', 'build in development mode (implies --source-map)')
   .option('--source-map', 'generate source maps')
-  .requiredOption('--core-path <path>', 'the core package directory')
+  .requiredOption('--core-package-file <file>', 'the core package file path')
   .option(
     '--static-url <url>',
     'url for build assets, if hosted outside the built extension'
@@ -59,14 +59,14 @@ commander
   .option('--watch')
   .action(async (options, command) => {
     const mode = options.development ? 'development' : 'production';
-    const corePath = path.resolve(options.corePath || process.cwd());
+    const corePackageFile = path.resolve(options.corePackageFile);
     const packagePath = path.resolve(command.args[0]);
     const devtool = options.sourceMap ? 'source-map' : undefined;
 
     const config = generateConfig({
       packagePath,
       mode,
-      corePath,
+      corePackageFile,
       staticUrl: options.staticUrl,
       devtool,
       watchMode: options.watch

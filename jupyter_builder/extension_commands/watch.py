@@ -18,20 +18,22 @@ class WatchLabExtensionApp(BaseExtensionApp):
 
     source_map = Bool(False, config=True, help="Generate source maps")
 
-    core_path = Unicode(
+    core_package_file = Unicode(
         "",
         config=True,
-        help="Directory containing core application package.json file",
+        help="Path to the core application package definition file",
     )
 
     core_version = Unicode(
-        "main",
+        "",
         config=True,
-        help="Version of JupyterLab core to use when watching (ignored if core-path is set)",
+        help=(
+            "Version of JupyterLab core to use when watching (ignored if core-package-file is set)"
+        ),
     )
 
     aliases = {  # noqa: RUF012
-        "core-path": "WatchLabExtensionApp.core_path",
+        "core-package-file": "WatchLabExtensionApp.core_package_file",
         "development": "WatchLabExtensionApp.development",
         "source-map": "WatchLabExtensionApp.source_map",
         "core-version": "WatchLabExtensionApp.core_version",
@@ -46,8 +48,8 @@ class WatchLabExtensionApp(BaseExtensionApp):
             logger=self.log,
             development=self.development,
             source_map=self.source_map,
-            core_path=self.core_path or None,
             core_version=self.core_version or None,
+            core_package_file=self.core_package_file or None,
         )
 
 

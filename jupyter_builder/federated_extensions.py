@@ -33,7 +33,7 @@ except ImportError:
     from tomli import load
 
 from .commands import _test_overlap
-from .core_path import get_core_staging
+from .core_path import get_core_meta
 
 DEPRECATED_ARGUMENT = object()
 
@@ -202,21 +202,26 @@ def build_labextension(  # noqa: PLR0913
     development=False,
     static_url=None,
     source_map=False,
-    core_path=None,
     core_version=None,
+    core_package_file=None,
 ):
     """Build a labextension in the given path"""
-    core_path = (
-        get_core_staging(core_version) if core_path is None else str(Path(core_path).resolve())
-    )
     ext_path = str(Path(path).resolve())
+    core_package_file = core_package_file or get_core_meta(core_version, ext_path=ext_path)
+    core_package_file = str(Path(core_package_file).resolve())
 
     if logger:
         logger.info("Building extension in %s", path)
 
-    builder = _ensure_builder(ext_path, core_path)
+    builder = _ensure_builder(ext_path, core_package_file)
 
-    arguments = ["node", builder, "--core-path", core_path, ext_path]
+    arguments = [
+        "node",
+        builder,
+        "--core-package-file",
+        core_package_file,
+        ext_path,
+    ]
     if static_url is not None:
         arguments.extend(["--static-url", static_url])
     if development:
@@ -233,14 +238,13 @@ def watch_labextension(  # noqa: PLR0913
     logger=None,
     development=False,
     source_map=False,
-    core_path=None,
     core_version=None,
+    core_package_file=None,
 ):
     """Watch a labextension in a given path"""
-    core_path = (
-        get_core_staging(core_version) if core_path is None else str(Path(core_path).resolve())
-    )
     ext_path = str(Path(path).resolve())
+    core_package_file = core_package_file or get_core_meta(core_version, ext_path=ext_path)
+    core_package_file = str(Path(core_package_file).resolve())
 
     if logger:
         logger.info("Building extension in %s", path)
@@ -260,8 +264,15 @@ def watch_labextension(  # noqa: PLR0913
             shutil.rmtree(full_dest)
             os.symlink(output_dir, full_dest)
 
-    builder = _ensure_builder(ext_path, core_path)
-    arguments = ["node", builder, "--core-path", core_path, "--watch", ext_path]
+    builder = _ensure_builder(ext_path, core_package_file)
+    arguments = [
+        "node",
+        builder,
+        "--core-package-file",
+        core_package_file,
+        "--watch",
+        ext_path,
+    ]
     if development:
         arguments.append("--development")
     if source_map:
@@ -275,10 +286,10 @@ def watch_labextension(  # noqa: PLR0913
 # ------------------------------------------------------------------------------
 
 
-def _ensure_builder(ext_path, core_path):
+def _ensure_builder(ext_path, core_package_file):
     """Ensure that we can build the extension and return the builder script path"""
     # Test for compatible dependency on @jupyterlab/builder
-    with open(osp.join(core_path, "package.json")) as fid:
+    with open(core_package_file) as fid:
         core_data = json.load(fid)
     with open(osp.join(ext_path, "package.json")) as fid:
         ext_data = json.load(fid)
@@ -323,9 +334,7 @@ def _ensure_builder(ext_path, core_path):
         msg = f"Extensions require a devDependency on @jupyterlab/builder@{dep_version1}, you have a dependency on {dep_version2}"  # noqa: E501
         raise ValueError(msg)
 
-    return osp.join(
-        target, "node_modules", "@jupyterlab", "builder", "lib", "build-labextension.js"
-    )
+    return osp.join(target, "node_modules", "@jupyter", "builder", "lib", "build-labextension.js")
 
 
 def _should_copy(src, dest, logger=None):
