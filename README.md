@@ -23,15 +23,15 @@ Compile the extension JavaScript assets for consumption by a Jupyter app.
 jupyter-builder build [options] <path/to/extension>
 ```
 
-| Flag | Description |
-|---|---|
-| `--development` | Build in development mode (default: `False`) |
-| `--source-map` | Generate source maps (default: `False`) |
-| `--static-url=<url>` | Set the URL for static assets |
-| `--core-version=<version>` | JupyterLab core version to build against |
+| Flag                         | Description                                                            |
+| ---------------------------- | ---------------------------------------------------------------------- |
+| `--development`              | Build in development mode (default: `False`)                           |
+| `--source-map`               | Generate source maps (default: `False`)                                |
+| `--static-url=<url>`         | Set the URL for static assets                                          |
+| `--core-version=<version>`   | JupyterLab core version to build against                               |
 | `--core-package-file=<path>` | Path to a core application `package.json` (overrides `--core-version`) |
 
----
+______________________________________________________________________
 
 ### `develop`
 
@@ -41,14 +41,14 @@ Install extension assets in development mode (analogous to `pip install -e`). Us
 jupyter-builder develop [options] <path/to/extension>
 ```
 
-| Flag | Description |
-|---|---|
-| `--overwrite` | Overwrite existing files |
-| `--user` | Install to the user's directory |
-| `--sys-prefix` | Install under `sys.prefix` (default: `True`) |
-| `--labextensions-dir=<path>` | Install to a custom labextensions directory |
+| Flag                         | Description                                  |
+| ---------------------------- | -------------------------------------------- |
+| `--overwrite`                | Overwrite existing files                     |
+| `--user`                     | Install to the user's directory              |
+| `--sys-prefix`               | Install under `sys.prefix` (default: `True`) |
+| `--labextensions-dir=<path>` | Install to a custom labextensions directory  |
 
----
+______________________________________________________________________
 
 ### `watch`
 
@@ -58,14 +58,14 @@ Automatically rebuild development assets when source files change.
 jupyter-builder watch [options] <path/to/extension>
 ```
 
-| Flag | Description |
-|---|---|
-| `--development` | Build in development mode (default: `True`) |
-| `--source-map` | Generate source maps (default: `False`) |
-| `--core-version=<version>` | JupyterLab core version to build against |
+| Flag                         | Description                                                            |
+| ---------------------------- | ---------------------------------------------------------------------- |
+| `--development`              | Build in development mode (default: `True`)                            |
+| `--source-map`               | Generate source maps (default: `False`)                                |
+| `--core-version=<version>`   | JupyterLab core version to build against                               |
 | `--core-package-file=<path>` | Path to a core application `package.json` (overrides `--core-version`) |
 
----
+______________________________________________________________________
 
 ## `jlpm`
 
