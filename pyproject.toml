@@ -2,7 +2,7 @@
 # Distributed under the terms of the Modified BSD License.
 
 [build-system]
-requires = ["hatchling>=1.21.1"]
+requires = ["hatchling>=1.21.1", "hatch-nodejs-version>=0.3.2"]
 build-backend = "hatchling.build"
 
 [project]
@@ -60,8 +60,10 @@ jlpm = "jupyter_builder.jlpm:main"
 ignore = ["W002", "W004"]
 
 [tool.hatch.version]
+source = "nodejs"
+
+[tool.hatch.build.hooks.version]
 path = "jupyter_builder/_version.py"
-validate-bump = false
 
 [tool.hatch.build.targets.sdist]
 exclude = [".github"]
