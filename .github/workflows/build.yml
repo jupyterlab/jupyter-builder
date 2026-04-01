@@ -40,7 +40,7 @@ jobs:
         python -m build
 
     - name: Upload extension packages
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: extension-artifacts
         path: dist/jupyter_builder*
@@ -56,7 +56,7 @@ jobs:
       with:
         python-version: '3.10'
         architecture: 'x64'
-    - uses: actions/download-artifact@v7
+    - uses: actions/download-artifact@v8
       with:
         name: extension-artifacts
     - name: Install and Test
