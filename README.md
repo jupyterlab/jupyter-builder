@@ -5,7 +5,7 @@
 [![version on PyPI](https://img.shields.io/pypi/v/jupyter-builder.svg)](https://pypi.org/project/jupyter-builder/)
 [![version on conda-forge](https://img.shields.io/conda/vn/conda-forge/jupyter-builder.svg)](https://anaconda.org/conda-forge/jupyter-builder)
 
-Build tools for JupyterLab extensions.
+Build tools for JupyterLab extensions — extracted from the core [JupyterLab](https://github.com/jupyterlab/jupyterlab) codebase to be maintained and used independently.
 
 ## Installation
 
@@ -20,24 +20,52 @@ pip install jupyter_builder
 Compile the extension JavaScript assets for consumption by a Jupyter app.
 
 ```bash
-jupyter-builder build <path/to/extension>
+jupyter-builder build [options] <path/to/extension>
 ```
+
+| Flag | Description |
+|---|---|
+| `--development` | Build in development mode (default: `False`) |
+| `--source-map` | Generate source maps (default: `False`) |
+| `--static-url=<url>` | Set the URL for static assets |
+| `--core-version=<version>` | JupyterLab core version to build against |
+| `--core-package-file=<path>` | Path to a core application `package.json` (overrides `--core-version`) |
+
+---
 
 ### `develop`
 
-Install extension assets in development mode (analogous to `pip install -e`).
+Install extension assets in development mode (analogous to `pip install -e`). Uses a symlink by default.
 
 ```bash
-jupyter-builder develop --overwrite <path/to/extension>
+jupyter-builder develop [options] <path/to/extension>
 ```
+
+| Flag | Description |
+|---|---|
+| `--overwrite` | Overwrite existing files |
+| `--user` | Install to the user's directory |
+| `--sys-prefix` | Install under `sys.prefix` (default: `True`) |
+| `--labextensions-dir=<path>` | Install to a custom labextensions directory |
+
+---
 
 ### `watch`
 
 Automatically rebuild development assets when source files change.
 
 ```bash
-jupyter-builder watch <path/to/extension>
+jupyter-builder watch [options] <path/to/extension>
 ```
+
+| Flag | Description |
+|---|---|
+| `--development` | Build in development mode (default: `True`) |
+| `--source-map` | Generate source maps (default: `False`) |
+| `--core-version=<version>` | JupyterLab core version to build against |
+| `--core-package-file=<path>` | Path to a core application `package.json` (overrides `--core-version`) |
+
+---
 
 ## `jlpm`
 
@@ -50,6 +78,8 @@ jlpm build
 
 ## Python API
 
+The underlying functions can also be called directly:
+
 ```python
 from jupyter_builder.federated_extensions import (
     build_labextension,
@@ -57,9 +87,29 @@ from jupyter_builder.federated_extensions import (
     watch_labextension,
 )
 
-build_labextension("/path/to/extension")
-develop_labextension_py("/path/to/extension", overwrite=True, symlink=True)
-watch_labextension("/path/to/extension", labextensions_path=[...])
+build_labextension(
+    "/path/to/extension",
+    development=False,
+    source_map=False,
+    static_url=None,       # optional
+    core_version=None,     # optional
+    core_package_file=None # optional
+)
+
+develop_labextension_py(
+    "/path/to/extension",
+    overwrite=True,
+    symlink=True,
+    user=False,
+    sys_prefix=True,
+)
+
+watch_labextension(
+    "/path/to/extension",
+    labextensions_path=[...],
+    development=True,
+    source_map=False,
+)
 ```
 
 ## Uninstall
