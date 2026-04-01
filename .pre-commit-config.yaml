@@ -63,7 +63,6 @@ repos:
       - id: ruff
         types_or: [python, jupyter]
         args: ["--fix", "--show-fixes"]
-        exclude: jupyter_builder/_version.py
       - id: ruff-format
         types_or: [python, jupyter]
 
