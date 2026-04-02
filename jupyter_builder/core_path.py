@@ -10,6 +10,11 @@ from typing import Optional, Union
 import requests
 
 
+def _home_dir() -> Path:
+    home = os.environ.get("HOME")
+    return Path(home) if home else Path.home()
+
+
 def get_core_meta(
     version: Optional[str] = None, ext_path: Optional[Union[str, os.PathLike[str]]] = None
 ) -> str:
@@ -22,7 +27,7 @@ def get_core_meta(
                 return installed_core_meta
         requested_version = "main"
 
-    cache_root = Path.home() / ".cache" / "jupyterlab_builder" / "core"
+    cache_root = _home_dir() / ".cache" / "jupyterlab_builder" / "core"
     cached_file = _get_cached_core_meta_file(cache_root, requested_version)
     if cached_file is not None:
         return str(cached_file)
