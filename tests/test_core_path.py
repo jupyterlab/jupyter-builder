@@ -291,7 +291,9 @@ def test_ensure_builder_reads_custom_core_package_file(tmp_path):
     ext_path = tmp_path / "ext"
     core_path_dir = tmp_path / "core-meta"
     core_package_file = core_path_dir / "core.package.json"
+    # TODO: Once core starts using new @jupyter/builder, we need to update here.
     builder_dir = ext_path / "node_modules" / "@jupyterlab" / "builder"
+    new_builder_dir = ext_path / "node_modules" / "@jupyter" / "builder"
 
     builder_dir.mkdir(parents=True)
     core_path_dir.mkdir()
@@ -304,4 +306,4 @@ def test_ensure_builder_reads_custom_core_package_file(tmp_path):
 
     builder_path = _ensure_builder(str(ext_path), str(core_package_file))
 
-    assert builder_path == str(builder_dir / "lib" / "build-labextension.js")
+    assert builder_path == str(new_builder_dir / "lib" / "build-labextension.js")
