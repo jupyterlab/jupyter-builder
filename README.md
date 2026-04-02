@@ -20,52 +20,26 @@ pip install jupyter_builder
 Compile the extension JavaScript assets for consumption by a Jupyter app.
 
 ```bash
-jupyter-builder build [options] <path/to/extension>
+jupyter-builder build <path/to/extension>
 ```
-
-| Flag                         | Description                                                            |
-| ---------------------------- | ---------------------------------------------------------------------- |
-| `--development`              | Build in development mode (default: `False`)                           |
-| `--source-map`               | Generate source maps (default: `False`)                                |
-| `--static-url=<url>`         | Set the URL for static assets                                          |
-| `--core-version=<version>`   | JupyterLab core version to build against                               |
-| `--core-package-file=<path>` | Path to a core application `package.json` (overrides `--core-version`) |
-
-______________________________________________________________________
 
 ### `develop`
 
 Install extension assets in development mode (analogous to `pip install -e`). Uses a symlink by default.
 
 ```bash
-jupyter-builder develop [options] <path/to/extension>
+jupyter-builder develop <path/to/extension>
 ```
-
-| Flag                         | Description                                  |
-| ---------------------------- | -------------------------------------------- |
-| `--overwrite`                | Overwrite existing files                     |
-| `--user`                     | Install to the user's directory              |
-| `--sys-prefix`               | Install under `sys.prefix` (default: `True`) |
-| `--labextensions-dir=<path>` | Install to a custom labextensions directory  |
-
-______________________________________________________________________
 
 ### `watch`
 
 Automatically rebuild development assets when source files change.
 
 ```bash
-jupyter-builder watch [options] <path/to/extension>
+jupyter-builder watch <path/to/extension>
 ```
 
-| Flag                         | Description                                                            |
-| ---------------------------- | ---------------------------------------------------------------------- |
-| `--development`              | Build in development mode (default: `True`)                            |
-| `--source-map`               | Generate source maps (default: `False`)                                |
-| `--core-version=<version>`   | JupyterLab core version to build against                               |
-| `--core-package-file=<path>` | Path to a core application `package.json` (overrides `--core-version`) |
-
-______________________________________________________________________
+> For advanced configuration, see the [Advanced](#advanced) section for available flags.
 
 ## `jlpm`
 
@@ -76,9 +50,48 @@ jlpm install
 jlpm build
 ```
 
-## Python API
+## Advanced
 
-The underlying functions can also be called directly:
+### CLI flags
+
+<details>
+<summary><code>build</code></summary>
+
+| Flag                         | Description                                                            |
+| ---------------------------- | ---------------------------------------------------------------------- |
+| `--development`              | Build in development mode (default: `False`)                           |
+| `--source-map`               | Generate source maps (default: `False`)                                |
+| `--static-url=<url>`         | Set the URL for static assets                                          |
+| `--core-version=<version>`   | JupyterLab core version to build against                               |
+| `--core-package-file=<path>` | Path to a core application `package.json` (overrides `--core-version`) |
+
+</details>
+
+<details>
+<summary><code>develop</code></summary>
+
+| Flag                         | Description                                  |
+| ---------------------------- | -------------------------------------------- |
+| `--overwrite`                | Overwrite existing files                     |
+| `--user`                     | Install to the user's directory              |
+| `--sys-prefix`               | Install under `sys.prefix` (default: `True`) |
+| `--labextensions-dir=<path>` | Install to a custom labextensions directory  |
+
+</details>
+
+<details>
+<summary><code>watch</code></summary>
+
+| Flag                         | Description                                                            |
+| ---------------------------- | ---------------------------------------------------------------------- |
+| `--development`              | Build in development mode (default: `True`)                            |
+| `--source-map`               | Generate source maps (default: `False`)                                |
+| `--core-version=<version>`   | JupyterLab core version to build against                               |
+| `--core-package-file=<path>` | Path to a core application `package.json` (overrides `--core-version`) |
+
+</details>
+
+### Python API
 
 ```python
 from jupyter_builder.federated_extensions import (
@@ -91,9 +104,9 @@ build_labextension(
     "/path/to/extension",
     development=False,
     source_map=False,
-    static_url=None,       # optional
-    core_version=None,     # optional
-    core_package_file=None # optional
+    static_url=None,
+    core_version=None,
+    core_package_file=None,
 )
 
 develop_labextension_py(
