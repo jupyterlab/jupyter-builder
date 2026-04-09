@@ -29,7 +29,7 @@ class BuildLabExtensionApp(BaseExtensionApp):
     core_path = Unicode(
         "",
         config=True,
-        help="Directory containing core application package.json file"
+        help="(Deprecated) Directory containing core application package.json file",
     )
 
     core_version = Unicode(
