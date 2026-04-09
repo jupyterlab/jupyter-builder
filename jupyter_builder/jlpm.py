@@ -5,34 +5,30 @@
 
 import os
 import subprocess
-
-# Copyright (c) Jupyter Development Team.
-# Distributed under the terms of the Modified BSD License.
 import sys
-from shutil import which as _which
+from shutil import which
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 YARN_PATH = os.path.join(HERE, "yarn.js")
 
 
-def which(command: str, env: dict[str, str] | None = None) -> str:
-    """Get the full path to a command.
+def _which_node_js(env: dict[str, str] | None = None) -> str:
+    """Get the full path to Node.js executable
 
     Parameters
     ----------
-    command: str
-        The command name or path.
     env: dict, optional
         The environment variables, defaults to `os.environ`.
     """
+    command = "node"
     env = env or os.environ  # type:ignore[assignment]
     path = env.get("PATH") or os.defpath  # type:ignore[union-attr]
-    command_with_path = _which(command, path=path)
+    command_with_path = which(command, path=path)
 
     # Allow nodejs as an alias to node.
     if command == "node" and not command_with_path:
         command = "nodejs"
-        command_with_path = _which("nodejs", path=path)
+        command_with_path = which("nodejs", path=path)
 
     if not command_with_path:
         if command in ["nodejs", "node", "npm"]:
@@ -48,7 +44,7 @@ def which(command: str, env: dict[str, str] | None = None) -> str:
     return os.path.abspath(command_with_path)
 
 
-def execvp(cmd, argv):
+def _execvp_node(argv):
     """Execvp, except on Windows where it uses Popen.
 
     The first argument, by convention, should point to the filename
@@ -57,10 +53,9 @@ def execvp(cmd, argv):
     Python provides execvp on Windows, but its behavior is problematic
     (Python bug#9148).
     """
-    cmd = which(cmd)
+    cmd = _which_node_js()
     if os.name == "nt":
         import signal
-        import sys
 
         p = subprocess.Popen([cmd] + argv[1:])  # noqa S603
         # Don't raise KeyboardInterrupt in the parent process.
@@ -76,4 +71,4 @@ def main(argv=None):
     """Run node and return the result."""
     # Make sure node is available.
     argv = argv or sys.argv[1:]
-    execvp("node", ["node", YARN_PATH, *argv])
+    _execvp_node(["node", YARN_PATH, *argv])
