@@ -212,7 +212,8 @@ def build_labextension(  # noqa: PLR0913
     if core_path is not None:
         if logger:
             logger.warning(
-                "\033[33m(Deprecated) `core_path` is deprecated and will be removed in a future release. Use `core_package_file` instead.\n \033[0m"
+                "\033[33m(Deprecated) `core_path` is deprecated and will be removed "
+                "in a future release. Use `core_package_file` instead.\n \033[0m"
             )
         core_path_package = Path(core_path).resolve() / "package.json"
         if core_path_package.exists():
