@@ -1,3 +1,6 @@
+# Copyright (c) Jupyter Development Team.
+# Distributed under the terms of the Modified BSD License.
+
 """A Jupyter-aware wrapper for the yarn package manager"""
 
 import os
