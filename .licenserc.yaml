@@ -22,5 +22,6 @@ header:
     - 'yarn.lock'
     - 'jupyter_builder/yarn.js'
     - 'jupyter_builder/_version.py'
+    - THIRD_PARTY_LICENSES/**
 
   comment: on-failure
