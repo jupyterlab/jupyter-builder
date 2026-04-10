@@ -27,3 +27,48 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+Semver File License
+===================
+
+The jupyterlab_semver.py file is from https://github.com/podhmo/python-semver
+which is licensed under the "MIT" license.  See the jupyterlab_semver.py file for details.
+
+yarn.js File License
+====================
+
+The yarn.js file is a bundled distribution of Yarn (https://github.com/yarnpkg/yarn),
+which is licensed under BSD-2-Clause, and includes third-party bundled code
+under the following licenses:
+
+ISC License
+Copyright (c) 2015, Rebecca Turner
+
+MIT License
+Copyright Joyent, Inc. and other Node contributors.
+
+MIT License
+Copyright Node.js contributors. All rights reserved.
+
+MIT License
+Copyright (c) 2014 Blake Embrey (hello@blakeembrey.com)
+
+MIT License - fill-range (https://github.com/jonschlinkert/fill-range)
+Copyright (c) 2014-present, Jon Schlinkert.
+
+MIT License - is-extglob (https://github.com/jonschlinkert/is-extglob)
+Copyright (c) 2014-2016, Jon Schlinkert.
+
+MIT License - is-glob (https://github.com/jonschlinkert/is-glob)
+Copyright (c) 2014-2017, Jon Schlinkert.
+
+MIT License - is-number (https://github.com/jonschlinkert/is-number)
+Copyright (c) 2014-present, Jon Schlinkert.
+
+MIT License - is-windows (https://github.com/jonschlinkert/is-windows)
+Copyright (c) 2015-2018, Jon Schlinkert.
+
+MIT License - to-regex-range (https://github.com/micromatch/to-regex-range)
+Copyright (c) 2015-present, Jon Schlinkert.
+
+See yarn.js for the full license text of each component.
