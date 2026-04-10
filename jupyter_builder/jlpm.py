@@ -20,26 +20,21 @@ def _which_node_js(env: dict[str, str] | None = None) -> str:
     env: dict, optional
         The environment variables, defaults to `os.environ`.
     """
-    command = "node"
     env = env or os.environ  # type:ignore[assignment]
     path = env.get("PATH") or os.defpath  # type:ignore[union-attr]
-    command_with_path = which(command, path=path)
+    command_with_path = which("node", path=path)
 
     # Allow nodejs as an alias to node.
-    if command == "node" and not command_with_path:
-        command = "nodejs"
+    if not command_with_path:
         command_with_path = which("nodejs", path=path)
 
     if not command_with_path:
-        if command in ["nodejs", "node", "npm"]:
-            msg = (
-                "Please install Node.js and npm before continuing installation. "
-                "You may be able to install Node.js from your package manager, "
-                "from conda, or directly from the Node.js website "
-                "(https://nodejs.org)."
-            )
-            raise ValueError(msg)
-        msg = f"The command was not found or was not executable: {command}."
+        msg = (
+            "Please install Node.js and npm before continuing installation. "
+            "You may be able to install Node.js from your package manager, "
+            "from conda, or directly from the Node.js website "
+            "(https://nodejs.org)."
+        )
         raise ValueError(msg)
     return os.path.abspath(command_with_path)
 
