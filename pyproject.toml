@@ -29,14 +29,14 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
-dependencies = ["traitlets", "requests"]
+dependencies = ["traitlets", "requests", "jupyter-core"]
 dynamic = ["version"]
 
 [project.urls]
 Homepage = "https://jupyter.org"
-Source = "https://github.com/jupyterlab/jupyterlab_builder"
-Issues = "https://github.com/jupyterlab/jupyterlab_builder/issues/new/choose"
-Gitter = "https://gitter.im/jupyterlab/jupyterlab"
+Source = "https://github.com/jupyterlab/jupyter-builder"
+Issues = "https://github.com/jupyterlab/jupyter-builder/issues/new/choose"
+Zulip = "https://jupyter.zulipchat.com/#narrow/channel/469762-jupyterlab"
 Pypi = "https://pypi.org/project/jupyter-builder"
 
 [project.optional-dependencies]
