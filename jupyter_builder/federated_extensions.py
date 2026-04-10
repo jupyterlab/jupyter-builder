@@ -204,9 +204,21 @@ def build_labextension(  # noqa: PLR0913
     source_map=False,
     core_version=None,
     core_package_file=None,
+    core_path=None,
 ):
     """Build a labextension in the given path"""
     ext_path = str(Path(path).resolve())
+
+    if core_path is not None:
+        if logger:
+            logger.warning(
+                "\033[33m(Deprecated) `core_path` is deprecated and will be removed "
+                "in a future release. Use `core_package_file` instead.\n \033[0m"
+            )
+        core_path_package = Path(core_path).resolve() / "package.json"
+        if core_path_package.exists():
+            core_package_file = str(core_path_package)
+
     core_package_file = core_package_file or get_core_meta(core_version, ext_path=ext_path)
     core_package_file = str(Path(core_package_file).resolve())
 
