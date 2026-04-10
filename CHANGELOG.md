@@ -8,7 +8,7 @@
 
 ### Maintenance and upkeep improvements
 
-- Restore `core-path` flag as mark it as depricated. [#73](https://github.com/jupyterlab/jupyter-builder/pull/73) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+- Restore `core-path` flag as mark it as deprecated. [#73](https://github.com/jupyterlab/jupyter-builder/pull/73) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
 - Remove `jupyterlab-server` as a dependency [#72](https://github.com/jupyterlab/jupyter-builder/pull/72) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
 
 ### Documentation improvements
