@@ -23,7 +23,6 @@ from os.path import join as pjoin
 
 from jupyter_core.paths import ENV_JUPYTER_PATH, SYSTEM_JUPYTER_PATH, jupyter_data_dir
 from jupyter_core.utils import ensure_dir_exists
-from jupyter_server.extension.serverextension import ArgumentConflict
 
 from .federated_extensions_requirements import get_federated_extensions
 
@@ -38,6 +37,10 @@ from .core_path import get_core_meta
 DEPRECATED_ARGUMENT = object()
 
 HERE = osp.abspath(osp.dirname(__file__))
+
+
+class ArgumentConflict(ValueError):  # noqa N818
+    pass
 
 
 # ------------------------------------------------------------------------------
@@ -204,9 +207,21 @@ def build_labextension(  # noqa: PLR0913
     source_map=False,
     core_version=None,
     core_package_file=None,
+    core_path=None,
 ):
     """Build a labextension in the given path"""
     ext_path = str(Path(path).resolve())
+
+    if core_path is not None:
+        if logger:
+            logger.warning(
+                "\033[33m(Deprecated) `core_path` is deprecated and will be removed "
+                "in a future release. Use `core_package_file` instead.\n \033[0m"
+            )
+        core_path_package = Path(core_path).resolve() / "package.json"
+        if core_path_package.exists():
+            core_package_file = str(core_path_package)
+
     core_package_file = core_package_file or get_core_meta(core_version, ext_path=ext_path)
     core_package_file = str(Path(core_package_file).resolve())
 

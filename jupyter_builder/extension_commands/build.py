@@ -26,6 +26,12 @@ class BuildLabExtensionApp(BaseExtensionApp):
         help="Path to the core application package definition file",
     )
 
+    core_path = Unicode(
+        "",
+        config=True,
+        help="(Deprecated) Directory containing core application package.json file",
+    )
+
     core_version = Unicode(
         "",
         config=True,
@@ -39,6 +45,7 @@ class BuildLabExtensionApp(BaseExtensionApp):
         "development": "BuildLabExtensionApp.development",
         "source-map": "BuildLabExtensionApp.source_map",
         "core-package-file": "BuildLabExtensionApp.core_package_file",
+        "core-path": "BuildLabExtensionApp.core_path",
         "core-version": "BuildLabExtensionApp.core_version",
     }
 
@@ -52,6 +59,7 @@ class BuildLabExtensionApp(BaseExtensionApp):
             source_map=self.source_map,
             core_version=self.core_version or None,
             core_package_file=self.core_package_file or None,
+            core_path=self.core_path or None,
         )
 
 

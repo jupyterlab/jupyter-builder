@@ -2,7 +2,7 @@
 # Distributed under the terms of the Modified BSD License.
 
 [build-system]
-requires = ["hatchling>=1.21.1"]
+requires = ["hatchling>=1.21.1", "hatch-nodejs-version>=0.3.2"]
 build-backend = "hatchling.build"
 
 [project]
@@ -29,14 +29,14 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
-dependencies = ["traitlets", "requests", "jupyterlab_server"]
+dependencies = ["traitlets", "requests", "jupyter-core"]
 dynamic = ["version"]
 
 [project.urls]
 Homepage = "https://jupyter.org"
-Source = "https://github.com/jupyterlab/jupyterlab_builder"
-Issues = "https://github.com/jupyterlab/jupyterlab_builder/issues/new/choose"
-Gitter = "https://gitter.im/jupyterlab/jupyterlab"
+Source = "https://github.com/jupyterlab/jupyter-builder"
+Issues = "https://github.com/jupyterlab/jupyter-builder/issues/new/choose"
+Zulip = "https://jupyter.zulipchat.com/#narrow/channel/469762-jupyterlab"
 Pypi = "https://pypi.org/project/jupyter-builder"
 
 [project.optional-dependencies]
@@ -46,8 +46,7 @@ test = [
     "pytest-check-links>=0.7",
     "pytest-cov",
     "copier>=9.3,<10",
-    "jinja2-time",
-    "jupyterlab",
+    "jinja2-time"
 ]
 # Check ruff version is aligned with the one in .pre-commit-config.yaml
 dev = ["build", "mypy", "pre-commit", "hatch", "ruff==0.14.14"]
@@ -60,8 +59,10 @@ jlpm = "jupyter_builder.jlpm:main"
 ignore = ["W002", "W004"]
 
 [tool.hatch.version]
+source = "nodejs"
+
+[tool.hatch.build.hooks.version]
 path = "jupyter_builder/_version.py"
-validate-bump = false
 
 [tool.hatch.build.targets.sdist]
 exclude = [".github"]
