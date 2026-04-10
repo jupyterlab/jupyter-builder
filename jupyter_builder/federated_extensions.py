@@ -23,7 +23,6 @@ from os.path import join as pjoin
 
 from jupyter_core.paths import ENV_JUPYTER_PATH, SYSTEM_JUPYTER_PATH, jupyter_data_dir
 from jupyter_core.utils import ensure_dir_exists
-from jupyter_server.extension.serverextension import ArgumentConflict
 
 from .federated_extensions_requirements import get_federated_extensions
 
@@ -38,6 +37,10 @@ from .core_path import get_core_meta
 DEPRECATED_ARGUMENT = object()
 
 HERE = osp.abspath(osp.dirname(__file__))
+
+
+class ArgumentConflict(ValueError):  # noqa N818
+    pass
 
 
 # ------------------------------------------------------------------------------
