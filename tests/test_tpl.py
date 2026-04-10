@@ -54,7 +54,7 @@ def test_files_build(tmp_path):
         check=True,
         env=env,
     )
-    run(["jlpm", "run", "build:prod"], cwd=extension_folder, check=True)
+    run(["jlpm", "run", "build:lib"], cwd=extension_folder, check=True)
 
     run(["jupyter-builder", "build", str(extension_folder)], cwd=extension_folder, check=True)
 
@@ -86,7 +86,7 @@ def test_files_build_development(tmp_path):
         check=True,
         env=env,
     )
-    run(["jlpm", "run", "build:prod"], cwd=extension_folder, check=True)
+    run(["jlpm", "run", "build:lib"], cwd=extension_folder, check=True)
 
     run(
         ["jupyter-builder", "build", "--development", "true", str(extension_folder)],
