@@ -130,7 +130,7 @@ def test_watch_functionality(tmp_path):
         check=True,
         env=env,
     )
-    run(["jlpm", "run", "build"], cwd=extension_folder, check=True)
+    run(["jlpm", "run", "build:lib"], cwd=extension_folder, check=True)
 
     # Path to the TypeScript file to change
     index_ts_path = extension_folder / "src/index.ts"

@@ -46,8 +46,7 @@ test = [
     "pytest-check-links>=0.7",
     "pytest-cov",
     "copier>=9.3,<10",
-    "jinja2-time",
-    "jupyterlab",
+    "jinja2-time"
 ]
 # Check ruff version is aligned with the one in .pre-commit-config.yaml
 dev = ["build", "mypy", "pre-commit", "hatch", "ruff==0.14.14"]
