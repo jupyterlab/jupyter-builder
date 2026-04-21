@@ -5,7 +5,6 @@ import os
 import re
 import subprocess
 from pathlib import Path
-from typing import Optional, Union
 
 import requests
 
@@ -16,7 +15,7 @@ def _home_dir() -> Path:
 
 
 def get_core_meta(
-    version: Optional[str] = None, ext_path: Optional[Union[str, os.PathLike[str]]] = None
+    version: str | None = None, ext_path: str | os.PathLike[str] | None = None
 ) -> str:
     requested_version = version
 
@@ -107,7 +106,7 @@ def _resolve_wildcard_npm_version(version: str) -> str:
     return max(matching, key=semver_key)
 
 
-def _get_cached_core_meta_file(cache_root: Path, version: str) -> Optional[Path]:
+def _get_cached_core_meta_file(cache_root: Path, version: str) -> Path | None:
     candidates = [
         cache_root / version / "core.package.json",
         cache_root / version / "package.json",
@@ -138,7 +137,7 @@ def _download_github_core_meta(version: str, destination: Path) -> None:
     destination.write_bytes(r.content)
 
 
-def _get_installed_core_meta(ext_path: Path) -> Optional[str]:
+def _get_installed_core_meta(ext_path: Path) -> str | None:
     if not (ext_path / "node_modules").exists():
         subprocess.check_call(["jlpm"], cwd=ext_path)  # noqa: S603 S607
 
