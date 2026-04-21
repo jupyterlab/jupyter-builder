@@ -139,7 +139,7 @@ def _download_github_core_meta(version: str, destination: Path) -> None:
 
 def _get_installed_core_meta(ext_path: Path) -> str | None:
     if not (ext_path / "node_modules").exists():
-        subprocess.check_call(["jlpm"], cwd=ext_path)  # noqa: S603 S607
+        subprocess.check_call(["jlpm"], cwd=ext_path)  # noqa: S607
 
     target = ext_path
     while True:

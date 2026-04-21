@@ -4,6 +4,7 @@
 """A Jupyter-aware wrapper for the yarn package manager"""
 
 import os
+import signal
 import subprocess
 import sys
 from shutil import which
@@ -50,8 +51,6 @@ def _execvp_node(argv):
     """
     cmd = _which_node_js()
     if os.name == "nt":
-        import signal
-
         p = subprocess.Popen([cmd] + argv[1:])  # noqa S603
         # Don't raise KeyboardInterrupt in the parent process.
         # Set this after spawning, to avoid subprocess inheriting handler.
