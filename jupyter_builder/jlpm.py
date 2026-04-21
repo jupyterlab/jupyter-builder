@@ -50,7 +50,7 @@ def _execvp_node(argv):
     """
     cmd = _which_node_js()
     if os.name == "nt":
-        import signal
+        import signal  # noqa: PLC0415
 
         p = subprocess.Popen([cmd] + argv[1:])  # noqa S603
         # Don't raise KeyboardInterrupt in the parent process.

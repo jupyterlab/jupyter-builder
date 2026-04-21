@@ -97,7 +97,7 @@ def develop_labextension(  # noqa
     # make sure labextensions dir exists
     ensure_dir_exists(labext)
 
-    if isinstance(path, (list, tuple)):
+    if isinstance(path, list | tuple):
         msg = "path must be a string pointing to a single extension to install; call this function multiple times to install multiple extensions"  # noqa: E501
         raise TypeError(msg)
 
@@ -482,7 +482,7 @@ def _get_labextension_metadata(module):  # noqa
     if not package:
         try:
             package = (
-                subprocess.check_output(  # noqa: S603
+                subprocess.check_output(
                     [sys.executable, "setup.py", "--name"],
                     cwd=mod_path,
                 )
@@ -503,7 +503,7 @@ def _get_labextension_metadata(module):  # noqa
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", mod_path])  # noqa S603
         sys.path.insert(0, mod_path)
 
-    from setuptools import find_namespace_packages, find_packages
+    from setuptools import find_namespace_packages, find_packages  # noqa: PLC0415
 
     package_candidates = [
         package.replace("-", "_"),  # Module with the same name as package
