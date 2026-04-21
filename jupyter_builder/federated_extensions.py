@@ -97,7 +97,7 @@ def develop_labextension(  # noqa
     # make sure labextensions dir exists
     ensure_dir_exists(labext)
 
-    if isinstance(path, (list, tuple)):
+    if isinstance(path, list | tuple):
         msg = "path must be a string pointing to a single extension to install; call this function multiple times to install multiple extensions"  # noqa: E501
         raise TypeError(msg)
 
