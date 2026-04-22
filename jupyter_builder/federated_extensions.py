@@ -306,6 +306,19 @@ def watch_labextension(  # noqa: PLR0913
 _BUILDER_MARKER_CANDIDATES = ("@jupyter/builder", "@jupyterlab/builder")
 
 
+def _select_builder_marker(ext_data):
+    """Return (marker_pkg, dep_spec) for the builder marker the extension declares.
+
+    Prefers `@jupyter/builder`. Returns (None, None) if neither marker is present.
+    """
+    for candidate in _BUILDER_MARKER_CANDIDATES:
+        v = ext_data.get("devDependencies", {}).get(candidate)
+        v = v or ext_data.get("dependencies", {}).get(candidate)
+        if v is not None:
+            return candidate, v
+    return None, None
+
+
 def _ensure_builder(ext_path, core_package_file):
     """Ensure that we can build the extension and return the builder script path"""
     with open(core_package_file) as fid:
@@ -313,17 +326,7 @@ def _ensure_builder(ext_path, core_package_file):
     with open(osp.join(ext_path, "package.json")) as fid:
         ext_data = json.load(fid)
 
-    # Find which marker package the extension declares. Prefer @jupyter/builder.
-    marker_pkg = None
-    dep_version2 = None
-    for candidate in _BUILDER_MARKER_CANDIDATES:
-        v = ext_data.get("devDependencies", {}).get(candidate)
-        v = v or ext_data.get("dependencies", {}).get(candidate)
-        if v is not None:
-            marker_pkg = candidate
-            dep_version2 = v
-            break
-
+    marker_pkg, dep_version2 = _select_builder_marker(ext_data)
     if marker_pkg is None:
         msg = f"Extensions require a devDependency on {' or '.join(_BUILDER_MARKER_CANDIDATES)}"
         raise ValueError(msg)
@@ -353,9 +356,7 @@ def _ensure_builder(ext_path, core_package_file):
             dep_version1, dep_version2, drop_prerelease1=True, drop_prerelease2=True
         )
         if not overlap:
-            with open(
-                osp.join(target, "node_modules", *marker_parts, "package.json")
-            ) as fid:
+            with open(osp.join(target, "node_modules", *marker_parts, "package.json")) as fid:
                 dep_version2 = json.load(fid).get("version")
             overlap = _test_overlap(
                 dep_version1, dep_version2, drop_prerelease1=True, drop_prerelease2=True
