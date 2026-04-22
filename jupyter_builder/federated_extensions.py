@@ -301,18 +301,31 @@ def watch_labextension(  # noqa: PLR0913
 # ------------------------------------------------------------------------------
 
 
+# Marker packages an extension may declare to identify its builder, in order
+# of preference.
+_BUILDER_MARKER_CANDIDATES = ("@jupyter/builder", "@jupyterlab/builder")
+
+
 def _ensure_builder(ext_path, core_package_file):
     """Ensure that we can build the extension and return the builder script path"""
-    # Test for compatible dependency on @jupyterlab/builder
     with open(core_package_file) as fid:
         core_data = json.load(fid)
     with open(osp.join(ext_path, "package.json")) as fid:
         ext_data = json.load(fid)
-    dep_version1 = core_data["devDependencies"]["@jupyterlab/builder"]
-    dep_version2 = ext_data.get("devDependencies", {}).get("@jupyterlab/builder")
-    dep_version2 = dep_version2 or ext_data.get("dependencies", {}).get("@jupyterlab/builder")
-    if dep_version2 is None:
-        msg = f"Extensions require a devDependency on @jupyterlab/builder@{dep_version1}"
+
+    # Find which marker package the extension declares. Prefer @jupyter/builder.
+    marker_pkg = None
+    dep_version2 = None
+    for candidate in _BUILDER_MARKER_CANDIDATES:
+        v = ext_data.get("devDependencies", {}).get(candidate)
+        v = v or ext_data.get("dependencies", {}).get(candidate)
+        if v is not None:
+            marker_pkg = candidate
+            dep_version2 = v
+            break
+
+    if marker_pkg is None:
+        msg = f"Extensions require a devDependency on {' or '.join(_BUILDER_MARKER_CANDIDATES)}"
         raise ValueError(msg)
 
     # if we have installed from disk (version is a path), assume we know what
@@ -323,33 +336,39 @@ def _ensure_builder(ext_path, core_package_file):
     if not osp.exists(osp.join(ext_path, "node_modules")):
         subprocess.check_call(["jlpm"], cwd=ext_path)  # noqa S603 S607
 
-    # Find @jupyterlab/builder using node module resolution
-    # We cannot use a script because the script path is a shell script on Windows
+    # Find the marker package in node_modules using node module resolution.
+    # We cannot use a script because the script path is a shell script on Windows.
+    marker_parts = marker_pkg.split("/", 1)
     target = ext_path
-    while not osp.exists(osp.join(target, "node_modules", "@jupyterlab", "builder")):
+    while not osp.exists(osp.join(target, "node_modules", *marker_parts)):
         if osp.dirname(target) == target:
-            msg = "Could not find @jupyterlab/builder"
+            msg = f"Could not find {marker_pkg}"
             raise ValueError(msg)
         target = osp.dirname(target)
 
     # Check for compatible versions
-    overlap = _test_overlap(
-        dep_version1, dep_version2, drop_prerelease1=True, drop_prerelease2=True
-    )
-    if not overlap:
-        with open(
-            osp.join(target, "node_modules", "@jupyterlab", "builder", "package.json")
-        ) as fid:
-            dep_version2 = json.load(fid).get("version")
+    dep_version1 = core_data.get("devDependencies", {}).get(marker_pkg)
+    if dep_version1 is not None:
         overlap = _test_overlap(
             dep_version1, dep_version2, drop_prerelease1=True, drop_prerelease2=True
         )
+        if not overlap:
+            with open(
+                osp.join(target, "node_modules", *marker_parts, "package.json")
+            ) as fid:
+                dep_version2 = json.load(fid).get("version")
+            overlap = _test_overlap(
+                dep_version1, dep_version2, drop_prerelease1=True, drop_prerelease2=True
+            )
 
-    if not overlap:
-        msg = f"Extensions require a devDependency on @jupyterlab/builder@{dep_version1}, you have a dependency on {dep_version2}"  # noqa: E501
-        raise ValueError(msg)
+        if not overlap:
+            msg = (
+                f"Extensions require a devDependency on {marker_pkg}@{dep_version1}, "
+                f"you have a dependency on {dep_version2}"
+            )
+            raise ValueError(msg)
 
-    return osp.join(target, "node_modules", "@jupyter", "builder", "lib", "build-labextension.js")
+    return osp.join(target, "node_modules", *marker_parts, "lib", "build-labextension.js")
 
 
 def _should_copy(src, dest, logger=None):

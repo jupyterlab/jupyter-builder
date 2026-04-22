@@ -207,12 +207,9 @@ def test_builder_version_mismatch(tmp_path):
         env=env,
     )
 
-    run(
-        ["jlpm", "add", "-D", "@jupyter/builder"],
-        cwd=extension_folder,
-        check=True,
-        env=env,
-    )
+    # Note: we intentionally do not add `@jupyter/builder` here so that the
+    # extension only declares `@jupyterlab/builder` as the builder marker.
+    # This exercises the backwards-compatible version-check path.
     with pytest.raises(subprocess.CalledProcessError) as excinfo:
         run(
             ["jupyter-builder", "build", str(extension_folder)],
