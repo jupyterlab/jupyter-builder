@@ -319,6 +319,11 @@ def _select_builder_marker(ext_data):
     return None, None
 
 
+_BUNDLED_BUILDER_SCRIPT = osp.join(
+    osp.dirname(osp.abspath(__file__)), "static", "lib", "build-labextension.js"
+)
+
+
 def _ensure_builder(ext_path, core_package_file):
     """Ensure that we can build the extension and return the builder script path"""
     with open(core_package_file) as fid:
@@ -330,6 +335,10 @@ def _ensure_builder(ext_path, core_package_file):
     if marker_pkg is None:
         msg = f"Extensions require a devDependency on {' or '.join(_BUILDER_MARKER_CANDIDATES)}"
         raise ValueError(msg)
+
+    # Prefer the bundled static builder shipped with jupyter-builder itself.
+    if osp.exists(_BUNDLED_BUILDER_SCRIPT):
+        return _BUNDLED_BUILDER_SCRIPT
 
     # if we have installed from disk (version is a path), assume we know what
     # we are doing and do not check versions.
