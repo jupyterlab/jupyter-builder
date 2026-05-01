@@ -58,7 +58,6 @@ commander
   )
   .option('--watch')
   .action(async (options, command) => {
-    throw new Error('Test');
     const mode = options.development ? 'development' : 'production';
     const corePackageFile = path.resolve(options.corePackageFile);
     const packagePath = path.resolve(command.args[0]);
