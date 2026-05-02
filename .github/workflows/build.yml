@@ -32,6 +32,12 @@ jobs:
         jlpm
         jlpm run lint:check
 
+    - name: Build the extension
+      run: |
+        set -eux
+        jlpm
+        jlpm run build
+
     - name: Package the extension
       run: |
         set -eux
