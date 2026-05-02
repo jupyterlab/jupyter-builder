@@ -12,7 +12,7 @@
 
 ### Bugs fixed
 
-- Fix missing `tomli` dependency for Python < 3.11 [#83](https://github.com/jupyterlab/jupyter-builder/pull/83) ([@jtpio](https://github.com/jtpio), [@krassowski](https://github.com/krassowski))
+- Fix missing `tomli` dependency for Python \< 3.11 [#83](https://github.com/jupyterlab/jupyter-builder/pull/83) ([@jtpio](https://github.com/jtpio), [@krassowski](https://github.com/krassowski))
 
 ### Maintenance and upkeep improvements
 
