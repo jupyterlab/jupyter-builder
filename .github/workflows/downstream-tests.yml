@@ -59,3 +59,16 @@ jobs:
     - name: Build ${{ matrix.name }}
       working-directory: downstream
       run: jlpm build
+
+    - name: Build wheel
+      working-directory: downstream
+      run: |
+        pip install build
+        python -m build --wheel
+
+    - name: Upload wheel
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.name }}-wheel
+        path: downstream/dist/*.whl
+        if-no-files-found: error
