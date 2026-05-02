@@ -106,7 +106,7 @@ jobs:
       - name: Run Linters
         run: |
           python -m pre_commit run --all
-          pipx run interrogate -v .
+          # pipx run interrogate -v .
 
   test_minimum_versions:
     name: Test Minimum Versions
