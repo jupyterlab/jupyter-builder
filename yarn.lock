@@ -75,6 +75,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@hono/node-server@npm:^2.0.0":
+  version: 2.0.1
+  resolution: "@hono/node-server@npm:2.0.1"
+  peerDependencies:
+    hono: ^4
+  checksum: 7e40b913c75578d9de722613b1e0784f7d5026f4ffc40bee4a0859cab4a86fba255488f30090158bd7b2fdf6242dc2484cc100a9e3a3fec139fdf554526bd4bc
+  languageName: node
+  linkType: hard
+
 "@humanwhocodes/config-array@npm:^0.13.0":
   version: 0.13.0
   resolution: "@humanwhocodes/config-array@npm:0.13.0"
@@ -118,6 +127,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@jupyter/builder@workspace:."
   dependencies:
+    "@hono/node-server": ^2.0.0
     "@jupyterlab/core-meta": 4.6.0-alpha.4
     "@module-federation/runtime-tools": ^2.0.0
     "@rspack/core": ^2.0.0
@@ -126,6 +136,7 @@ __metadata:
     "@types/node": ^20.14.8
     "@types/supports-color": ^5.3.0
     "@types/watchpack": ^2.4.4
+    "@types/ws": ^8.0.0
     "@typescript-eslint/eslint-plugin": ^6.1.0
     "@typescript-eslint/parser": ^6.1.0
     ajv: ^8.12.0
@@ -137,6 +148,7 @@ __metadata:
     eslint-plugin-prettier: ^5.0.0
     fs-extra: ^10.1.0
     glob: ~7.1.6
+    hono: ^4.0.0
     license-webpack-plugin: ^4.0.2
     mini-svg-data-uri: ^1.4.4
     npm-run-all: ^4.1.5
@@ -494,6 +506,15 @@ __metadata:
     "@types/graceful-fs": "*"
     "@types/node": "*"
   checksum: 8314198f659fe0f024466f0b07cdbe2409264e5f532d75552303de52fcda88c94e6a21d49a527a4ddfe7e599a9a13a0b0ac5e3523edf9fe7ae49943ed0295774
+  languageName: node
+  linkType: hard
+
+"@types/ws@npm:^8.0.0":
+  version: 8.18.1
+  resolution: "@types/ws@npm:8.18.1"
+  dependencies:
+    "@types/node": "*"
+  checksum: 0331b14cde388e2805af66cad3e3f51857db8e68ed91e5b99750915e96fe7572e58296dc99999331bbcf08f0ff00a227a0bb214e991f53c2a5aca7b0e71173fa
   languageName: node
   linkType: hard
 
@@ -1825,6 +1846,13 @@ __metadata:
   dependencies:
     function-bind: ^1.1.2
   checksum: e8516f776a15149ca6c6ed2ae3110c417a00b62260e222590e54aa367cbcd6ed99122020b37b7fbdf05748df57b265e70095d7bf35a47660587619b15ffb93db
+  languageName: node
+  linkType: hard
+
+"hono@npm:^4.0.0":
+  version: 4.12.16
+  resolution: "hono@npm:4.12.16"
+  checksum: 1600706dc45d5d40e280111430c4489e491025ac2ef0bfcba725cc34b9cda217c6e91cdf2925029bff062e3f6c928b88c4f3bfad4ffc921df331833139ac1960
   languageName: node
   linkType: hard
 
