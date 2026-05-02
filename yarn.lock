@@ -119,6 +119,7 @@ __metadata:
   resolution: "@jupyter/builder@workspace:."
   dependencies:
     "@jupyterlab/core-meta": 4.6.0-alpha.4
+    "@module-federation/runtime-tools": ^2.0.0
     "@rspack/core": ^2.0.0
     "@types/fs-extra": ^9.0.1
     "@types/glob": ^7.1.1
@@ -156,6 +157,67 @@ __metadata:
   version: 4.6.0-alpha.4
   resolution: "@jupyterlab/core-meta@npm:4.6.0-alpha.4"
   checksum: 9ee7870b1a5f41a15d20bddd716bb916bc65888bb08b6d8fe6f51d71b9d7110e701b37dd0ae3fc83342839c74555da6d7b49006c638fd32808269e3558324c06
+  languageName: node
+  linkType: hard
+
+"@module-federation/error-codes@npm:2.4.0":
+  version: 2.4.0
+  resolution: "@module-federation/error-codes@npm:2.4.0"
+  checksum: 6b42f023006171ba86003e0f6c7d6811e4313f81f2de5960b135bd8dcb5dc16a79fb555ef4e00648de3cc474857ebc743247200d6d977b8fbd7486207bc94d00
+  languageName: node
+  linkType: hard
+
+"@module-federation/runtime-core@npm:2.4.0":
+  version: 2.4.0
+  resolution: "@module-federation/runtime-core@npm:2.4.0"
+  dependencies:
+    "@module-federation/error-codes": 2.4.0
+    "@module-federation/sdk": 2.4.0
+  checksum: 1ef3e9247324f2474c6cbd3321404b0d9821028459d463e61e8792059a1d9214f2d90a893b4971001a78107533a7f3df6b6fac31c3b9ce91e0739d1fb3d7c2ab
+  languageName: node
+  linkType: hard
+
+"@module-federation/runtime-tools@npm:^2.0.0":
+  version: 2.4.0
+  resolution: "@module-federation/runtime-tools@npm:2.4.0"
+  dependencies:
+    "@module-federation/runtime": 2.4.0
+    "@module-federation/webpack-bundler-runtime": 2.4.0
+  checksum: e4f955b17165aa4f069460940e7b15028d1ad2ce04123cb544304b960417e7b29f92ef8ead2303bbe022120a573e9af94e23269aa78df91a39c8eed279895b62
+  languageName: node
+  linkType: hard
+
+"@module-federation/runtime@npm:2.4.0":
+  version: 2.4.0
+  resolution: "@module-federation/runtime@npm:2.4.0"
+  dependencies:
+    "@module-federation/error-codes": 2.4.0
+    "@module-federation/runtime-core": 2.4.0
+    "@module-federation/sdk": 2.4.0
+  checksum: 0883cf01f62f7d88f7965ac9684372429bf959143d1c2f60393e56a37ab6213cf49e67ffad91982c985fac305f7e6525c8a0e2c1083abc9b5d72f941e6823439
+  languageName: node
+  linkType: hard
+
+"@module-federation/sdk@npm:2.4.0":
+  version: 2.4.0
+  resolution: "@module-federation/sdk@npm:2.4.0"
+  peerDependencies:
+    node-fetch: ^2.7.0 || ^3.3.2
+  peerDependenciesMeta:
+    node-fetch:
+      optional: true
+  checksum: d11a938bd17f955c649b1891326e5580816865ea26cc5f48feabd4ffa9ed10ceba9bd1246063773b992a817732384d325c4900913156355565fc0d8c8ed06ea8
+  languageName: node
+  linkType: hard
+
+"@module-federation/webpack-bundler-runtime@npm:2.4.0":
+  version: 2.4.0
+  resolution: "@module-federation/webpack-bundler-runtime@npm:2.4.0"
+  dependencies:
+    "@module-federation/error-codes": 2.4.0
+    "@module-federation/runtime": 2.4.0
+    "@module-federation/sdk": 2.4.0
+  checksum: 06d225b4cf4808fafbec1ad195b7281baf79d5ffde19ab9abcbc9c6d946f566d1f431185742461163052ecf062cf1a57adb2c931e6ec02fc4c68fe2cde65e532
   languageName: node
   linkType: hard
 

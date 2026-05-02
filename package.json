@@ -45,6 +45,7 @@
     },
     "dependencies": {
         "@jupyterlab/core-meta": "4.6.0-alpha.4",
+        "@module-federation/runtime-tools": "^2.0.0",
         "@rspack/core": "^2.0.0",
         "ajv": "^8.12.0",
         "commander": "^9.4.1",
