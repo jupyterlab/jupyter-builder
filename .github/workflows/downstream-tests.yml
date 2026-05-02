@@ -1,0 +1,74 @@
+name: Downstream Tests
+
+on:
+  pull_request:
+
+jobs:
+  downstream:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - repo: jupyterlab/jupyterlab
+            name: jupyterlab
+          - repo: jupyter/notebook
+            name: notebook
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+
+    - name: Base Setup
+      uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
+
+    - name: Install Builder
+      run: |
+        pip install hatchling>=1.21.1
+        python -m pip install .
+
+    - name: Install dependencies
+      run: jlpm install
+
+    - name: Build TypeScript
+      run: jlpm build:prod
+
+    - name: Pack npm tarball
+      run: npm pack
+
+    - name: Checkout ${{ matrix.name }}
+      uses: actions/checkout@v6
+      with:
+        repository: ${{ matrix.repo }}
+        path: downstream
+
+    - name: Patch root package.json resolutions
+      run: |
+        TARBALL=$(realpath jupyter-builder-*.tgz)
+        echo "Using tarball: $TARBALL"
+        jq --arg t "file:$TARBALL" \
+          '.resolutions["@jupyter/builder"] = $t' \
+          downstream/package.json > tmp.json && mv tmp.json downstream/package.json
+
+        echo "--- Patched resolution ---"
+        jq '.resolutions["@jupyter/builder"]' downstream/package.json
+
+    - name: Install deps
+      working-directory: downstream
+      run: jlpm install
+
+    - name: Build ${{ matrix.name }}
+      working-directory: downstream
+      run: jlpm build
+
+    - name: Build wheel
+      working-directory: downstream
+      run: |
+        pip install build
+        python -m build --wheel
+
+    - name: Upload wheel
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.name }}-wheel
+        path: downstream/dist/*.whl
+        if-no-files-found: error
