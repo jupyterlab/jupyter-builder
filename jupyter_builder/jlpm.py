@@ -1,7 +1,7 @@
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
-"""A Jupyter-aware wrapper for the yarn package manager"""
+"""A Jupyter-aware wrapper for the yarn package manager."""
 
 import os
 import subprocess
@@ -13,12 +13,13 @@ YARN_PATH = os.path.join(HERE, "yarn.js")
 
 
 def _which_node_js(env: dict[str, str] | None = None) -> str:
-    """Get the full path to Node.js executable
+    """Get the full path to Node.js executable.
 
     Parameters
     ----------
     env: dict, optional
         The environment variables, defaults to `os.environ`.
+
     """
     env = env or os.environ  # type:ignore[assignment]
     path = env.get("PATH") or os.defpath  # type:ignore[union-attr]

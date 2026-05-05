@@ -1,4 +1,4 @@
-"""JupyterLab Server config"""
+"""JupyterLab Server config."""
 
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
@@ -15,7 +15,7 @@ DEFAULT_TEMPLATE_PATH = osp.join(osp.dirname(__file__), "templates")
 
 
 def get_package_url(data: dict[str, Any]) -> str:
-    """Get the url from the extension data"""
+    """Get the url from the extension data."""
     # homepage, repository  are optional
     if "homepage" in data:
         url = data["homepage"]
@@ -27,7 +27,7 @@ def get_package_url(data: dict[str, Any]) -> str:
 
 
 def get_federated_extensions(labextensions_path: list[str]) -> dict[str, Any]:
-    """Get the metadata about federated extensions"""
+    """Get the metadata about federated extensions."""
     federated_extensions = {}
     for ext_dir in labextensions_path:
         # extensions are either top-level directories, or two-deep in @org directories

@@ -27,7 +27,6 @@ develop_flags["overwrite"] = (
 aliases = dict(base_aliases)
 aliases["debug-log-path"] = "DebugLogFileMixin.debug_log_path"
 
-# VERSION = get_app_version()
 VERSION = 1
 
 
@@ -42,11 +41,6 @@ class BaseExtensionApp(JupyterApp, DebugLogFileMixin):
         help="The standard paths to look in for prebuilt JupyterLab extensions",
     )
 
-    # @default("labextensions_path")
-    # def _default_labextensions_path(self):
-    # lab = LabApp()
-    # lab.load_config_file()
-    # return lab.extra_labextensions_path + lab.labextensions_path
     @default("labextensions_path")
     def _default_labextensions_path(self) -> list[str]:
         return jupyter_path("labextensions")
@@ -59,5 +53,5 @@ class BaseExtensionApp(JupyterApp, DebugLogFileMixin):
         pass
 
     def _log_format_default(self):
-        """A default format for messages"""
+        """Return the default log format string."""
         return "%(message)s"

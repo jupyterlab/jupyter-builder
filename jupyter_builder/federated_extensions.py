@@ -1,25 +1,27 @@
-"""Utilities for installing Javascript extensions for the notebook"""
+"""Utilities for installing Javascript extensions for the notebook."""
 
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
+from __future__ import annotations
+
 import importlib
 import json
 import os
-import os.path as osp
 import platform
 import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    import logging
 
 try:
     from importlib.metadata import PackageNotFoundError, version
 except ImportError:
     from importlib_metadata import PackageNotFoundError, version
-
-from os.path import basename, normpath
-from os.path import join as pjoin
 
 from jupyter_core.paths import ENV_JUPYTER_PATH, SYSTEM_JUPYTER_PATH, jupyter_data_dir
 from jupyter_core.utils import ensure_dir_exists
@@ -36,11 +38,11 @@ from .core_path import get_core_meta
 
 DEPRECATED_ARGUMENT = object()
 
-HERE = osp.abspath(osp.dirname(__file__))
+HERE = str(Path(__file__).resolve().parent)
 
 
-class ArgumentConflict(ValueError):  # noqa N818
-    pass
+class ArgumentConflict(ValueError):  # noqa: N818
+    """Raised when conflicting arguments are passed to a labextension function."""
 
 
 # ------------------------------------------------------------------------------
@@ -48,17 +50,17 @@ class ArgumentConflict(ValueError):  # noqa N818
 # ------------------------------------------------------------------------------
 
 
-def develop_labextension(  # noqa
-    path,
-    symlink=True,
-    overwrite=False,
-    user=False,
-    labextensions_dir=None,
-    destination=None,
-    logger=None,
-    sys_prefix=False,
-):
-    """Install a prebuilt extension for JupyterLab
+def develop_labextension(  # noqa: PLR0913, C901, PLR0912
+    path: str | os.PathLike[str],
+    symlink: bool = True,  # noqa: FBT001
+    overwrite: bool = False,  # noqa: FBT001
+    user: bool = False,  # noqa: FBT001
+    labextensions_dir: str | None = None,
+    destination: str | None = None,
+    logger: logging.Logger | None = None,
+    sys_prefix: bool = False,  # noqa: FBT001
+) -> str:
+    """Install a prebuilt extension for JupyterLab.
 
     Stages files and/or directories into the labextensions directory.
     By default, this compares modification time, and only stages files that need updating.
@@ -66,7 +68,6 @@ def develop_labextension(  # noqa
 
     Parameters
     ----------
-
     path : path to file, directory, zip or tarball archive, or URL to install
         By default, the file will be installed with its base name, so '/path/to/foo'
         will install to 'labextensions/foo'. See the destination argument below to change this.
@@ -87,12 +88,15 @@ def develop_labextension(  # noqa
         the source file will be installed to 'labextensions/foo', regardless of the source name.
     logger : Jupyter logger [optional]
         Logger instance to use
+    sys_prefix : bool [default: False]
+        If True, install to sys.prefix (i.e. the virtualenv/conda env prefix).
+
     """
     # the actual path to which we eventually installed
     full_dest = None
 
     labext = _get_labextension_dir(
-        user=user, sys_prefix=sys_prefix, labextensions_dir=labextensions_dir
+        user=user, sys_prefix=sys_prefix, labextensions_dir=labextensions_dir,
     )
     # make sure labextensions dir exists
     ensure_dir_exists(labext)
@@ -102,27 +106,27 @@ def develop_labextension(  # noqa
         raise TypeError(msg)
 
     if not destination:
-        destination = basename(normpath(path))
+        destination = Path(path).name
 
-    full_dest = normpath(pjoin(labext, destination))
+    full_dest = str(Path(labext) / destination)
     if overwrite and os.path.lexists(full_dest):
         if logger:
             logger.info("Removing: %s", full_dest)
-        if os.path.isdir(full_dest) and not os.path.islink(full_dest):
+        if Path(full_dest).is_dir() and not Path(full_dest).is_symlink():
             shutil.rmtree(full_dest)
         else:
-            os.remove(full_dest)
+            Path(full_dest).unlink()
 
     # Make sure the parent directory exists
-    os.makedirs(os.path.dirname(full_dest), exist_ok=True)
+    Path(full_dest).parent.mkdir(parents=True, exist_ok=True)
 
     if symlink:
-        path = os.path.abspath(path)
-        if not os.path.exists(full_dest):
+        path = str(Path(path).resolve())
+        if not Path(full_dest).exists():
             if logger:
-                logger.info(f"Symlinking: {full_dest} -> {path}")
+                logger.info("Symlinking: %s -> %s", full_dest, path)
             try:
-                os.symlink(path, full_dest)
+                Path(full_dest).symlink_to(path)
             except OSError as e:
                 if platform.platform().startswith("Windows"):
                     msg = (
@@ -133,55 +137,57 @@ def develop_labextension(  # noqa
                     raise OSError(msg) from e
                 raise
 
-        elif not os.path.islink(full_dest):
+        elif not Path(full_dest).is_symlink():
             msg = f"{full_dest} exists and is not a symlink"
             raise ValueError(msg)
 
-    elif os.path.isdir(path):
-        path = pjoin(os.path.abspath(path), "")  # end in path separator
-        for parent, _, files in os.walk(path):
-            dest_dir = pjoin(full_dest, parent[len(path) :])
-            if not os.path.exists(dest_dir):
+    elif Path(path).is_dir():
+        src_root = Path(path).resolve()
+        for parent_str, _, files in os.walk(src_root):
+            parent_path = Path(parent_str)
+            dest_dir = Path(full_dest) / parent_path.relative_to(src_root)
+            if not dest_dir.exists():
                 if logger:
                     logger.info("Making directory: %s", dest_dir)
-                os.makedirs(dest_dir)
+                dest_dir.mkdir(parents=True)
             for file_name in files:
-                src = pjoin(parent, file_name)
-                dest_file = pjoin(dest_dir, file_name)
+                src = str(parent_path / file_name)
+                dest_file = str(dest_dir / file_name)
                 _maybe_copy(src, dest_file, logger=logger)
     else:
-        src = path
+        src = str(path)
         _maybe_copy(src, full_dest, logger=logger)
 
     return full_dest
 
 
 def develop_labextension_py(  # noqa: PLR0913
-    module,
-    user=False,
-    sys_prefix=False,
-    overwrite=True,
-    symlink=True,
-    labextensions_dir=None,
-    logger=None,
-):
+    module: str,
+    user: bool = False,  # noqa: FBT001
+    sys_prefix: bool = False,  # noqa: FBT001
+    overwrite: bool = True,  # noqa: FBT001
+    symlink: bool = True,  # noqa: FBT001
+    labextensions_dir: str | None = None,
+    logger: logging.Logger | None = None,
+) -> list[str]:
     """Develop a labextension bundled in a Python package.
 
     Returns a list of installed/updated directories.
 
-    See develop_labextension for parameter information."""
+    See develop_labextension for parameter information.
+    """
     m, labexts = _get_labextension_metadata(module)
-    base_path = os.path.split(m.__file__)[0]
+    base_path = str(Path(m.__file__).parent)
 
     full_dests = []
 
     for labext in labexts:
-        src = os.path.join(base_path, labext["src"])
+        src = str(Path(base_path) / labext["src"])
         dest = labext["dest"]
         if logger:
-            logger.info(f"Installing {src} -> {dest}")
+            logger.info("Installing %s -> %s", src, dest)
 
-        if not os.path.exists(src):
+        if not Path(src).exists():
             build_labextension(base_path, logger=logger)
 
         full_dest = develop_labextension(
@@ -200,23 +206,23 @@ def develop_labextension_py(  # noqa: PLR0913
 
 
 def build_labextension(  # noqa: PLR0913
-    path,
-    logger=None,
-    development=False,
-    static_url=None,
-    source_map=False,
-    core_version=None,
-    core_package_file=None,
-    core_path=None,
-):
-    """Build a labextension in the given path"""
+    path: str | os.PathLike[str],
+    logger: logging.Logger | None = None,
+    development: bool = False,  # noqa: FBT001
+    static_url: str | None = None,
+    source_map: bool = False,  # noqa: FBT001
+    core_version: str | None = None,
+    core_package_file: str | None = None,
+    core_path: str | None = None,
+) -> None:
+    """Build a labextension in the given path."""
     ext_path = str(Path(path).resolve())
 
     if core_path is not None:
         if logger:
             logger.warning(
                 "\033[33m(Deprecated) `core_path` is deprecated and will be removed "
-                "in a future release. Use `core_package_file` instead.\n \033[0m"
+                "in a future release. Use `core_package_file` instead.\n \033[0m",
             )
         core_path_package = Path(core_path).resolve() / "package.json"
         if core_path_package.exists():
@@ -244,19 +250,19 @@ def build_labextension(  # noqa: PLR0913
     if source_map:
         arguments.append("--source-map")
 
-    subprocess.check_call(arguments, cwd=ext_path)  # noqa S603
+    subprocess.check_call(arguments, cwd=ext_path)  # noqa: S603
 
 
 def watch_labextension(  # noqa: PLR0913
-    path,
-    labextensions_path,
-    logger=None,
-    development=False,
-    source_map=False,
-    core_version=None,
-    core_package_file=None,
-):
-    """Watch a labextension in a given path"""
+    path: str | os.PathLike[str],
+    labextensions_path: list[str],
+    logger: logging.Logger | None = None,
+    development: bool = False,  # noqa: FBT001
+    source_map: bool = False,  # noqa: FBT001
+    core_version: str | None = None,
+    core_package_file: str | None = None,
+) -> None:
+    """Watch a labextension in a given path."""
     ext_path = str(Path(path).resolve())
     core_package_file = core_package_file or get_core_meta(core_version, ext_path=ext_path)
     core_package_file = str(Path(core_package_file).resolve())
@@ -267,17 +273,21 @@ def watch_labextension(  # noqa: PLR0913
     # Check to see if we need to create a symlink
     federated_extensions = get_federated_extensions(labextensions_path)
 
-    with open(pjoin(ext_path, "package.json")) as fid:
+    with (Path(ext_path) / "package.json").open() as fid:
         ext_data = json.load(fid)
 
     if ext_data["name"] not in federated_extensions:
         develop_labextension_py(ext_path, sys_prefix=True)
     else:
-        full_dest = pjoin(federated_extensions[ext_data["name"]]["ext_dir"], ext_data["name"])
-        output_dir = pjoin(ext_path, ext_data["jupyterlab"].get("outputDir", "static"))
-        if not osp.islink(full_dest):
+        full_dest = str(
+            Path(federated_extensions[ext_data["name"]]["ext_dir"]) / ext_data["name"],
+        )
+        output_dir = str(
+            Path(ext_path) / ext_data["jupyterlab"].get("outputDir", "static"),
+        )
+        if not Path(full_dest).is_symlink():
             shutil.rmtree(full_dest)
-            os.symlink(output_dir, full_dest)
+            Path(full_dest).symlink_to(output_dir)
 
     builder = _ensure_builder(ext_path, core_package_file)
     arguments = [
@@ -293,7 +303,7 @@ def watch_labextension(  # noqa: PLR0913
     if source_map:
         arguments.append("--source-map")
 
-    subprocess.check_call(arguments, cwd=ext_path)  # noqa S603
+    subprocess.check_call(arguments, cwd=ext_path)  # noqa: S603
 
 
 # ------------------------------------------------------------------------------
@@ -306,7 +316,7 @@ def watch_labextension(  # noqa: PLR0913
 _BUILDER_MARKER_CANDIDATES = ("@jupyter/builder", "@jupyterlab/builder")
 
 
-def _select_builder_marker(ext_data):
+def _select_builder_marker(ext_data: dict[str, Any]) -> tuple[str | None, str | None]:
     """Return (marker_pkg, dep_spec) for the builder marker the extension declares.
 
     Prefers `@jupyter/builder`. Returns (None, None) if neither marker is present.
@@ -319,11 +329,11 @@ def _select_builder_marker(ext_data):
     return None, None
 
 
-def _ensure_builder(ext_path, core_package_file):
-    """Ensure that we can build the extension and return the builder script path"""
-    with open(core_package_file) as fid:
+def _ensure_builder(ext_path: str, core_package_file: str) -> str:
+    """Ensure that we can build the extension and return the builder script path."""
+    with Path(core_package_file).open() as fid:
         core_data = json.load(fid)
-    with open(osp.join(ext_path, "package.json")) as fid:
+    with (Path(ext_path) / "package.json").open() as fid:
         ext_data = json.load(fid)
 
     marker_pkg, dep_version2 = _select_builder_marker(ext_data)
@@ -334,32 +344,32 @@ def _ensure_builder(ext_path, core_package_file):
     # if we have installed from disk (version is a path), assume we know what
     # we are doing and do not check versions.
     if "/" in dep_version2:
-        with open(osp.join(ext_path, dep_version2, "package.json")) as fid:
+        with (Path(ext_path) / dep_version2 / "package.json").open() as fid:
             dep_version2 = json.load(fid).get("version")
-    if not osp.exists(osp.join(ext_path, "node_modules")):
-        subprocess.check_call(["jlpm"], cwd=ext_path)  # noqa S603 S607
+    if not (Path(ext_path) / "node_modules").exists():
+        subprocess.check_call(["jlpm"], cwd=ext_path)  # noqa: S607
 
     # Find the marker package in node_modules using node module resolution.
     # We cannot use a script because the script path is a shell script on Windows.
     marker_parts = marker_pkg.split("/", 1)
     target = ext_path
-    while not osp.exists(osp.join(target, "node_modules", *marker_parts)):
-        if osp.dirname(target) == target:
+    while not Path(target).joinpath("node_modules", *marker_parts).exists():
+        if Path(target).parent == Path(target):
             msg = f"Could not find {marker_pkg}"
             raise ValueError(msg)
-        target = osp.dirname(target)
+        target = str(Path(target).parent)
 
     # Check for compatible versions
     dep_version1 = core_data.get("devDependencies", {}).get(marker_pkg)
     if dep_version1 is not None:
         overlap = _test_overlap(
-            dep_version1, dep_version2, drop_prerelease1=True, drop_prerelease2=True
+            dep_version1, dep_version2, drop_prerelease1=True, drop_prerelease2=True,
         )
         if not overlap:
-            with open(osp.join(target, "node_modules", *marker_parts, "package.json")) as fid:
+            with Path(target).joinpath("node_modules", *marker_parts, "package.json").open() as fid:
                 dep_version2 = json.load(fid).get("version")
             overlap = _test_overlap(
-                dep_version1, dep_version2, drop_prerelease1=True, drop_prerelease2=True
+                dep_version1, dep_version2, drop_prerelease1=True, drop_prerelease2=True,
             )
 
         if not overlap:
@@ -369,27 +379,27 @@ def _ensure_builder(ext_path, core_package_file):
             )
             raise ValueError(msg)
 
-    return osp.join(target, "node_modules", *marker_parts, "lib", "build-labextension.js")
+    return str(Path(target).joinpath("node_modules", *marker_parts, "lib", "build-labextension.js"))
 
 
-def _should_copy(src, dest, logger=None):
-    """Should a file be copied, if it doesn't exist, or is newer?
+def _should_copy(src: str, dest: str, logger: logging.Logger | None = None) -> bool:
+    """Check whether a file should be copied because it is missing or the source is newer.
 
     Returns whether the file needs to be updated.
 
     Parameters
     ----------
-
     src : string
         A path that should exist from which to copy a file
-    src : string
+    dest : string
         A path that might exist to which to copy a file
     logger : Jupyter logger [optional]
         Logger instance to use
+
     """
-    if not os.path.exists(dest):
+    if not Path(dest).exists():
         return True
-    if os.stat(src).st_mtime - os.stat(dest).st_mtime > 1e-6:  # noqa
+    if Path(src).stat().st_mtime - Path(dest).stat().st_mtime > 1e-6:  # noqa: PLR2004
         # we add a fudge factor to work around a bug in python 2.x
         # that was fixed in python 3.x: https://bugs.python.org/issue12904
         if logger:
@@ -400,31 +410,35 @@ def _should_copy(src, dest, logger=None):
     return False
 
 
-def _maybe_copy(src, dest, logger=None):
+def _maybe_copy(src: str, dest: str, logger: logging.Logger | None = None) -> None:
     """Copy a file if it needs updating.
 
     Parameters
     ----------
-
     src : string
         A path that should exist from which to copy a file
-    src : string
+    dest : string
         A path that might exist to which to copy a file
     logger : Jupyter logger [optional]
         Logger instance to use
+
     """
     if _should_copy(src, dest, logger=logger):
         if logger:
-            logger.info(f"Copying: {src} -> {dest}")
+            logger.info("Copying: %s -> %s", src, dest)
         shutil.copy2(src, dest)
 
 
-def _get_labextension_dir(user=False, sys_prefix=False, prefix=None, labextensions_dir=None):
-    """Return the labextension directory specified
+def _get_labextension_dir(
+    user: bool = False,  # noqa: FBT001
+    sys_prefix: bool = False,  # noqa: FBT001
+    prefix: str | None = None,
+    labextensions_dir: str | None = None,
+) -> str:
+    """Return the labextension directory specified.
 
     Parameters
     ----------
-
     user : bool [default: False]
         Get the user's .jupyter/labextensions directory
     sys_prefix : bool [default: False]
@@ -433,6 +447,7 @@ def _get_labextension_dir(user=False, sys_prefix=False, prefix=None, labextensio
         Get custom prefix
     labextensions_dir : str [optional]
         Get what you put in
+
     """
     conflicting = [
         ("user", user),
@@ -446,19 +461,19 @@ def _get_labextension_dir(user=False, sys_prefix=False, prefix=None, labextensio
         msg = f"cannot specify more than one of user, sys_prefix, prefix, or labextensions_dir, but got: {conflict}"  # noqa: E501
         raise ArgumentConflict(msg)
     if user:
-        labext = pjoin(jupyter_data_dir(), "labextensions")
+        labext = str(Path(jupyter_data_dir()) / "labextensions")
     elif sys_prefix:
-        labext = pjoin(ENV_JUPYTER_PATH[0], "labextensions")
+        labext = str(Path(ENV_JUPYTER_PATH[0]) / "labextensions")
     elif prefix:
-        labext = pjoin(prefix, "share", "jupyter", "labextensions")
+        labext = str(Path(prefix) / "share" / "jupyter" / "labextensions")
     elif labextensions_dir:
         labext = labextensions_dir
     else:
-        labext = pjoin(SYSTEM_JUPYTER_PATH[0], "labextensions")
+        labext = str(Path(SYSTEM_JUPYTER_PATH[0]) / "labextensions")
     return labext
 
 
-def _get_labextension_metadata(module):  # noqa
+def _get_labextension_metadata(module: str) -> tuple[Any, list[dict[str, str]]]:  # noqa: C901
     """Get the list of labextension paths associated with a Python module.
 
     Returns a tuple of (the module path,             [{
@@ -468,15 +483,14 @@ def _get_labextension_metadata(module):  # noqa
 
     Parameters
     ----------
-
     module : str
         Importable Python module exposing the
         magic-named `_jupyter_labextension_paths` function
+
     """
-    mod_path = osp.abspath(module)
-    if not osp.exists(mod_path):
+    mod_path = str(Path(module).resolve())
+    if not Path(mod_path).exists():
         msg = f"The path `{mod_path}` does not exist."
-        # breakpoint()
         raise FileNotFoundError(msg)
 
     errors = []
@@ -485,16 +499,16 @@ def _get_labextension_metadata(module):  # noqa
     try:
         m = importlib.import_module(module)
         if hasattr(m, "_jupyter_labextension_paths"):
-            return m, m._jupyter_labextension_paths()
-    except Exception as exc:
+            return m, m._jupyter_labextension_paths()  # noqa: SLF001
+    except Exception as exc:  # noqa: BLE001
         errors.append(exc)
 
     # Try to get the package name
     package = None
 
     # Try getting the package name from pyproject.toml
-    if os.path.exists(os.path.join(mod_path, "pyproject.toml")):
-        with open(os.path.join(mod_path, "pyproject.toml"), "rb") as fid:
+    if (Path(mod_path) / "pyproject.toml").exists():
+        with (Path(mod_path) / "pyproject.toml").open("rb") as fid:
             data = load(fid)
         package = data.get("project", {}).get("name")
 
@@ -520,7 +534,7 @@ def _get_labextension_metadata(module):  # noqa
     try:
         version(package)
     except PackageNotFoundError:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", mod_path])  # noqa S603
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", mod_path])  # noqa: S603
         sys.path.insert(0, mod_path)
 
     from setuptools import find_namespace_packages, find_packages  # noqa: PLC0415
@@ -530,15 +544,15 @@ def _get_labextension_metadata(module):  # noqa
     ]
     package_candidates.extend(find_packages(mod_path))  # Packages in the module path
     package_candidates.extend(
-        find_namespace_packages(mod_path)
+        find_namespace_packages(mod_path),
     )  # Namespace packages in the module path
 
     for package in package_candidates:
         try:
             m = importlib.import_module(package)
             if hasattr(m, "_jupyter_labextension_paths"):
-                return m, m._jupyter_labextension_paths()
-        except Exception as exc:
+                return m, m._jupyter_labextension_paths()  # noqa: SLF001
+        except Exception as exc:  # noqa: BLE001, PERF203
             errors.append(exc)
 
     msg = f"There is no labextension at {module}. Errors encountered: {errors}"

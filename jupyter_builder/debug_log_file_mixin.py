@@ -48,7 +48,7 @@ class DebugLogFileMixin(Configurable):
                 self.log.debug(line)
             if isinstance(ex, SystemExit):
                 warnings.warn(
-                    f"An error occurred. See the log file for details: {log_path}", stacklevel=1
+                    f"An error occurred. See the log file for details: {log_path}", stacklevel=1,
                 )
                 raise
             warnings.warn("An error occurred.", stacklevel=1)

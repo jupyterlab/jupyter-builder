@@ -1,4 +1,4 @@
-"""JupyterLab command handler"""
+"""JupyterLab command handler."""
 
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
@@ -15,10 +15,10 @@ def _test_overlap(spec1, spec2, drop_prerelease1=False, drop_prerelease2=False):
     otherwise whether there is an overlap
     """
     cmp = _compare_ranges(
-        spec1, spec2, drop_prerelease1=drop_prerelease1, drop_prerelease2=drop_prerelease2
+        spec1, spec2, drop_prerelease1=drop_prerelease1, drop_prerelease2=drop_prerelease2,
     )
     if cmp is None:
-        return
+        return None
     return cmp == 0
 
 
@@ -36,7 +36,7 @@ def _compare_ranges(spec1, spec2, drop_prerelease1=False, drop_prerelease2=False
 
     # If either range is empty, we cannot verify.
     if not r1.range or not r2.range:
-        return
+        return None
 
     # Set return_value to a sentinel value
     return_value = False
@@ -69,7 +69,7 @@ def _compare_ranges(spec1, spec2, drop_prerelease1=False, drop_prerelease2=False
         gy = gte if x1 == x2 else gt
 
         # Handle unbounded (>) specifiers.
-        def noop(x, y, z):
+        def noop(_x, _y, _z):
             return True
 
         if x1 == x2 and o1.startswith(">"):

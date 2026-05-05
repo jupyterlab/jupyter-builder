@@ -19,7 +19,7 @@ jupyter-builder watch                       # watch a prebuilt labextension
 
 
 class BuilderApp(JupyterApp):
-    """Base jupyter-builder command entry point"""
+    """Base jupyter-builder command entry point."""
 
     name = "jupyter builder"
     version = __version__
@@ -33,7 +33,7 @@ class BuilderApp(JupyterApp):
     }
 
     def start(self):
-        """Perform the App's functions as configured"""
+        """Perform the App's functions as configured."""
         super().start()
 
         # The above should have called a subcommand and raised NoStart; if we
