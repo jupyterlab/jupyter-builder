@@ -27,22 +27,24 @@ interface IWatcher {
   };
 }
 
+interface IWatchProps {
+  files: string[];
+  dirs: string[];
+  missing: Iterable<string>;
+  startTime: number;
+  options: Record<string, unknown>;
+  callback: (
+    err: Error | null,
+    fileTimestamps: Map<string, string | number>,
+    dirTimestamps: Map<string, string | number>,
+    changedFiles: Set<string>,
+    removedFiles: Set<string>
+  ) => void;
+  callbackUndelayed: (file: string, changeTime: number) => void;
+}
+
 interface IWatchFileSystem {
-  watch(
-    files: string[],
-    dirs: string[],
-    missing: Iterable<string>,
-    startTime: number,
-    options: Record<string, unknown>,
-    callback: (
-      err: Error | null,
-      fileTimestamps: Map<string, string | number>,
-      dirTimestamps: Map<string, string | number>,
-      changedFiles: Set<string>,
-      removedFiles: Set<string>
-    ) => void,
-    callbackUndelayed: (file: string, changeTime: number) => void
-  ): IWatcher;
+  watch(props: IWatchProps): IWatcher;
 }
 
 export namespace WPPlugin {
@@ -92,40 +94,28 @@ export namespace WPPlugin {
       this.ignored = ignored;
     }
 
-    watch(
-      files: string[],
-      dirs: string[],
-      missing: Iterable<string>,
-      startTime: number,
-      options: Record<string, unknown>,
-      callback: (
-        err: Error | null,
-        fileTimestamps: Map<string, string | number>,
-        dirTimestamps: Map<string, string | number>,
-        changedFiles: Set<string>,
-        removedFiles: Set<string>
-      ) => void,
-      callbackUndelayed: (file: string, changeTime: number) => void
-    ): IWatcher {
-      files = Array.from(files);
-      dirs = Array.from(dirs);
+    watch({
+      files: rawFiles,
+      dirs: rawDirs,
+      missing,
+      startTime,
+      options,
+      callback,
+      callbackUndelayed
+    }: IWatchProps): IWatcher {
+      const files = Array.from(rawFiles);
+      const dirs = Array.from(rawDirs);
       const notIgnored = (path: string) => !this.ignored(path);
       const ignoredFiles = files.filter(this.ignored);
       const ignoredDirs = dirs.filter(this.ignored);
 
-      const watcher = this.wfs.watch(
-        files.filter(notIgnored),
-        dirs.filter(notIgnored),
+      const watcher = this.wfs.watch({
+        files: files.filter(notIgnored),
+        dirs: dirs.filter(notIgnored),
         missing,
         startTime,
         options,
-        (
-          err: Error | null,
-          fileTimestamps: Map<string, string | number>,
-          dirTimestamps: Map<string, string | number>,
-          changedFiles: Set<string>,
-          removedFiles: Set<string>
-        ) => {
+        callback: (err, fileTimestamps, dirTimestamps, changedFiles, removedFiles) => {
           if (err) {
             return callback(err, new Map(), new Map(), new Set(), new Set());
           }
@@ -137,16 +127,10 @@ export namespace WPPlugin {
             dirTimestamps.set(path, IGNORE_TIME_ENTRY);
           }
 
-          callback(
-            err,
-            fileTimestamps,
-            dirTimestamps,
-            changedFiles,
-            removedFiles
-          );
+          callback(err, fileTimestamps, dirTimestamps, changedFiles, removedFiles);
         },
         callbackUndelayed
-      );
+      });
 
       return {
         close: () => watcher.close(),
