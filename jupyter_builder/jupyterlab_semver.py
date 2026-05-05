@@ -1,3 +1,6 @@
+# Copyright (c) Jupyter Development Team.
+# Distributed under the terms of the Modified BSD License.
+
 """Python port of the node-semver library for semantic version parsing and comparison."""
 
 # Copyright (c) Jupyter Development Team.
