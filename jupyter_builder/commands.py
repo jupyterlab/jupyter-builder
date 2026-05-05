@@ -3,26 +3,41 @@
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
+from __future__ import annotations
+
 import itertools
 
 from .jupyterlab_semver import Range, gt, gte, lt, lte
 
 
-def _test_overlap(spec1, spec2, drop_prerelease1=False, drop_prerelease2=False):
+def _test_overlap(
+    spec1: str,
+    spec2: str,
+    drop_prerelease1: bool = False,  # noqa: FBT001
+    drop_prerelease2: bool = False,  # noqa: FBT001
+) -> bool | None:
     """Test whether two version specs overlap.
 
     Returns `None` if we cannot determine compatibility,
     otherwise whether there is an overlap
     """
     cmp = _compare_ranges(
-        spec1, spec2, drop_prerelease1=drop_prerelease1, drop_prerelease2=drop_prerelease2,
+        spec1,
+        spec2,
+        drop_prerelease1=drop_prerelease1,
+        drop_prerelease2=drop_prerelease2,
     )
     if cmp is None:
         return None
     return cmp == 0
 
 
-def _compare_ranges(spec1, spec2, drop_prerelease1=False, drop_prerelease2=False):  # noqa
+def _compare_ranges(  # noqa: C901, PLR0912
+    spec1: str,
+    spec2: str,
+    drop_prerelease1: bool = False,  # noqa: FBT001
+    drop_prerelease2: bool = False,  # noqa: FBT001
+) -> int | None:
     """Test whether two version specs overlap.
 
     Returns `None` if we cannot determine compatibility,
@@ -39,7 +54,7 @@ def _compare_ranges(spec1, spec2, drop_prerelease1=False, drop_prerelease2=False
         return None
 
     # Set return_value to a sentinel value
-    return_value = False
+    return_value: int | bool | None = False
 
     # r1.set may be a list of ranges if the range involved an ||,
     # so we need to test for overlaps between each pair.
@@ -69,7 +84,8 @@ def _compare_ranges(spec1, spec2, drop_prerelease1=False, drop_prerelease2=False
         gy = gte if x1 == x2 else gt
 
         # Handle unbounded (>) specifiers.
-        def noop(_x, _y, _z):
+        def noop(_x: object, _y: object, _z: object) -> bool:
+            """Return True unconditionally, representing an unbounded range."""
             return True
 
         if x1 == x2 and o1.startswith(">"):
@@ -109,4 +125,4 @@ def _compare_ranges(spec1, spec2, drop_prerelease1=False, drop_prerelease2=False
 
     if return_value is False:
         return_value = None
-    return return_value
+    return return_value  # type: ignore[return-value]

@@ -1,3 +1,5 @@
+"""Utilities for locating and resolving JupyterLab core package metadata."""
+
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
@@ -15,8 +17,10 @@ def _home_dir() -> Path:
 
 
 def get_core_meta(
-    version: str | None = None, ext_path: str | os.PathLike[str] | None = None,
+    version: str | None = None,
+    ext_path: str | os.PathLike[str] | None = None,
 ) -> str:
+    """Return the path to the core package JSON, downloading it if needed."""
     requested_version = version
 
     if requested_version is None:

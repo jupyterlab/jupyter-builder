@@ -1,3 +1,5 @@
+"""Jupyter Builder CLI entry point."""
+
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
@@ -32,7 +34,7 @@ class BuilderApp(JupyterApp):
         "watch": (WatchLabExtensionApp, "Watch labextension"),
     }
 
-    def start(self):
+    def start(self) -> None:
         """Perform the App's functions as configured."""
         super().start()
 

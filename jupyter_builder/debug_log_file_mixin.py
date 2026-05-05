@@ -1,3 +1,5 @@
+"""Debug log file context manager mixin for Jupyter applications."""
+
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
@@ -8,19 +10,24 @@ import sys
 import tempfile
 import traceback
 import warnings
+from collections.abc import Iterator
+from pathlib import Path
 
 from traitlets import Unicode
 from traitlets.config import Configurable
 
 
 class DebugLogFileMixin(Configurable):
+    """Mixin that adds a debug log file context manager to Jupyter applications."""
+
     debug_log_path = Unicode("", config=True, help="Path to use for the debug log file")
 
     @contextlib.contextmanager
-    def debug_logging(self):
+    def debug_logging(self) -> Iterator[None]:
+        """Context manager that routes all log output to a debug file."""
         log_path = self.debug_log_path
-        if os.path.isdir(log_path):
-            log_path = os.path.join(log_path, "jupyterlab-debug.log")
+        if Path(log_path).is_dir():
+            log_path = str(Path(log_path) / "jupyterlab-debug.log")
         if not log_path:
             handle, log_path = tempfile.mkstemp(prefix="jupyterlab-debug-", suffix=".log")
             os.close(handle)
@@ -48,7 +55,8 @@ class DebugLogFileMixin(Configurable):
                 self.log.debug(line)
             if isinstance(ex, SystemExit):
                 warnings.warn(
-                    f"An error occurred. See the log file for details: {log_path}", stacklevel=1,
+                    f"An error occurred. See the log file for details: {log_path}",
+                    stacklevel=1,
                 )
                 raise
             warnings.warn("An error occurred.", stacklevel=1)
@@ -60,5 +68,5 @@ class DebugLogFileMixin(Configurable):
             _debug_handler.flush()
             _debug_handler.close()
             with contextlib.suppress(FileNotFoundError):
-                os.remove(log_path)
+                Path(log_path).unlink()
         log.removeHandler(_debug_handler)
