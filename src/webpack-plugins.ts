@@ -14,6 +14,37 @@ import type { PluginOptions } from 'license-webpack-plugin/dist/PluginOptions';
 // https://github.com/webpack/webpack/blob/95120bdf98a01649740b104bebc426b0123651ce/lib/WatchIgnorePlugin.js
 const IGNORE_TIME_ENTRY = 'ignore';
 
+interface IWatcher {
+  close(): void;
+  pause(): void;
+  getContextTimeInfoEntries(): Map<string, string | number>;
+  getFileTimeInfoEntries(): Map<string, string | number>;
+  getInfo(): {
+    changes: Set<string>;
+    removals: Set<string>;
+    fileTimeInfoEntries: Map<string, string | number>;
+    contextTimeInfoEntries: Map<string, string | number>;
+  };
+}
+
+interface IWatchFileSystem {
+  watch(
+    files: string[],
+    dirs: string[],
+    missing: Iterable<string>,
+    startTime: number,
+    options: Record<string, unknown>,
+    callback: (
+      err: Error | null,
+      fileTimestamps: Map<string, string | number>,
+      dirTimestamps: Map<string, string | number>,
+      changedFiles: Set<string>,
+      removedFiles: Set<string>
+    ) => void,
+    callbackUndelayed: (file: string, changeTime: number) => void
+  ): IWatcher;
+}
+
 export namespace WPPlugin {
   /**
    * A WebPack Plugin that copies the assets to the static directory
@@ -54,7 +85,7 @@ export namespace WPPlugin {
    * (the non-exported) webpack.IgnoringWatchFileSystem
    */
   class FilterIgnoringWatchFileSystem {
-    constructor(wfs: any, ignored: (path: string) => boolean) {
+    constructor(wfs: IWatchFileSystem, ignored: (path: string) => boolean) {
       this.wfs = wfs;
 
       // ignored should be a callback function that filters the build files
@@ -62,14 +93,20 @@ export namespace WPPlugin {
     }
 
     watch(
-      files: any,
-      dirs: any,
-      missing: any,
-      startTime: any,
-      options: any,
-      callback: any,
-      callbackUndelayed: any
-    ) {
+      files: string[],
+      dirs: string[],
+      missing: Iterable<string>,
+      startTime: number,
+      options: Record<string, unknown>,
+      callback: (
+        err: Error | null,
+        fileTimestamps: Map<string, string | number>,
+        dirTimestamps: Map<string, string | number>,
+        changedFiles: Set<string>,
+        removedFiles: Set<string>
+      ) => void,
+      callbackUndelayed: (file: string, changeTime: number) => void
+    ): IWatcher {
       files = Array.from(files);
       dirs = Array.from(dirs);
       const notIgnored = (path: string) => !this.ignored(path);
@@ -83,14 +120,14 @@ export namespace WPPlugin {
         startTime,
         options,
         (
-          err: any,
-          fileTimestamps: any,
-          dirTimestamps: any,
-          changedFiles: any,
-          removedFiles: any
+          err: Error | null,
+          fileTimestamps: Map<string, string | number>,
+          dirTimestamps: Map<string, string | number>,
+          changedFiles: Set<string>,
+          removedFiles: Set<string>
         ) => {
           if (err) {
-            return callback(err);
+            return callback(err, new Map(), new Map(), new Set(), new Set());
           }
           for (const path of ignoredFiles) {
             fileTimestamps.set(path, IGNORE_TIME_ENTRY);
@@ -141,7 +178,7 @@ export namespace WPPlugin {
     }
 
     ignored: (path: string) => boolean;
-    wfs: any;
+    wfs: IWatchFileSystem;
   }
 
   /**
@@ -156,9 +193,9 @@ export namespace WPPlugin {
     apply(compiler: rspack.Compiler): void {
       compiler.hooks.afterEnvironment.tap('FilterWatchIgnorePlugin', () => {
         compiler.watchFileSystem = new FilterIgnoringWatchFileSystem(
-          compiler.watchFileSystem,
+          compiler.watchFileSystem! as unknown as IWatchFileSystem,
           this.ignored
-        );
+        ) as unknown as rspack.WatchFileSystem;
       });
     }
 
