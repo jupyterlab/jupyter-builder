@@ -115,7 +115,13 @@ export namespace WPPlugin {
         missing,
         startTime,
         options,
-        callback: (err, fileTimestamps, dirTimestamps, changedFiles, removedFiles) => {
+        callback: (
+          err,
+          fileTimestamps,
+          dirTimestamps,
+          changedFiles,
+          removedFiles
+        ) => {
           if (err) {
             return callback(err, new Map(), new Map(), new Set(), new Set());
           }
@@ -127,7 +133,13 @@ export namespace WPPlugin {
             dirTimestamps.set(path, IGNORE_TIME_ENTRY);
           }
 
-          callback(err, fileTimestamps, dirTimestamps, changedFiles, removedFiles);
+          callback(
+            err,
+            fileTimestamps,
+            dirTimestamps,
+            changedFiles,
+            removedFiles
+          );
         },
         callbackUndelayed
       });

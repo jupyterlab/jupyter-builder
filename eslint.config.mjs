@@ -15,9 +15,7 @@ export default defineConfig([
     'dist/',
     'coverage/',
     '**/*.d.ts',
-    'yarn.js',
-    'downstream/',
-    'check/'
+    'yarn.js'
   ]),
   {
     files: ['**/*.ts'],
@@ -37,4 +35,4 @@ export default defineConfig([
     }
   },
   prettierPluginRecommended
-])
+]);
