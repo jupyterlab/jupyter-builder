@@ -1,17 +1,23 @@
+"""Build command for JupyterLab extensions."""
+
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
-import os
+from __future__ import annotations
+
+from pathlib import Path
 
 from traitlets import Bool, Unicode
 
 from jupyter_builder.base_extension_app import BaseExtensionApp
 from jupyter_builder.federated_extensions import build_labextension
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = str(Path(__file__).resolve().parent)
 
 
 class BuildLabExtensionApp(BaseExtensionApp):
+    """Application for building a prebuilt JupyterLab extension."""
+
     description = "Build labextension"
 
     static_url = Unicode("", config=True, help="Sets the url for static assets when building")
@@ -49,8 +55,9 @@ class BuildLabExtensionApp(BaseExtensionApp):
         "core-version": "BuildLabExtensionApp.core_version",
     }
 
-    def run_task(self):
-        self.extra_args = self.extra_args or [os.getcwd()]
+    def run_task(self) -> None:
+        """Build the labextension in the configured path."""
+        self.extra_args = self.extra_args or [str(Path.cwd())]
         build_labextension(
             self.extra_args[0],
             logger=self.log,
@@ -63,7 +70,8 @@ class BuildLabExtensionApp(BaseExtensionApp):
         )
 
 
-def main():
+def main() -> None:
+    """Run the build labextension app."""
     app = BuildLabExtensionApp()
     app.initialize()
     app.start()

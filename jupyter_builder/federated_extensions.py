@@ -96,7 +96,9 @@ def develop_labextension(  # noqa: PLR0913, C901, PLR0912
     full_dest = None
 
     labext = _get_labextension_dir(
-        user=user, sys_prefix=sys_prefix, labextensions_dir=labextensions_dir,
+        user=user,
+        sys_prefix=sys_prefix,
+        labextensions_dir=labextensions_dir,
     )
     # make sure labextensions dir exists
     ensure_dir_exists(labext)
@@ -363,13 +365,19 @@ def _ensure_builder(ext_path: str, core_package_file: str) -> str:
     dep_version1 = core_data.get("devDependencies", {}).get(marker_pkg)
     if dep_version1 is not None:
         overlap = _test_overlap(
-            dep_version1, dep_version2, drop_prerelease1=True, drop_prerelease2=True,
+            dep_version1,
+            dep_version2,
+            drop_prerelease1=True,
+            drop_prerelease2=True,
         )
         if not overlap:
             with Path(target).joinpath("node_modules", *marker_parts, "package.json").open() as fid:
                 dep_version2 = json.load(fid).get("version")
             overlap = _test_overlap(
-                dep_version1, dep_version2, drop_prerelease1=True, drop_prerelease2=True,
+                dep_version1,
+                dep_version2,
+                drop_prerelease1=True,
+                drop_prerelease2=True,
             )
 
         if not overlap:
