@@ -135,6 +135,7 @@ ignore = ["FBT002", "FBT003"]
 # BLE001 broad exception catch is intentional in several public API functions
 # FBT001 bool positional args are part of the original node-semver API
 # SIM102 nested if statements match the original JS logic and are intentional
+# TD*/FIX003 xxx: markers
 "jupyter_builder/jupyterlab_semver.py" = [
     "ANN401",
     "BLE001",
@@ -151,7 +152,6 @@ ignore = ["FBT002", "FBT003"]
     "PLR5501",
     "RUF059",
     "SIM102",
-    # TD*/FIX003 xxx: markers
     "FIX003",
     "TD001",
     "TD002",
