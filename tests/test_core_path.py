@@ -287,12 +287,31 @@ def test_get_core_meta_latest_uses_npm_latest_and_caches_by_resolved_version(tmp
     )
 
 
-def test_ensure_builder_reads_custom_core_package_file(tmp_path):
+def test_ensure_builder_with_jupyter_builder(tmp_path):
     ext_path = tmp_path / "ext"
     core_path_dir = tmp_path / "core-meta"
     core_package_file = core_path_dir / "core.package.json"
-    # Exercises the backwards-compatible @jupyterlab/builder path. The returned
-    # builder script path matches the marker the extension declares.
+    builder_dir = ext_path / "node_modules" / "@jupyter" / "builder"
+
+    builder_dir.mkdir(parents=True)
+    core_path_dir.mkdir()
+
+    core_package_file.write_text(json.dumps({"devDependencies": {"@jupyter/builder": "^5.0.0"}}))
+    (ext_path / "package.json").write_text(
+        json.dumps({"devDependencies": {"@jupyter/builder": "^5.0.0"}})
+    )
+    (builder_dir / "package.json").write_text(json.dumps({"version": "5.0.0"}))
+
+    builder_path, marker_pkg = _ensure_builder(str(ext_path), str(core_package_file))
+
+    assert builder_path == str(builder_dir / "lib" / "build-labextension.js")
+    assert marker_pkg == "@jupyter/builder"
+
+
+def test_ensure_builder_with_jupyterlab_builder(tmp_path):
+    ext_path = tmp_path / "ext"
+    core_path_dir = tmp_path / "core-meta"
+    core_package_file = core_path_dir / "core.package.json"
     builder_dir = ext_path / "node_modules" / "@jupyterlab" / "builder"
 
     builder_dir.mkdir(parents=True)
@@ -304,6 +323,7 @@ def test_ensure_builder_reads_custom_core_package_file(tmp_path):
     )
     (builder_dir / "package.json").write_text(json.dumps({"version": "5.0.0"}))
 
-    builder_path = _ensure_builder(str(ext_path), str(core_package_file))
+    builder_path, marker_pkg = _ensure_builder(str(ext_path), str(core_package_file))
 
     assert builder_path == str(builder_dir / "lib" / "build-labextension.js")
+    assert marker_pkg == "@jupyterlab/builder"
