@@ -242,6 +242,7 @@ def build_labextension(  # noqa: PLR0913
         arguments.append("--development")
     if source_map:
         arguments.append("--source-map")
+
     subprocess.check_call(arguments, cwd=ext_path)  # noqa S603
 
 
