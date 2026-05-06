@@ -1,8 +1,12 @@
+"""Develop command for JupyterLab extensions."""
+
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
-import os
+from __future__ import annotations
+
 from copy import copy
+from pathlib import Path
 
 from jupyter_core.application import base_flags
 from traitlets import Bool, Unicode
@@ -19,6 +23,8 @@ develop_flags["overwrite"] = (
 
 
 class DevelopLabExtensionApp(BaseExtensionApp):
+    """Application for developing a JupyterLab extension in-place via symlink."""
+
     description = "Develop labextension"
 
     flags = develop_flags
@@ -33,9 +39,9 @@ class DevelopLabExtensionApp(BaseExtensionApp):
         help="Full path to labextensions dir (probably use prefix or user)",
     )
 
-    def run_task(self):
-        """Add config for this labextension"""
-        self.extra_args = self.extra_args or [os.getcwd()]
+    def run_task(self) -> None:
+        """Add config for this labextension."""
+        self.extra_args = self.extra_args or [str(Path.cwd())]
         for arg in self.extra_args:
             develop_labextension_py(
                 arg,
@@ -48,7 +54,8 @@ class DevelopLabExtensionApp(BaseExtensionApp):
             )
 
 
-def main():
+def main() -> None:
+    """Run the develop labextension app."""
     app = DevelopLabExtensionApp()
     app.initialize()
     app.start()

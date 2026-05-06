@@ -165,7 +165,7 @@ export namespace Build {
             if (oldPackageData.version === data.version) {
               fs.removeSync(destination);
             }
-          } catch (e) {
+          } catch {
             fs.removeSync(destination);
           }
         }
@@ -212,7 +212,8 @@ export namespace Build {
               type: 'asset/inline',
               generator: {
                 dataUrl: {
-                  content: (content: any) => miniSVGDataURI(content.content),
+                  content: (source: { content: string }) =>
+                    miniSVGDataURI(source.content),
                   mimetype: 'image/svg+xml'
                 }
               }
@@ -252,7 +253,8 @@ ${cssImports.map(x => `import '${x}';`).join('\n')}
    * Returns JupyterLab extension metadata from a module.
    */
   export function normalizeExtension(module: IModule): ILabExtension {
-    let { jupyterlab, main, name } = module;
+    let { main } = module;
+    const { jupyterlab, name } = module;
 
     main = main || 'index.js';
 
@@ -260,7 +262,8 @@ ${cssImports.map(x => `import '${x}';`).join('\n')}
       throw new Error(`Module ${name} does not contain JupyterLab metadata.`);
     }
 
-    let { extension, mimeExtension, schemaDir, themePath } = jupyterlab;
+    let { extension, mimeExtension } = jupyterlab;
+    const { schemaDir, themePath } = jupyterlab;
 
     extension = extension === true ? main : extension;
     mimeExtension = mimeExtension === true ? main : mimeExtension;

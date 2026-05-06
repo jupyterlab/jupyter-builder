@@ -53,8 +53,11 @@ export namespace WPPlugin {
    * A helper class for the WatchIgnoreFilterPlugin. This is a close copy of
    * (the non-exported) webpack.IgnoringWatchFileSystem
    */
-  class FilterIgnoringWatchFileSystem {
-    constructor(wfs: any, ignored: (path: string) => boolean) {
+  class FilterIgnoringWatchFileSystem implements rspack.WatchFileSystem {
+    constructor(
+      wfs: rspack.WatchFileSystem,
+      ignored: (path: string) => boolean
+    ) {
       this.wfs = wfs;
 
       // ignored should be a callback function that filters the build files
@@ -62,16 +65,16 @@ export namespace WPPlugin {
     }
 
     watch(
-      files: any,
-      dirs: any,
-      missing: any,
-      startTime: any,
-      options: any,
-      callback: any,
-      callbackUndelayed: any
-    ) {
-      files = Array.from(files);
-      dirs = Array.from(dirs);
+      rawFiles: Iterable<string>,
+      rawDirs: Iterable<string>,
+      missing: Iterable<string>,
+      startTime: number,
+      options: rspack.WatchOptions,
+      callback: Parameters<rspack.WatchFileSystem['watch']>[5],
+      callbackUndelayed: Parameters<rspack.WatchFileSystem['watch']>[6]
+    ): ReturnType<rspack.WatchFileSystem['watch']> {
+      const files = Array.from(rawFiles);
+      const dirs = Array.from(rawDirs);
       const notIgnored = (path: string) => !this.ignored(path);
       const ignoredFiles = files.filter(this.ignored);
       const ignoredDirs = dirs.filter(this.ignored);
@@ -82,15 +85,9 @@ export namespace WPPlugin {
         missing,
         startTime,
         options,
-        (
-          err: any,
-          fileTimestamps: any,
-          dirTimestamps: any,
-          changedFiles: any,
-          removedFiles: any
-        ) => {
+        (err, fileTimestamps, dirTimestamps, changedFiles, removedFiles) => {
           if (err) {
-            return callback(err);
+            return callback(err, new Map(), new Map(), new Set(), new Set());
           }
           for (const path of ignoredFiles) {
             fileTimestamps.set(path, IGNORE_TIME_ENTRY);
@@ -115,14 +112,14 @@ export namespace WPPlugin {
         close: () => watcher.close(),
         pause: () => watcher.pause(),
         getContextTimeInfoEntries: () => {
-          const dirTimestamps = watcher.getContextTimeInfoEntries();
+          const dirTimestamps = watcher.getContextTimeInfoEntries!();
           for (const path of ignoredDirs) {
             dirTimestamps.set(path, IGNORE_TIME_ENTRY);
           }
           return dirTimestamps;
         },
         getFileTimeInfoEntries: () => {
-          const fileTimestamps = watcher.getFileTimeInfoEntries();
+          const fileTimestamps = watcher.getFileTimeInfoEntries!();
           for (const path of ignoredFiles) {
             fileTimestamps.set(path, IGNORE_TIME_ENTRY);
           }
@@ -141,7 +138,7 @@ export namespace WPPlugin {
     }
 
     ignored: (path: string) => boolean;
-    wfs: any;
+    wfs: rspack.WatchFileSystem;
   }
 
   /**
@@ -156,7 +153,7 @@ export namespace WPPlugin {
     apply(compiler: rspack.Compiler): void {
       compiler.hooks.afterEnvironment.tap('FilterWatchIgnorePlugin', () => {
         compiler.watchFileSystem = new FilterIgnoringWatchFileSystem(
-          compiler.watchFileSystem,
+          compiler.watchFileSystem!,
           this.ignored
         );
       });
@@ -178,7 +175,7 @@ export namespace WPPlugin {
       );
     }
 
-    options: DuplicatePackageCheckerPlugin.Options;
+    declare options: DuplicatePackageCheckerPlugin.Options;
   }
 
   /**

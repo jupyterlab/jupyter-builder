@@ -1,3 +1,5 @@
+"""Utilities for locating and resolving JupyterLab core package metadata."""
+
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
@@ -15,8 +17,10 @@ def _home_dir() -> Path:
 
 
 def get_core_meta(
-    version: str | None = None, ext_path: str | os.PathLike[str] | None = None
+    version: str | None = None,
+    ext_path: str | os.PathLike[str] | None = None,
 ) -> str:
+    """Return the path to the core package JSON, downloading it if needed."""
     requested_version = version
 
     if requested_version is None:
@@ -48,13 +52,12 @@ def get_core_meta(
 
 
 def _is_wildcard_version(version: str) -> bool:
-    """Returns True for npm range-style versions like 4.5.x"""
+    """Return True for npm range-style versions like 4.5.x."""
     return bool(re.search(r"\.x(\.|$)|(^|\.)x\.", version, flags=re.IGNORECASE))
 
 
 def _resolve_npm_version(version: str) -> str:
-    """
-    Resolves an abstract version specifier to a concrete npm version string.
+    """Resolve an abstract version specifier to a concrete npm version string.
 
     - 'latest'  → fetches the current latest tag from npm
     - '4.5.x'   → fetches all published versions and returns the highest 4.5.x match
@@ -76,9 +79,7 @@ def _resolve_npm_version(version: str) -> str:
 
 
 def _resolve_wildcard_npm_version(version: str) -> str:
-    """
-    Given a wildcard range like '4.5.x', fetches all published versions
-    from npm and returns the highest semver match.
+    """Fetch the highest published npm version matching a wildcard range like '4.5.x'.
 
     Raises requests.RequestException if no matching version is found.
     """

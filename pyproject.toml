@@ -119,33 +119,8 @@ target-version = "py310"
 line-length = 100
 
 [tool.ruff.lint]
-select = [
-    "A",
-    "B",
-    "C",
-    "DTZ",
-    "E",
-    "EM",
-    "F",
-    "FBT",
-    "I",
-    "ICN",
-    "N",
-    "PLC",
-    "PLE",
-    "PLR",
-    "PLW",
-    "Q",
-    "RUF",
-    "S",
-    "SIM",
-    "T",
-    "TID",
-    "UP",
-    "W",
-    "YTT",
-]
-ignore = ["FBT002", "FBT003"]
+select = ["ALL"]
+ignore = ["FBT001", "FBT002", "FBT003"]
 
 [tool.ruff.lint.per-file-ignores]
 # S101 Use of `assert` detected
@@ -156,10 +131,18 @@ ignore = ["FBT002", "FBT003"]
 # PLC1901 test can be simplified as an empty string is falsey
 # PLR1714 Consider merging multiple comparisons
 # PLR5501 Use `elif` instead of `else` then `if`, to reduce indentation
+# ANN401 typing.Any is necessary for untyped semver/comparator objects (ported JS library)
+# BLE001 broad exception catch is intentional in several public API functions
+# FBT001 bool positional args are part of the original node-semver API
+# SIM102 nested if statements match the original JS logic and are intentional
+# TD*/FIX003 xxx: markers
 "jupyter_builder/jupyterlab_semver.py" = [
+    "ANN401",
+    "BLE001",
     "C901",
     "EM101",
     "EM102",
+    "FBT001",
     "N806",
     "N816",
     "PLC1901",
@@ -168,4 +151,11 @@ ignore = ["FBT002", "FBT003"]
     "PLR1714",
     "PLR5501",
     "RUF059",
+    "SIM102",
+    "FIX003",
+    "TD001",
+    "TD002",
+    "TD003",
+    "TD004",
+    "TD005",
 ]

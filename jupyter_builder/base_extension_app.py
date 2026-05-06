@@ -5,8 +5,8 @@
 
 from __future__ import annotations
 
-import os
 from copy import copy
+from pathlib import Path
 
 from jupyter_core.application import JupyterApp, base_aliases, base_flags
 from jupyter_core.paths import jupyter_path
@@ -14,7 +14,7 @@ from traitlets import List, Unicode, default
 
 from .debug_log_file_mixin import DebugLogFileMixin
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = str(Path(__file__).resolve().parent)
 
 flags = dict(base_flags)
 
@@ -27,11 +27,12 @@ develop_flags["overwrite"] = (
 aliases = dict(base_aliases)
 aliases["debug-log-path"] = "DebugLogFileMixin.debug_log_path"
 
-# VERSION = get_app_version()
 VERSION = 1
 
 
 class BaseExtensionApp(JupyterApp, DebugLogFileMixin):
+    """Base application class for JupyterLab extension CLI commands."""
+
     version = VERSION
     flags = flags
     aliases = aliases
@@ -42,22 +43,18 @@ class BaseExtensionApp(JupyterApp, DebugLogFileMixin):
         help="The standard paths to look in for prebuilt JupyterLab extensions",
     )
 
-    # @default("labextensions_path")
-    # def _default_labextensions_path(self):
-    # lab = LabApp()
-    # lab.load_config_file()
-    # return lab.extra_labextensions_path + lab.labextensions_path
     @default("labextensions_path")
     def _default_labextensions_path(self) -> list[str]:
         return jupyter_path("labextensions")
 
-    def start(self):
+    def start(self) -> None:
+        """Start the extension app and run the configured task."""
         with self.debug_logging():
             self.run_task()
 
-    def run_task(self):
-        pass
+    def run_task(self) -> None:
+        """Execute the app's primary task; override in subclasses."""
 
-    def _log_format_default(self):
-        """A default format for messages"""
+    def _log_format_default(self) -> str:
+        """Return the default log format string."""
         return "%(message)s"

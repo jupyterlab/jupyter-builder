@@ -22,6 +22,7 @@ header:
     - 'yarn.lock'
     - 'jupyter_builder/yarn.js'
     - 'jupyter_builder/_version.py'
+    - 'jupyter_builder/jupyterlab_semver.py'
     - THIRD_PARTY_LICENSES/**
 
   comment: on-failure

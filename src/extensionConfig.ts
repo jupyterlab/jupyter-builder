@@ -13,6 +13,14 @@ import Ajv from 'ajv';
 const baseConfig = require('./webpack.config.base');
 const { ModuleFederationPlugin } = rspack.container;
 
+type SharedConfig = {
+  requiredVersion?: string;
+  import?: false | string;
+  singleton?: boolean;
+  version?: string;
+};
+type SharedObject = Record<string, SharedConfig>;
+
 export interface IOptions {
   packagePath?: string;
   corePackageFile?: string;
@@ -27,8 +35,7 @@ function generateConfig({
   corePackageFile = 'package.json',
   staticUrl = '',
   mode = 'production',
-  devtool = mode === 'development' ? 'source-map' : undefined,
-  watchMode = false
+  devtool = mode === 'development' ? 'source-map' : undefined
 }: IOptions = {}): rspack.Configuration[] {
   const data = require(path.join(packagePath, 'package.json'));
 
@@ -74,10 +81,10 @@ function generateConfig({
     })
   );
 
-  let shared: any = {};
+  let shared: SharedObject = {};
 
   // Start with core package versions.
-  const coreDeps: any = {
+  const coreDeps: Record<string, string> = {
     ...coreData.dependencies,
     ...(coreData.resolutions ?? {})
   };
@@ -168,8 +175,8 @@ function generateConfig({
   );
 
   class CleanupPlugin {
-    apply(compiler: any) {
-      compiler.hooks.done.tap('Cleanup', (stats: any) => {
+    apply(compiler: rspack.Compiler): void {
+      compiler.hooks.done.tap('Cleanup', (stats: rspack.Stats) => {
         const newlyCreatedAssets = stats.compilation.assets;
 
         // Clear out any remoteEntry files that are stale
@@ -192,7 +199,12 @@ function generateConfig({
 
         // Find the remoteEntry file and add it to the package.json metadata
         const data = fs.readJSONSync(path.join(outputPath, 'package.json'));
-        const _build: any = {
+        const _build: {
+          load: string;
+          extension?: string;
+          mimeExtension?: string;
+          style?: string;
+        } = {
           load: path.join('static', newEntry)
         };
         if (exposes['./extension'] !== undefined) {
@@ -225,7 +237,7 @@ function generateConfig({
     }
   }
 
-  const plugins = [
+  const plugins: NonNullable<rspack.Configuration['plugins']> = [
     new ModuleFederationPlugin({
       name: data.name,
       library: {
@@ -254,7 +266,9 @@ function generateConfig({
     filename += '?v=[contenthash]';
   }
 
-  const rules: any = [{ test: /\.html$/, type: 'asset/resource' }];
+  const rules: rspack.RuleSetRule[] = [
+    { test: /\.html$/, type: 'asset/resource' }
+  ];
 
   if (mode === 'development') {
     rules.push({
@@ -289,7 +303,7 @@ function generateConfig({
 
   if (mode === 'development') {
     const logPath = path.join(outputPath, 'build_log.json');
-    function regExpReplacer(key: any, value: any) {
+    function regExpReplacer(key: string, value: unknown): unknown {
       if (value instanceof RegExp) {
         return value.toString();
       } else {
