@@ -228,15 +228,14 @@ def build_labextension(  # noqa: PLR0913
     if logger:
         logger.info("Building extension in %s", path)
 
-    builder = _ensure_builder(ext_path, core_package_file)
+    builder, marker_pkg = _ensure_builder(ext_path, core_package_file)
 
-    arguments = [
-        "node",
-        builder,
-        "--core-package-file",
-        core_package_file,
-        ext_path,
-    ]
+    if marker_pkg == "@jupyterlab/builder":
+        core_flag = ["--core-path", str(Path(core_package_file).parent)]
+    else:
+        core_flag = ["--core-package-file", core_package_file]
+
+    arguments = ["node", builder, *core_flag, ext_path]
     if static_url is not None:
         arguments.extend(["--static-url", static_url])
     if development:
@@ -279,15 +278,14 @@ def watch_labextension(  # noqa: PLR0913
             shutil.rmtree(full_dest)
             os.symlink(output_dir, full_dest)
 
-    builder = _ensure_builder(ext_path, core_package_file)
-    arguments = [
-        "node",
-        builder,
-        "--core-package-file",
-        core_package_file,
-        "--watch",
-        ext_path,
-    ]
+    builder, marker_pkg = _ensure_builder(ext_path, core_package_file)
+
+    if marker_pkg == "@jupyterlab/builder":
+        core_flag = ["--core-path", str(Path(core_package_file).parent)]
+    else:
+        core_flag = ["--core-package-file", core_package_file]
+
+    arguments = ["node", builder, *core_flag, "--watch", ext_path]
     if development:
         arguments.append("--development")
     if source_map:
@@ -369,7 +367,9 @@ def _ensure_builder(ext_path, core_package_file):
             )
             raise ValueError(msg)
 
-    return osp.join(target, "node_modules", *marker_parts, "lib", "build-labextension.js")
+    return osp.join(
+        target, "node_modules", *marker_parts, "lib", "build-labextension.js"
+    ), marker_pkg
 
 
 def _should_copy(src, dest, logger=None):
