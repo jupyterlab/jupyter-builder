@@ -13,8 +13,8 @@ from .jupyterlab_semver import Range, gt, gte, lt, lte
 def _test_overlap(
     spec1: str,
     spec2: str,
-    drop_prerelease1: bool = False,  # noqa: FBT001
-    drop_prerelease2: bool = False,  # noqa: FBT001
+    drop_prerelease1: bool = False,
+    drop_prerelease2: bool = False,
 ) -> bool | None:
     """Test whether two version specs overlap.
 
@@ -35,8 +35,8 @@ def _test_overlap(
 def _compare_ranges(  # noqa: C901, PLR0912
     spec1: str,
     spec2: str,
-    drop_prerelease1: bool = False,  # noqa: FBT001
-    drop_prerelease2: bool = False,  # noqa: FBT001
+    drop_prerelease1: bool = False,
+    drop_prerelease2: bool = False,
 ) -> int | None:
     """Test whether two version specs overlap.
 

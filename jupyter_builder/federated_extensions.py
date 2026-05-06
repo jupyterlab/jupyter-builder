@@ -52,13 +52,13 @@ class ArgumentConflict(ValueError):  # noqa: N818
 
 def develop_labextension(  # noqa: PLR0913, C901, PLR0912
     path: str | os.PathLike[str],
-    symlink: bool = True,  # noqa: FBT001
-    overwrite: bool = False,  # noqa: FBT001
-    user: bool = False,  # noqa: FBT001
+    symlink: bool = True,
+    overwrite: bool = False,
+    user: bool = False,
     labextensions_dir: str | None = None,
     destination: str | None = None,
     logger: logging.Logger | None = None,
-    sys_prefix: bool = False,  # noqa: FBT001
+    sys_prefix: bool = False,
 ) -> str:
     """Install a prebuilt extension for JupyterLab.
 
@@ -165,10 +165,10 @@ def develop_labextension(  # noqa: PLR0913, C901, PLR0912
 
 def develop_labextension_py(  # noqa: PLR0913
     module: str,
-    user: bool = False,  # noqa: FBT001
-    sys_prefix: bool = False,  # noqa: FBT001
-    overwrite: bool = True,  # noqa: FBT001
-    symlink: bool = True,  # noqa: FBT001
+    user: bool = False,
+    sys_prefix: bool = False,
+    overwrite: bool = True,
+    symlink: bool = True,
     labextensions_dir: str | None = None,
     logger: logging.Logger | None = None,
 ) -> list[str]:
@@ -210,9 +210,9 @@ def develop_labextension_py(  # noqa: PLR0913
 def build_labextension(  # noqa: PLR0913
     path: str | os.PathLike[str],
     logger: logging.Logger | None = None,
-    development: bool = False,  # noqa: FBT001
+    development: bool = False,
     static_url: str | None = None,
-    source_map: bool = False,  # noqa: FBT001
+    source_map: bool = False,
     core_version: str | None = None,
     core_package_file: str | None = None,
     core_path: str | None = None,
@@ -259,8 +259,8 @@ def watch_labextension(  # noqa: PLR0913
     path: str | os.PathLike[str],
     labextensions_path: list[str],
     logger: logging.Logger | None = None,
-    development: bool = False,  # noqa: FBT001
-    source_map: bool = False,  # noqa: FBT001
+    development: bool = False,
+    source_map: bool = False,
     core_version: str | None = None,
     core_package_file: str | None = None,
 ) -> None:
@@ -438,8 +438,8 @@ def _maybe_copy(src: str, dest: str, logger: logging.Logger | None = None) -> No
 
 
 def _get_labextension_dir(
-    user: bool = False,  # noqa: FBT001
-    sys_prefix: bool = False,  # noqa: FBT001
+    user: bool = False,
+    sys_prefix: bool = False,
     prefix: str | None = None,
     labextensions_dir: str | None = None,
 ) -> str:
