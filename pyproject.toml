@@ -50,7 +50,7 @@ test = [
     "jinja2-time"
 ]
 # Check ruff version is aligned with the one in .pre-commit-config.yaml
-dev = ["build", "mypy", "pre-commit", "hatch", "ruff==0.15.11"]
+dev = ["build", "mypy", "pre-commit", "hatch", "ruff==0.15.12"]
 
 [project.scripts]
 jupyter-builder = "jupyter_builder.main:main"
