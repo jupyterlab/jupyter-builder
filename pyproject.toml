@@ -68,6 +68,9 @@ path = "jupyter_builder/_version.py"
 [tool.hatch.build.targets.sdist]
 exclude = [".github"]
 
+[tool.hatch.build.targets.wheel]
+artifacts = ["jupyter_builder/static"]
+
 [tool.jupyter-releaser.options]
 version_cmd = "hatch version"
 
@@ -80,6 +83,7 @@ before-build-npm = [
 before-build-python = [
     "node jupyter_builder/yarn.js clean:lib",
     "node jupyter_builder/yarn.js clean:lintcache",
+    "python scripts/build_static.py",
 ]
 
 [tool.mypy]
