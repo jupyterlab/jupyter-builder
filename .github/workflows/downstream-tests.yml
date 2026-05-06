@@ -52,6 +52,28 @@ jobs:
         echo "--- Patched resolution ---"
         jq '.resolutions["@jupyter/builder"]' downstream/package.json
 
+    - name: Temporary rspack v2 patch to resolutions
+      run: |
+        jq \
+          '.resolutions["@rspack/core"] = "2.0.0"
+          | .resolutions["@rspack/cli"] = "2.0.0"' \
+          downstream/package.json > tmp.json && mv tmp.json downstream/package.json
+
+        echo "--- Patched resolutions ---"
+        jq '.resolutions["@rspack/core"], .resolutions["@rspack/cli"]' downstream/package.json
+
+    - name: Patch rspack.config.js for testing on v2
+      if: matrix.name == 'jupyterlab'
+      run: |
+        CONFIG="downstream/packages/services/rspack.config.js"
+
+        sed -i "s/library: '@jupyterlab\/services',/library: { name: '@jupyterlab\/services', type: 'umd', umdNamedDefine: true },/" "$CONFIG"
+        sed -i "/libraryTarget: 'umd',/d" "$CONFIG"
+        sed -i "/umdNamedDefine: true,/d" "$CONFIG"
+
+        echo "--- Patched rspack.config.js ---"
+        grep -A 5 'library' "$CONFIG"
+
     - name: Install deps
       working-directory: downstream
       run: jlpm install
