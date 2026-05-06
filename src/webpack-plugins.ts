@@ -54,7 +54,10 @@ export namespace WPPlugin {
    * (the non-exported) webpack.IgnoringWatchFileSystem
    */
   class FilterIgnoringWatchFileSystem implements rspack.WatchFileSystem {
-    constructor(wfs: rspack.WatchFileSystem, ignored: (path: string) => boolean) {
+    constructor(
+      wfs: rspack.WatchFileSystem,
+      ignored: (path: string) => boolean
+    ) {
       this.wfs = wfs;
 
       // ignored should be a callback function that filters the build files
