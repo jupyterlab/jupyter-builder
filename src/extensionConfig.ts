@@ -27,7 +27,6 @@ export interface IOptions {
   staticUrl?: string;
   mode?: 'development' | 'production';
   devtool?: string;
-  watchMode?: boolean;
 }
 
 function generateConfig({

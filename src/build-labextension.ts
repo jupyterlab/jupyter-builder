@@ -43,7 +43,7 @@
 
 import * as path from 'path';
 import { program as commander } from 'commander';
-import { MultiStats, rspack } from '@rspack/core';
+import { type RspackError, MultiStats, rspack } from '@rspack/core';
 import generateConfig from './extensionConfig';
 import { stdout as colors } from 'supports-color';
 
@@ -68,15 +68,14 @@ commander
       mode,
       corePackageFile,
       staticUrl: options.staticUrl,
-      devtool,
-      watchMode: options.watch
+      devtool
     });
     const compiler = rspack(config);
 
     let lastHash: string | null = null;
 
     function compilerCallback(
-      err: Error | null,
+      err: RspackError | null,
       stats: MultiStats | undefined
     ) {
       if (!options.watch || err) {
@@ -86,8 +85,8 @@ commander
 
       if (err) {
         console.error(err.stack || err);
-        if (err.message) {
-          console.error(err.message);
+        if (err.details) {
+          console.error(err.details);
         }
         throw err;
       }
@@ -132,9 +131,9 @@ commander
       compiler.watch(config[0].watchOptions || {}, compilerCallback);
       console.error('\nrspack is watching the files…\n');
     } else {
-      compiler.run((err: Error | null, stats: MultiStats | undefined) => {
+      compiler.run((err: RspackError | null, stats: MultiStats | undefined) => {
         if (compiler.close) {
-          compiler.close((err2: Error | null) => {
+          compiler.close((err2: RspackError | null) => {
             compilerCallback(err || err2, stats);
           });
         } else {

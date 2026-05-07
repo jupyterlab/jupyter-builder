@@ -16,12 +16,10 @@ def get_package_url(data: dict[str, Any]) -> str:
     """Get the url from the extension data."""
     # homepage, repository  are optional
     if "homepage" in data:
-        url = data["homepage"]
-    elif "repository" in data and isinstance(data["repository"], dict):
-        url = data["repository"].get("url", "")
-    else:
-        url = ""
-    return url
+        return str(data["homepage"])
+    if "repository" in data and isinstance(data["repository"], dict):
+        return str(data["repository"].get("url", ""))
+    return ""
 
 
 def get_federated_extensions(labextensions_path: list[str]) -> dict[str, Any]:

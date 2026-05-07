@@ -13,24 +13,21 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     import logging
 
-try:
-    from importlib.metadata import PackageNotFoundError, version
-except ImportError:
-    from importlib_metadata import PackageNotFoundError, version
+from importlib.metadata import PackageNotFoundError, version
 
 from jupyter_core.paths import ENV_JUPYTER_PATH, SYSTEM_JUPYTER_PATH, jupyter_data_dir
 from jupyter_core.utils import ensure_dir_exists
 
 from .federated_extensions_requirements import get_federated_extensions
 
-try:
-    from tomllib import load  # Python 3.11+
-except ImportError:
+if sys.version_info >= (3, 11):
+    from tomllib import load
+else:
     from tomli import load
 
 from .commands import _test_overlap
@@ -347,8 +344,8 @@ def _select_builder_marker(ext_data: dict[str, Any]) -> tuple[str | None, str | 
     return None, None
 
 
-def _ensure_builder(ext_path: str, core_package_file: str) -> str:
-    """Ensure that we can build the extension and return the builder script path."""
+def _ensure_builder(ext_path: str, core_package_file: str) -> tuple[str, str]:
+    """Ensure that we can build the extension and return ``(script, marker_pkg)``."""
     with Path(core_package_file).open() as fid:
         core_data = json.load(fid)
     with (Path(ext_path) / "package.json").open() as fid:
@@ -358,12 +355,13 @@ def _ensure_builder(ext_path: str, core_package_file: str) -> str:
     if marker_pkg is None:
         msg = f"Extensions require a devDependency on {' or '.join(_BUILDER_MARKER_CANDIDATES)}"
         raise ValueError(msg)
+    dep_version2 = cast("str", dep_version2)
 
     # if we have installed from disk (version is a path), assume we know what
     # we are doing and do not check versions.
     if "/" in dep_version2:
         with (Path(ext_path) / dep_version2 / "package.json").open() as fid:
-            dep_version2 = json.load(fid).get("version")
+            dep_version2 = str(json.load(fid).get("version", ""))
     if not (Path(ext_path) / "node_modules").exists():
         subprocess.check_call(["jlpm"], cwd=ext_path)  # noqa: S607
 
@@ -388,7 +386,7 @@ def _ensure_builder(ext_path: str, core_package_file: str) -> str:
         )
         if not overlap:
             with Path(target).joinpath("node_modules", *marker_parts, "package.json").open() as fid:
-                dep_version2 = json.load(fid).get("version")
+                dep_version2 = str(json.load(fid).get("version", ""))
             overlap = _test_overlap(
                 dep_version1,
                 dep_version2,

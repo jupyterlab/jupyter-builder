@@ -6,8 +6,12 @@
 from __future__ import annotations
 
 import itertools
+from collections.abc import Callable
+from typing import Any
 
 from .jupyterlab_semver import Range, gt, gte, lt, lte
+
+_CmpFn = Callable[[str | Any, str | Any, bool], bool]
 
 
 def _test_overlap(
@@ -78,13 +82,13 @@ def _compare_ranges(  # noqa: C901, PLR0912
             continue
 
         # Handle single value specifiers.
-        lx = lte if x1 == x2 else lt
-        ly = lte if y1 == y2 else lt
-        gx = gte if x1 == x2 else gt
-        gy = gte if x1 == x2 else gt
+        lx: _CmpFn = lte if x1 == x2 else lt
+        ly: _CmpFn = lte if y1 == y2 else lt
+        gx: _CmpFn = gte if x1 == x2 else gt
+        gy: _CmpFn = gte if x1 == x2 else gt
 
         # Handle unbounded (>) specifiers.
-        def noop(_x: object, _y: object, _z: object) -> bool:
+        def noop(_x: str | Any, _y: str | Any, _z: bool) -> bool:
             """Return True unconditionally, representing an unbounded range."""
             return True
 
@@ -125,4 +129,4 @@ def _compare_ranges(  # noqa: C901, PLR0912
 
     if return_value is False:
         return_value = None
-    return return_value  # type: ignore[return-value]
+    return return_value

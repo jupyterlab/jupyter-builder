@@ -27,7 +27,7 @@ develop_flags["overwrite"] = (
 aliases = dict(base_aliases)
 aliases["debug-log-path"] = "DebugLogFileMixin.debug_log_path"
 
-VERSION = 1
+VERSION = "1"
 
 
 class BaseExtensionApp(JupyterApp, DebugLogFileMixin):

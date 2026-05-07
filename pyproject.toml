@@ -89,6 +89,13 @@ strict = true
 pretty = true
 warn_unreachable = true
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+exclude = [
+    "__pycache__"
+]
+
+[[tool.mypy.overrides]]
+module = "jupyter_builder.debug_log_file_mixin"
+disable_error_code = ["attr-defined"]
 
 [tool.pytest.ini_options]
 filterwarnings = [
@@ -126,6 +133,8 @@ ignore = ["FBT001", "FBT002", "FBT003"]
 # S101 Use of `assert` detected
 "tests/*" = ["S101", "S603", "S607"]
 "jupyter_builder/main.py" = ["RUF012"]
+# ANN401 noop helper must match the semver Callable signature which uses Any
+"jupyter_builder/commands.py" = ["ANN401"]
 # N806 Variable `tM` in function should be lowercase
 # N816 Variable `comparatorTrimReplace` in global scope should not be mixedCase
 # PLC1901 test can be simplified as an empty string is falsey

@@ -30,7 +30,10 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any, SupportsIndex, overload
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 logger = logging.getLogger(__name__)
 
@@ -56,15 +59,19 @@ class _R:
         return self.i
 
 
-class Extendlist(list):
+class Extendlist(list[Any]):
     """A list subclass that auto-extends when setting items at the next index."""
 
-    def __setitem__(self, i: int, v: Any) -> None:
+    @overload
+    def __setitem__(self, i: SupportsIndex, v: Any) -> None: ...
+    @overload
+    def __setitem__(self, i: slice, v: Iterable[Any]) -> None: ...
+    def __setitem__(self, i: SupportsIndex | slice, v: Any) -> None:
         """Set item at index, appending if index equals current length."""
         try:
             list.__setitem__(self, i, v)
         except IndexError:
-            if len(self) == i:
+            if isinstance(i, int) and len(self) == i:
                 self.append(v)
             else:
                 raise
@@ -354,7 +361,7 @@ def clean(version: str, loose: bool) -> str | None:
     """Return the cleaned version string or None if unparseable."""
     s = parse(version, loose)
     if s:
-        return s.version
+        return str(s.version)
     return None
 
 
@@ -396,6 +403,9 @@ class SemVer:
                 msg = f"Invalid Version: {version}"
                 raise ValueError(msg)
             m = regexp[RECOVERYVERSIONNAME].search(version.strip())
+            if m is None:
+                msg = f"Invalid Version: {version}"
+                raise ValueError(msg)
             self.major = int(m.group(1)) if m.group(1) else 0
             self.minor = int(m.group(2)) if m.group(2) else 0
             self.patch = 0
@@ -555,7 +565,7 @@ class SemVer:
                 i = len(self.prerelease) - 1
                 while i >= 0:
                     if isinstance(self.prerelease[i], int):
-                        self.prerelease[i] += 1
+                        self.prerelease[i] = int(self.prerelease[i]) + 1
                         i -= 2
                     i -= 1
                 # ## this is needless code in python ##
@@ -583,20 +593,24 @@ def inc(  # wow!
 ) -> str | None:
     """Increment a version string by the given release type."""
     try:
-        return make_semver(version, loose).inc(release, identifier=identifier).version
+        return str(make_semver(version, loose).inc(release, identifier=identifier).version)
     except Exception as e:
-        logger.debug(e, exc_info=5)
+        logger.debug(e, exc_info=True)
         return None
 
 
-def compare_identifiers(a: str, b: str) -> int:
+def compare_identifiers(a: str, b: str) -> int:  # noqa: PLR0911
     """Compare two version identifiers, handling numeric and string types."""
     anum = NUMERIC.search(a)
     bnum = NUMERIC.search(b)
 
     if anum and bnum:
-        a = int(a)
-        b = int(b)
+        ia, ib = int(a), int(b)
+        if ia < ib:
+            return -1
+        if ia > ib:
+            return 1
+        return 0
 
     if anum and not bnum:
         return -1
@@ -616,7 +630,7 @@ def rcompare_identifiers(a: str, b: str) -> int:
 
 def compare(a: str | Any, b: str | Any, loose: bool) -> int:
     """Compare two version strings, returning -1, 0, or 1."""
-    return make_semver(a, loose).compare(b)
+    return int(make_semver(a, loose).compare(b))
 
 
 def compare_loose(a: str | Any, b: str | Any) -> int:
@@ -635,7 +649,7 @@ def make_key_function(loose: bool) -> Any:
     def key_function(version: str | Any) -> Any:
         """Generate a sort key tuple for the given version."""
         v = make_semver(version, loose)
-        key = (v.major, v.minor, v.patch)
+        key: tuple[Any, ...] = (v.major, v.minor, v.patch)
         if v.prerelease:  # noqa: SIM108
             key = key + tuple(v.prerelease)
         else:
@@ -738,7 +752,7 @@ ANY = object()
 class Comparator:
     """Represent a single version comparator (e.g., >=1.2.3)."""
 
-    semver = None
+    semver: Any = None
 
     def __init__(self, comp: str, loose: bool) -> None:
         """Initialize a Comparator by parsing the comparator string."""
@@ -947,9 +961,9 @@ def replace_tilde(comp: str, loose: bool) -> str:
             #  ~1.2.3 == >=1.2.3 <1.3.0
             ret = ">=" + M + "." + m + "." + p + " <" + M + "." + str(int(m) + 1) + ".0"
         logger.debug("tilde return, %s", ret)
-        return ret
+        return str(ret)
 
-    return r.sub(repl, comp)
+    return str(r.sub(repl, comp))
 
 
 #  ^ --> * (any, kinda silly)
@@ -1054,9 +1068,9 @@ def replace_caret(comp: str, loose: bool) -> str:
             else:
                 ret = ">=" + M + "." + m + "." + (p or "") + " <" + str(int(M) + 1) + ".0.0"
         logger.debug("caret return %s", ret)
-        return ret
+        return str(ret)
 
-    return r.sub(repl, comp)
+    return str(r.sub(repl, comp))
 
 
 def replace_xranges(comp: str, loose: bool) -> str:
@@ -1127,9 +1141,9 @@ def replace_xrange(comp: str, loose: bool) -> str:
             ret = ">=" + M + "." + m + ".0 <" + M + "." + str(int(m) + 1) + ".0"
         logger.debug("xRange return %s", ret)
 
-        return ret
+        return str(ret)
 
-    return r.sub(repl, comp)
+    return str(r.sub(repl, comp))
 
 
 #  Because * is AND-ed with everything else in the comparator,
@@ -1168,7 +1182,7 @@ def hyphen_replace(mob: Any) -> str:
         to = "<=" + tM + "." + tm + "." + tp + "-" + tpr
     else:
         to = "<=" + to
-    return (from_ + " " + to).strip()
+    return str((from_ + " " + to).strip())
 
 
 def test_set(set_: list[Any], version: Any) -> bool:
@@ -1204,7 +1218,7 @@ def satisfies(version: str | Any, range_: str | Any, loose: bool = False) -> boo
         range_ = make_range(range_, loose)
     except Exception:
         return False
-    return range_.test(version)
+    return bool(range_.test(version))
 
 
 def max_satisfying(versions: list[Any], range_: str | Any, loose: bool = False) -> Any:
@@ -1217,7 +1231,7 @@ def max_satisfying(versions: list[Any], range_: str | Any, loose: bool = False) 
     max_sv = None
     for v in versions:
         if range_ob.test(v):  # satisfies(v, range_, loose=loose)
-            if max_ is None or max_sv.compare(v) == -1:  # compare(max, v, true)
+            if max_ is None or (max_sv is not None and max_sv.compare(v) == -1):
                 max_ = v
                 max_sv = make_semver(max_, loose=loose)
     return max_
@@ -1287,11 +1301,13 @@ def outside(version: str | Any, range_: str | Any, hilo: str, loose: bool) -> bo
 
     #  If the edge version comparator has a operator then our version
     #  isn't outside it
+    if high is None or low is None:
+        return False
     if high.operator == comp or high.operator == ecomp:
         return False
 
     #  If the lowest version comparator has an operator and our version
     #  is less than it then it isn't higher than the range
-    if (not low.operator or low.operator == comp) and ltefn(version, low.semver):
+    if (not low.operator or low.operator == comp) and ltefn(version, low.semver, loose):
         return False
-    return not (low.operator == ecomp and ltfn(version, low.semver))
+    return not (low.operator == ecomp and ltfn(version, low.semver, loose))
