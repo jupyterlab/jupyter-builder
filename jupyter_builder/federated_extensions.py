@@ -236,15 +236,14 @@ def build_labextension(  # noqa: PLR0913
     if logger:
         logger.info("Building extension in %s", path)
 
-    builder = _ensure_builder(ext_path, core_package_file)
+    builder, marker_pkg = _ensure_builder(ext_path, core_package_file)
 
-    arguments = [
-        "node",
-        builder,
-        "--core-package-file",
-        core_package_file,
-        ext_path,
-    ]
+    if marker_pkg == "@jupyterlab/builder":
+        core_flag = ["--core-path", _resolve_core_path_for_jupyterlab_builder(core_package_file)]
+    else:
+        core_flag = ["--core-package-file", core_package_file]
+
+    arguments = ["node", builder, *core_flag, ext_path]
     if static_url is not None:
         arguments.extend(["--static-url", static_url])
     if development:
@@ -291,15 +290,14 @@ def watch_labextension(  # noqa: PLR0913
             shutil.rmtree(full_dest)
             Path(full_dest).symlink_to(output_dir)
 
-    builder = _ensure_builder(ext_path, core_package_file)
-    arguments = [
-        "node",
-        builder,
-        "--core-package-file",
-        core_package_file,
-        "--watch",
-        ext_path,
-    ]
+    builder, marker_pkg = _ensure_builder(ext_path, core_package_file)
+
+    if marker_pkg == "@jupyterlab/builder":
+        core_flag = ["--core-path", _resolve_core_path_for_jupyterlab_builder(core_package_file)]
+    else:
+        core_flag = ["--core-package-file", core_package_file]
+
+    arguments = ["node", builder, *core_flag, "--watch", ext_path]
     if development:
         arguments.append("--development")
     if source_map:
@@ -318,7 +316,25 @@ def watch_labextension(  # noqa: PLR0913
 _BUILDER_MARKER_CANDIDATES = ("@jupyter/builder", "@jupyterlab/builder")
 
 
-def _select_builder_marker(ext_data: dict[str, Any]) -> tuple[str | None, str | None]:
+def _resolve_core_path_for_jupyterlab_builder(core_package_file: str) -> str:
+    """Return the core path directory for @jupyterlab/builder.
+
+    @jupyterlab/builder's downstream script expects a file named package.json
+    inside the core path directory. If core_package_file is not named
+    package.json, a copy named package.json is created in the same directory.
+    """
+    core_file = Path(core_package_file)
+    core_dir = core_file.parent
+
+    if core_file.name != "package.json":
+        target = core_dir / "package.json"
+        if not target.exists():
+            shutil.copy2(core_file, target)
+
+    return str(core_dir)
+
+
+  def _select_builder_marker(ext_data: dict[str, Any]) -> tuple[str | None, str | None]:
     """Return (marker_pkg, dep_spec) for the builder marker the extension declares.
 
     Prefers `@jupyter/builder`. Returns (None, None) if neither marker is present.
@@ -387,7 +403,7 @@ def _ensure_builder(ext_path: str, core_package_file: str) -> str:
             )
             raise ValueError(msg)
 
-    return str(Path(target).joinpath("node_modules", *marker_parts, "lib", "build-labextension.js"))
+    return str(Path(target).joinpath("node_modules", *marker_parts, "lib", "build-labextension.js")), marker_pkg
 
 
 def _should_copy(src: str, dest: str, logger: logging.Logger | None = None) -> bool:

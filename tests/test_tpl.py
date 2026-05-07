@@ -103,6 +103,27 @@ def test_files_build_development(tmp_path):
         assert os.path.exists(filepath), f"File {filename} does not exist in {folder_path}!"
 
 
+def test_files_build_jupyterlab_builder(tmp_path):
+    extension_folder = tmp_path / "ext"
+    extension_folder.mkdir()
+    helper(str(extension_folder))
+
+    env = os.environ.copy()
+    env.update({"YARN_ENABLE_IMMUTABLE_INSTALLS": "false"})
+    run(["jlpm", "install"], cwd=extension_folder, check=True, env=env)
+    # Intentionally do NOT add @jupyter/builder; the template already declares
+    # @jupyterlab/builder, so this exercises the jupyterlab/builder path.
+    run(["jlpm", "run", "build:lib:prod"], cwd=extension_folder, check=True)
+
+    run(["jupyter-builder", "build", str(extension_folder)], cwd=extension_folder, check=True)
+
+    folder_path = extension_folder / "myextension/labextension"
+    expected_files = ["static/style.js", "package.json"]
+    for filename in expected_files:
+        filepath = os.path.join(folder_path, filename)
+        assert os.path.exists(filepath), f"File {filename} does not exist in {folder_path}!"
+
+
 # --------------------------------- WATCH TESTS ---------------------------------------
 
 
@@ -184,6 +205,50 @@ def test_watch_functionality(tmp_path):
     #     else:
     #         watch_process.send_signal(signal.SIGINT)
     #     watch_process.wait()
+
+
+def test_watch_functionality_jupyterlab_builder(tmp_path):
+    extension_folder = tmp_path / "ext"
+    extension_folder.mkdir()
+    helper(str(extension_folder))
+
+    env = os.environ.copy()
+    env.update({"YARN_ENABLE_IMMUTABLE_INSTALLS": "false"})
+    run(["jlpm", "install"], cwd=extension_folder, check=True, env=env)
+    # Intentionally do NOT add @jupyter/builder; exercises the jupyterlab/builder path.
+    run(["jlpm", "run", "build:lib:prod"], cwd=extension_folder, check=True)
+
+    index_ts_path = extension_folder / "src/index.ts"
+    static_dir = extension_folder / "myextension/labextension/static"
+    assert index_ts_path.exists(), f"File {index_ts_path} does not exist!"
+
+    initial_files = list_files_in_static(static_dir)
+
+    is_windows = platform.system() == "Windows"
+    kwargs = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if is_windows else {}
+
+    watch_process = Popen(
+        ["jupyter-builder", "watch", str(extension_folder)], cwd=extension_folder, **kwargs
+    )
+
+    time.sleep(100)
+
+    try:
+        with index_ts_path.open("a") as f:
+            f.write("// Test comment to trigger watch\n")
+
+        time.sleep(100)
+
+        final_files = list_files_in_static(static_dir)
+        assert initial_files != final_files, (
+            "No changes detected in the static directory."
+            " Watch process may not have triggered correctly!"
+        )
+    finally:
+        watch_process.terminate()
+        time.sleep(5)
+        if watch_process.poll() is None:
+            watch_process.kill()
 
 
 def test_builder_version_mismatch(tmp_path):

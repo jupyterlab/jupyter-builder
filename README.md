@@ -1,6 +1,6 @@
 # Jupyter Builder
 
-[![Build](https://github.com/jupyterlab/jupyter-builder/actions/workflows/build.yml/badge.svg)](https://github.com/jupyterlab/jupyter-builder/actions/workflows/build.yml)
+[![Jupyter Builder Tests](https://github.com/jupyterlab/jupyter-builder/actions/workflows/builder-tests.yml/badge.svg)](https://github.com/jupyterlab/jupyter-builder/actions/workflows/builder-tests.yml)
 [![version on npm](https://img.shields.io/npm/v/@jupyter/builder.svg)](https://www.npmjs.com/package/@jupyter/builder)
 [![version on PyPI](https://img.shields.io/pypi/v/jupyter-builder.svg)](https://pypi.org/project/jupyter-builder/)
 [![version on conda-forge](https://img.shields.io/conda/vn/conda-forge/jupyter-builder.svg)](https://anaconda.org/conda-forge/jupyter-builder)
