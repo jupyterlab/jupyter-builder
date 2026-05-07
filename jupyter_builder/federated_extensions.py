@@ -334,7 +334,7 @@ def _resolve_core_path_for_jupyterlab_builder(core_package_file: str) -> str:
     return str(core_dir)
 
 
-  def _select_builder_marker(ext_data: dict[str, Any]) -> tuple[str | None, str | None]:
+def _select_builder_marker(ext_data: dict[str, Any]) -> tuple[str | None, str | None]:
     """Return (marker_pkg, dep_spec) for the builder marker the extension declares.
 
     Prefers `@jupyter/builder`. Returns (None, None) if neither marker is present.
@@ -403,7 +403,10 @@ def _ensure_builder(ext_path: str, core_package_file: str) -> str:
             )
             raise ValueError(msg)
 
-    return str(Path(target).joinpath("node_modules", *marker_parts, "lib", "build-labextension.js")), marker_pkg
+    script = str(
+        Path(target).joinpath("node_modules", *marker_parts, "lib", "build-labextension.js"),
+    )
+    return script, marker_pkg
 
 
 def _should_copy(src: str, dest: str, logger: logging.Logger | None = None) -> bool:
