@@ -224,8 +224,7 @@ export namespace Build {
             }
           ]
         },
-        plugins: [new rspack.CssExtractRspackPlugin()],
-        experiments: { css: false }
+        plugins: [new rspack.CssExtractRspackPlugin()]
       });
     });
 
