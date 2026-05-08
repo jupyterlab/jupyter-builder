@@ -50,8 +50,8 @@ def _compare_ranges(  # noqa: C901, PLR0912
     is higher/newer than spec2.
     """
     # Test for overlapping semver ranges.
-    r1 = Range(spec1, True)
-    r2 = Range(spec2, True)
+    r1 = Range(spec1, True)  # type: ignore[no-untyped-call]
+    r2 = Range(spec2, True)  # type: ignore[no-untyped-call]
 
     # If either range is empty, we cannot verify.
     if not r1.range or not r2.range:
@@ -99,15 +99,15 @@ def _compare_ranges(  # noqa: C901, PLR0912
 
         # Check for overlap.
         if (
-            (gte(x1, y1, True) and ly(x1, y2, True))
+            (gte(x1, y1, True) and ly(x1, y2, True))  # type: ignore[no-untyped-call]
             or (gy(x2, y1, True) and ly(x2, y2, True))
-            or (gte(y1, x1, True) and lx(y1, x2, True))
+            or (gte(y1, x1, True) and lx(y1, x2, True))  # type: ignore[no-untyped-call]
             or (gx(y2, x1, True) and lx(y2, x2, True))
         ):
             # if we ever find an overlap, we can return immediately
             return 0
 
-        if gte(y1, x2, True):
+        if gte(y1, x2, True):  # type: ignore[no-untyped-call]
             if return_value is False:
                 # We can possibly return 1
                 return_value = 1
@@ -116,7 +116,7 @@ def _compare_ranges(  # noqa: C901, PLR0912
                 return_value = None
             continue
 
-        if gte(x1, y2, True):
+        if gte(x1, y2, True):  # type: ignore[no-untyped-call]
             if return_value is False:
                 return_value = -1
             elif return_value == 1:
