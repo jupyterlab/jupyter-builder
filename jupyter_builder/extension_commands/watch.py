@@ -1,17 +1,23 @@
+"""Watch command for JupyterLab extensions."""
+
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
-import os
+from __future__ import annotations
+
+from pathlib import Path
 
 from traitlets import Bool, Unicode
 
 from jupyter_builder.base_extension_app import BaseExtensionApp
 from jupyter_builder.federated_extensions import watch_labextension
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = str(Path(__file__).resolve().parent)
 
 
 class WatchLabExtensionApp(BaseExtensionApp):
+    """Application for watching and rebuilding a JupyterLab extension on changes."""
+
     description = "Watch labextension"
 
     development = Bool(True, config=True, help="Build in development mode")
@@ -39,8 +45,9 @@ class WatchLabExtensionApp(BaseExtensionApp):
         "core-version": "WatchLabExtensionApp.core_version",
     }
 
-    def run_task(self):
-        self.extra_args = self.extra_args or [os.getcwd()]
+    def run_task(self) -> None:
+        """Watch the labextension and rebuild on changes."""
+        self.extra_args = self.extra_args or [str(Path.cwd())]
         labextensions_path = self.labextensions_path
         watch_labextension(
             self.extra_args[0],
@@ -53,7 +60,8 @@ class WatchLabExtensionApp(BaseExtensionApp):
         )
 
 
-def main():
+def main() -> None:
+    """Run the watch labextension app."""
     app = WatchLabExtensionApp()
     app.initialize()
     app.start()

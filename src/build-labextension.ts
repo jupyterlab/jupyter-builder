@@ -43,7 +43,7 @@
 
 import * as path from 'path';
 import { program as commander } from 'commander';
-import { rspack } from '@rspack/core';
+import { type RspackError, MultiStats, rspack } from '@rspack/core';
 import generateConfig from './extensionConfig';
 import { stdout as colors } from 'supports-color';
 
@@ -68,14 +68,16 @@ commander
       mode,
       corePackageFile,
       staticUrl: options.staticUrl,
-      devtool,
-      watchMode: options.watch
+      devtool
     });
     const compiler = rspack(config);
 
     let lastHash: string | null = null;
 
-    function compilerCallback(err: any, stats: any) {
+    function compilerCallback(
+      err: RspackError | null,
+      stats: MultiStats | undefined
+    ) {
       if (!options.watch || err) {
         // Do not keep cache anymore
         compiler.purgeInputFileSystem();
@@ -86,24 +88,25 @@ commander
         if (err.details) {
           console.error(err.details);
         }
-        throw new Error(err.details);
+        throw err;
       }
+      if (stats) {
+        const info = stats.toJson({});
 
-      const info = stats.toJson();
-
-      if (stats.hasErrors()) {
-        console.error(info.errors);
-        if (!options.watch) {
-          process.exit(2);
+        if (stats.hasErrors()) {
+          console.error(info.errors);
+          if (!options.watch) {
+            process.exit(2);
+          }
         }
-      }
 
-      if (stats.hash !== lastHash) {
-        lastHash = stats.hash;
-        const statsString = stats.toString({ colors });
-        const delimiter = '';
-        if (statsString) {
-          process.stdout.write(`${statsString}\n${delimiter}`);
+        if (stats.hash !== lastHash) {
+          lastHash = stats.hash;
+          const statsString = stats.toString({ colors });
+          const delimiter = '';
+          if (statsString) {
+            process.stdout.write(`${statsString}\n${delimiter}`);
+          }
         }
       }
     }
@@ -128,9 +131,9 @@ commander
       compiler.watch(config[0].watchOptions || {}, compilerCallback);
       console.error('\nrspack is watching the files…\n');
     } else {
-      compiler.run((err: any, stats: any) => {
+      compiler.run((err: RspackError | null, stats: MultiStats | undefined) => {
         if (compiler.close) {
-          compiler.close((err2: any) => {
+          compiler.close((err2: RspackError | null) => {
             compilerCallback(err || err2, stats);
           });
         } else {

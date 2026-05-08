@@ -89,6 +89,13 @@ strict = true
 pretty = true
 warn_unreachable = true
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+exclude = [
+    "__pycache__"
+]
+
+[[tool.mypy.overrides]]
+module = "jupyter_builder.debug_log_file_mixin"
+disable_error_code = ["attr-defined"]
 
 [tool.pytest.ini_options]
 filterwarnings = [
@@ -119,53 +126,30 @@ target-version = "py310"
 line-length = 100
 
 [tool.ruff.lint]
-select = [
-    "A",
-    "B",
-    "C",
-    "DTZ",
-    "E",
-    "EM",
-    "F",
-    "FBT",
-    "I",
-    "ICN",
-    "N",
-    "PLC",
-    "PLE",
-    "PLR",
-    "PLW",
-    "Q",
-    "RUF",
-    "S",
-    "SIM",
-    "T",
-    "TID",
-    "UP",
-    "W",
-    "YTT",
-]
-ignore = ["FBT002", "FBT003"]
+select = ["ALL"]
+ignore = ["FBT001", "FBT002", "FBT003"]
 
 [tool.ruff.lint.per-file-ignores]
 # S101 Use of `assert` detected
-"tests/*" = ["S101", "S603", "S607"]
-"jupyter_builder/main.py" = ["RUF012"]
-# N806 Variable `tM` in function should be lowercase
-# N816 Variable `comparatorTrimReplace` in global scope should not be mixedCase
-# PLC1901 test can be simplified as an empty string is falsey
-# PLR1714 Consider merging multiple comparisons
-# PLR5501 Use `elif` instead of `else` then `if`, to reduce indentation
-"jupyter_builder/jupyterlab_semver.py" = [
-    "C901",
-    "EM101",
-    "EM102",
-    "N806",
-    "N816",
-    "PLC1901",
-    "PLR0912",
-    "PLR0915",
-    "PLR1714",
-    "PLR5501",
-    "RUF059",
+# ANN* / D1xx adding full annotations and docstrings to test helpers is a large refactor
+# SLF001 tests intentionally call private helpers to unit-test them
+"tests/*" = [
+    "ANN001",
+    "ANN002",
+    "ANN003",
+    "ANN201",
+    "ANN202",
+    "ANN204",
+    "D100",
+    "D103",
+    "S101",
+    "S603",
+    "S607",
+    "SLF001",
 ]
+"jupyter_builder/main.py" = ["RUF012"]
+# ANN401 noop helper must match the semver Callable signature which uses Any
+"jupyter_builder/commands.py" = ["ANN401"]
+# Ported from the node-semver JS library; preserve original style/structure
+# rather than refactoring to Python idioms or adding annotations/docstrings.
+"jupyter_builder/jupyterlab_semver.py" = ["ALL"]
