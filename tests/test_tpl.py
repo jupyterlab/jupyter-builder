@@ -63,8 +63,8 @@ def test_files_build(tmp_path):
     expected_files = ["static/style.js", "package.json"]
 
     for filename in expected_files:
-        filepath = os.path.join(folder_path, filename)
-        assert os.path.exists(filepath), f"File {filename} does not exist in {folder_path}!"
+        filepath = folder_path / filename
+        assert filepath.exists(), f"File {filename} does not exist in {folder_path}!"
 
 
 def test_files_build_development(tmp_path):
@@ -99,8 +99,8 @@ def test_files_build_development(tmp_path):
     expected_files = ["static/style.js", "package.json", "build_log.json"]
 
     for filename in expected_files:
-        filepath = os.path.join(folder_path, filename)
-        assert os.path.exists(filepath), f"File {filename} does not exist in {folder_path}!"
+        filepath = folder_path / filename
+        assert filepath.exists(), f"File {filename} does not exist in {folder_path}!"
 
 
 def test_files_build_jupyterlab_builder(tmp_path):
@@ -120,8 +120,8 @@ def test_files_build_jupyterlab_builder(tmp_path):
     folder_path = extension_folder / "myextension/labextension"
     expected_files = ["static/style.js", "package.json"]
     for filename in expected_files:
-        filepath = os.path.join(folder_path, filename)
-        assert os.path.exists(filepath), f"File {filename} does not exist in {folder_path}!"
+        filepath = folder_path / filename
+        assert filepath.exists(), f"File {filename} does not exist in {folder_path}!"
 
 
 # --------------------------------- WATCH TESTS ---------------------------------------
@@ -168,7 +168,9 @@ def test_watch_functionality(tmp_path):
     kwargs = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if is_windows else {}
 
     watch_process = Popen(
-        ["jupyter-builder", "watch", str(extension_folder)], cwd=extension_folder, **kwargs
+        ["jupyter-builder", "watch", str(extension_folder)],
+        cwd=extension_folder,
+        **kwargs,
     )
 
     # This sleep time makes sure that the comment is added only after the watch process is running.
@@ -198,14 +200,6 @@ def test_watch_functionality(tmp_path):
         if watch_process.poll() is None:
             watch_process.kill()
 
-    # Note: The ideal process of termination is given below, but does not work
-    #     if is_windows:
-    #         watch_process.send_signal(signal.CTRL_C_EVENT)
-
-    #     else:
-    #         watch_process.send_signal(signal.SIGINT)
-    #     watch_process.wait()
-
 
 def test_watch_functionality_jupyterlab_builder(tmp_path):
     extension_folder = tmp_path / "ext"
@@ -228,7 +222,9 @@ def test_watch_functionality_jupyterlab_builder(tmp_path):
     kwargs = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if is_windows else {}
 
     watch_process = Popen(
-        ["jupyter-builder", "watch", str(extension_folder)], cwd=extension_folder, **kwargs
+        ["jupyter-builder", "watch", str(extension_folder)],
+        cwd=extension_folder,
+        **kwargs,
     )
 
     time.sleep(100)

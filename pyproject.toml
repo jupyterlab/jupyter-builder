@@ -131,7 +131,22 @@ ignore = ["FBT001", "FBT002", "FBT003"]
 
 [tool.ruff.lint.per-file-ignores]
 # S101 Use of `assert` detected
-"tests/*" = ["S101", "S603", "S607"]
+# ANN* / D1xx adding full annotations and docstrings to test helpers is a large refactor
+# SLF001 tests intentionally call private helpers to unit-test them
+"tests/*" = [
+    "ANN001",
+    "ANN002",
+    "ANN003",
+    "ANN201",
+    "ANN202",
+    "ANN204",
+    "D100",
+    "D103",
+    "S101",
+    "S603",
+    "S607",
+    "SLF001",
+]
 "jupyter_builder/main.py" = ["RUF012"]
 # ANN401 noop helper must match the semver Callable signature which uses Any
 "jupyter_builder/commands.py" = ["ANN401"]

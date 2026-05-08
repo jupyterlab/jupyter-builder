@@ -15,7 +15,7 @@ export default defineConfig([
     'dist/',
     'coverage/',
     '**/*.d.ts',
-    'yarn.js'
+    'jupyter_builder/yarn.js'
   ]),
   {
     files: ['**/*.ts'],
