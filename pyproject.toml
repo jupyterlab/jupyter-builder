@@ -150,36 +150,6 @@ ignore = ["FBT001", "FBT002", "FBT003"]
 "jupyter_builder/main.py" = ["RUF012"]
 # ANN401 noop helper must match the semver Callable signature which uses Any
 "jupyter_builder/commands.py" = ["ANN401"]
-# N806 Variable `tM` in function should be lowercase
-# N816 Variable `comparatorTrimReplace` in global scope should not be mixedCase
-# PLC1901 test can be simplified as an empty string is falsey
-# PLR1714 Consider merging multiple comparisons
-# PLR5501 Use `elif` instead of `else` then `if`, to reduce indentation
-# ANN401 typing.Any is necessary for untyped semver/comparator objects (ported JS library)
-# BLE001 broad exception catch is intentional in several public API functions
-# FBT001 bool positional args are part of the original node-semver API
-# SIM102 nested if statements match the original JS logic and are intentional
-# TD*/FIX003 xxx: markers
-"jupyter_builder/jupyterlab_semver.py" = [
-    "ANN401",
-    "BLE001",
-    "C901",
-    "EM101",
-    "EM102",
-    "FBT001",
-    "N806",
-    "N816",
-    "PLC1901",
-    "PLR0912",
-    "PLR0915",
-    "PLR1714",
-    "PLR5501",
-    "RUF059",
-    "SIM102",
-    "FIX003",
-    "TD001",
-    "TD002",
-    "TD003",
-    "TD004",
-    "TD005",
-]
+# Ported from the node-semver JS library; preserve original style/structure
+# rather than refactoring to Python idioms or adding annotations/docstrings.
+"jupyter_builder/jupyterlab_semver.py" = ["ALL"]

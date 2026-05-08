@@ -28,11 +28,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from __future__ import annotations
-
 import logging
 import re
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -43,26 +40,20 @@ string_type = str
 
 
 class _R:
-    def __init__(self, i: int) -> None:
-        """Initialize the counter with a starting value."""
+    def __init__(self, i):
         self.i = i
 
-    def __call__(self) -> int:
-        """Return current value and increment the counter."""
+    def __call__(self):
         v = self.i
         self.i += 1
         return v
 
-    def value(self) -> int:
-        """Return the current counter value."""
+    def value(self):
         return self.i
 
 
 class Extendlist(list):
-    """A list subclass that auto-extends when setting items at the next index."""
-
-    def __setitem__(self, i: int, v: Any) -> None:
-        """Set item at index, appending if index equals current length."""
+    def __setitem__(self, i, v):
         try:
             list.__setitem__(self, i, v)
         except IndexError:
@@ -72,8 +63,7 @@ class Extendlist(list):
                 raise
 
 
-def list_get(xs: list[Any], i: int) -> Any:
-    """Return element at index i or None if index is out of range."""
+def list_get(xs, i):
     try:
         return xs[i]
     except IndexError:
@@ -256,7 +246,7 @@ src[LONETILDE] = "(?:~>?)"
 
 TILDETRIM = R()
 src[TILDETRIM] = "(\\s*)" + src[LONETILDE] + "\\s+"
-regexp[TILDETRIM] = re.compile(src[TILDETRIM], re.MULTILINE)
+regexp[TILDETRIM] = re.compile(src[TILDETRIM], re.M)
 tildeTrimReplace = r"\1~"
 
 TILDE = R()
@@ -271,7 +261,7 @@ src[LONECARET] = "(?:\\^)"
 
 CARETTRIM = R()
 src[CARETTRIM] = "(\\s*)" + src[LONECARET] + "\\s+"
-regexp[CARETTRIM] = re.compile(src[CARETTRIM], re.MULTILINE)
+regexp[CARETTRIM] = re.compile(src[CARETTRIM], re.M)
 caretTrimReplace = r"\1^"
 
 CARET = R()
@@ -292,7 +282,7 @@ COMPARATORTRIM = R()
 src[COMPARATORTRIM] = "(\\s*)" + src[GTLT] + "\\s*(" + LOOSEPLAIN + "|" + src[XRANGEPLAIN] + ")"
 
 #  this one has to use the /g flag
-regexp[COMPARATORTRIM] = re.compile(src[COMPARATORTRIM], re.MULTILINE)
+regexp[COMPARATORTRIM] = re.compile(src[COMPARATORTRIM], re.M)
 comparatorTrimReplace = r"\1\2\3"
 
 
@@ -335,43 +325,42 @@ for i in range(R.value()):
         regexp[i] = re.compile(src[i])
 
 
-def parse(version: str, loose: bool) -> Any:
-    """Parse a version string and return a SemVer object or None."""
+def parse(version, loose):
     r = regexp[LOOSE] if loose else regexp[FULL]
     m = r.search(version)
     if m:
         return semver(version, loose)
-    return None
+    else:
+        return None
 
 
-def valid(version: str, loose: bool) -> Any:
-    """Return the parsed SemVer if valid, otherwise None."""
+def valid(version, loose):
     v = parse(version, loose)
     if v.version:
         return v
-    return None
+    else:
+        return None
 
 
-def clean(version: str, loose: bool) -> str | None:
-    """Return the cleaned version string or None if unparseable."""
+def clean(version, loose):
     s = parse(version, loose)
     if s:
         return s.version
-    return None
+    else:
+        return None
 
 
 NUMERIC = re.compile(r"^\d+$")
 
 
-def semver(version: str | Any, loose: bool) -> Any:
-    """Return a SemVer instance for the given version string or object."""
+def semver(version, loose):
     if isinstance(version, SemVer):
         if version.loose == loose:
             return version
-        version = version.version
+        else:
+            version = version.version
     elif not isinstance(version, string_type):  # xxx:
-        msg = f"Invalid Version: {version}"
-        raise TypeError(msg)
+        raise ValueError(f"Invalid Version: {version}")
 
     """
     if (!(this instanceof SemVer))
@@ -384,10 +373,7 @@ make_semver = semver
 
 
 class SemVer:
-    """Represent a parsed semantic version."""
-
-    def __init__(self, version: str, loose: bool) -> None:
-        """Initialize a SemVer by parsing the version string."""
+    def __init__(self, version, loose):
         logger.debug("SemVer %s, %s", version, loose)
         self.loose = loose
         self.raw = version
@@ -395,8 +381,7 @@ class SemVer:
         m = regexp[LOOSE if loose else FULL].search(version.strip())
         if not m:
             if not loose:
-                msg = f"Invalid Version: {version}"
-                raise ValueError(msg)
+                raise ValueError(f"Invalid Version: {version}")
             m = regexp[RECOVERYVERSIONNAME].search(version.strip())
             self.major = int(m.group(1)) if m.group(1) else 0
             self.minor = int(m.group(2)) if m.group(2) else 0
@@ -426,23 +411,19 @@ class SemVer:
 
         self.format()  # xxx:
 
-    def format(self) -> str:
-        """Format the version tuple into a canonical version string."""
+    def format(self):
         self.version = f"{self.major}.{self.minor}.{self.patch}"
         if len(self.prerelease) > 0:
             self.version += "-{}".format(".".join(str(v) for v in self.prerelease))
         return self.version
 
-    def __repr__(self) -> str:
-        """Return a detailed string representation."""
+    def __repr__(self):
         return f"<SemVer {self} >"
 
-    def __str__(self) -> str:
-        """Return the version string."""
+    def __str__(self):
         return self.version
 
-    def compare(self, other: str | Any) -> int:
-        """Compare this version to another, returning -1, 0, or 1."""
+    def compare(self, other):
         logger.debug("SemVer.compare %s %s %s", self.version, self.loose, other)
         if not isinstance(other, SemVer):
             other = make_semver(other, self.loose)
@@ -450,8 +431,7 @@ class SemVer:
         logger.debug("compare result %s", result)
         return result
 
-    def compare_main(self, other: str | Any) -> int:
-        """Compare the main version components (major.minor.patch)."""
+    def compare_main(self, other):
         if not isinstance(other, SemVer):
             other = make_semver(other, self.loose)
 
@@ -461,8 +441,7 @@ class SemVer:
             or compare_identifiers(str(self.patch), str(other.patch))
         )
 
-    def compare_pre(self, other: str | Any) -> int:  # noqa: PLR0911
-        """Compare prerelease components of two versions."""
+    def compare_pre(self, other):  # noqa PLR0911
         if not isinstance(other, SemVer):
             other = make_semver(other, self.loose)
 
@@ -472,9 +451,9 @@ class SemVer:
 
         if not is_self_more_than_zero and is_other_more_than_zero:
             return 1
-        if is_self_more_than_zero and not is_other_more_than_zero:
+        elif is_self_more_than_zero and not is_other_more_than_zero:
             return -1
-        if not is_self_more_than_zero and not is_other_more_than_zero:
+        elif not is_self_more_than_zero and not is_other_more_than_zero:
             return 0
 
         i = 0
@@ -485,16 +464,16 @@ class SemVer:
             i += 1
             if a is None and b is None:
                 return 0
-            if b is None:
+            elif b is None:
                 return 1
-            if a is None:
+            elif a is None:
                 return -1
-            if a == b:
+            elif a == b:
                 continue
-            return compare_identifiers(str(a), str(b))
+            else:
+                return compare_identifiers(str(a), str(b))
 
-    def inc(self, release: str, identifier: str | None = None) -> Any:
-        """Increment the version by the specified release type."""
+    def inc(self, release, identifier=None):
         logger.debug("inc release %s %s", self.prerelease, release)
         if release == "premajor":
             self.prerelease = []
@@ -561,6 +540,8 @@ class SemVer:
                         i -= 2
                     i -= 1
                 # ## this is needless code in python ##
+                # if i == -1:  # didn't increment anything
+                #     self.prerelease.append(0)
             if identifier is not None:
                 # 1.2.0-beta.1 bumps to 1.2.0-beta.2,
                 # 1.2.0-beta.fooblz or 1.2.0-beta bumps to 1.2.0-beta.0
@@ -570,20 +551,13 @@ class SemVer:
                 else:
                     self.prerelease = [identifier, 0]
         else:
-            msg = f"invalid increment argument: {release}"
-            raise ValueError(msg)
+            raise ValueError(f"invalid increment argument: {release}")
         self.format()
         self.raw = self.version
         return self
 
 
-def inc(  # wow!
-    version: str | Any,
-    release: str,
-    loose: bool,
-    identifier: str | None = None,
-) -> str | None:
-    """Increment a version string by the given release type."""
+def inc(version, release, loose, identifier=None):  # wow!
     try:
         return make_semver(version, loose).inc(release, identifier=identifier).version
     except Exception as e:
@@ -591,8 +565,7 @@ def inc(  # wow!
         return None
 
 
-def compare_identifiers(a: str, b: str) -> int:
-    """Compare two version identifiers, handling numeric and string types."""
+def compare_identifiers(a, b):
     anum = NUMERIC.search(a)
     bnum = NUMERIC.search(b)
 
@@ -602,43 +575,37 @@ def compare_identifiers(a: str, b: str) -> int:
 
     if anum and not bnum:
         return -1
-    if bnum and not anum:
+    elif bnum and not anum:
         return 1
-    if a < b:
+    elif a < b:
         return -1
-    if a > b:
+    elif a > b:
         return 1
-    return 0
+    else:
+        return 0
 
 
-def rcompare_identifiers(a: str, b: str) -> int:
-    """Compare two identifiers in reverse order."""
+def rcompare_identifiers(a, b):
     return compare_identifiers(b, a)
 
 
-def compare(a: str | Any, b: str | Any, loose: bool) -> int:
-    """Compare two version strings, returning -1, 0, or 1."""
+def compare(a, b, loose):
     return make_semver(a, loose).compare(b)
 
 
-def compare_loose(a: str | Any, b: str | Any) -> int:
-    """Compare two version strings using loose parsing."""
+def compare_loose(a, b):
     return compare(a, b, True)
 
 
-def rcompare(a: str | Any, b: str | Any, loose: bool) -> int:
-    """Compare two version strings in reverse order."""
+def rcompare(a, b, loose):
     return compare(b, a, loose)
 
 
-def make_key_function(loose: bool) -> Any:
-    """Return a sort key function for semantic versions."""
-
-    def key_function(version: str | Any) -> Any:
-        """Generate a sort key tuple for the given version."""
+def make_key_function(loose):
+    def key_function(version):
         v = make_semver(version, loose)
         key = (v.major, v.minor, v.patch)
-        if v.prerelease:  # noqa: SIM108
+        if v.prerelease:  # noqa SIM108
             key = key + tuple(v.prerelease)
         else:
             #  NOT having a prerelease is > having one
@@ -653,79 +620,70 @@ loose_key_function = make_key_function(True)
 full_key_function = make_key_function(True)
 
 
-def sort(list_: list[Any], loose: bool) -> list[Any]:
-    """Sort a list of version strings in ascending order."""
+def sort(list_, loose):
     keyf = loose_key_function if loose else full_key_function
     list_.sort(key=keyf)
     return list_
 
 
-def rsort(list_: list[Any], loose: bool) -> list[Any]:
-    """Sort a list of version strings in descending order."""
+def rsort(list_, loose):
     keyf = loose_key_function if loose else full_key_function
     list_.sort(key=keyf, reverse=True)
     return list_
 
 
-def gt(a: str | Any, b: str | Any, loose: bool) -> bool:
-    """Return True if version a is greater than version b."""
+def gt(a, b, loose):
     return compare(a, b, loose) > 0
 
 
-def lt(a: str | Any, b: str | Any, loose: bool) -> bool:
-    """Return True if version a is less than version b."""
+def lt(a, b, loose):
     return compare(a, b, loose) < 0
 
 
-def eq(a: str | Any, b: str | Any, loose: bool) -> bool:
-    """Return True if version a equals version b."""
+def eq(a, b, loose):
     return compare(a, b, loose) == 0
 
 
-def neq(a: str | Any, b: str | Any, loose: bool) -> bool:
-    """Return True if version a does not equal version b."""
+def neq(a, b, loose):
     return compare(a, b, loose) != 0
 
 
-def gte(a: str | Any, b: str | Any, loose: bool) -> bool:
-    """Return True if version a is greater than or equal to version b."""
+def gte(a, b, loose):
     return compare(a, b, loose) >= 0
 
 
-def lte(a: str | Any, b: str | Any, loose: bool) -> bool:
-    """Return True if version a is less than or equal to version b."""
+def lte(a, b, loose):
     return compare(a, b, loose) <= 0
 
 
-def cmp(a: str | Any, op: str, b: str | Any, loose: bool) -> bool:  # noqa: PLR0911
-    """Compare two versions using the given operator string."""
+def cmp(a, op, b, loose):  # noqa PLR0911
     logger.debug("cmp: %s", op)
     if op == "===":
         return a == b
-    if op == "!==":
+    elif op == "!==":
         return a != b
-    if op == "" or op == "=" or op == "==":
+    elif op == "" or op == "=" or op == "==":
         return eq(a, b, loose)
-    if op == "!=":
+    elif op == "!=":
         return neq(a, b, loose)
-    if op == ">":
+    elif op == ">":
         return gt(a, b, loose)
-    if op == ">=":
+    elif op == ">=":
         return gte(a, b, loose)
-    if op == "<":
+    elif op == "<":
         return lt(a, b, loose)
-    if op == "<=":
+    elif op == "<=":
         return lte(a, b, loose)
-    msg = f"Invalid operator: {op}"
-    raise ValueError(msg)
+    else:
+        raise ValueError(f"Invalid operator: {op}")
 
 
-def comparator(comp: str | Any, loose: bool) -> Any:
-    """Return a Comparator instance for the given comparator string."""
+def comparator(comp, loose):
     if isinstance(comp, Comparator):
         if comp.loose == loose:
             return comp
-        comp = comp.value
+        else:
+            comp = comp.value
 
     # if (!(this instanceof Comparator))
     #   return new Comparator(comp, loose)
@@ -738,12 +696,9 @@ ANY = object()
 
 
 class Comparator:
-    """Represent a single version comparator (e.g., >=1.2.3)."""
-
     semver = None
 
-    def __init__(self, comp: str, loose: bool) -> None:
-        """Initialize a Comparator by parsing the comparator string."""
+    def __init__(self, comp, loose):
         logger.debug("comparator: %s %s", comp, loose)
         self.loose = loose
         self.parse(comp)
@@ -753,15 +708,13 @@ class Comparator:
         else:
             self.value = self.operator + self.semver.version
 
-    def parse(self, comp: str) -> None:
-        """Parse the comparator string into operator and semver components."""
+    def parse(self, comp):
         r = regexp[COMPARATORLOOSE] if self.loose else regexp[COMPARATOR]
         logger.debug("parse comp=%s", comp)
         m = r.search(comp)
 
         if m is None:
-            msg = f"Invalid comparator: {comp}"
-            raise ValueError(msg)
+            raise ValueError(f"Invalid comparator: {comp}")
 
         self.operator = m.group(1)
         # if it literally is just '>' or '' then allow anything.
@@ -770,24 +723,21 @@ class Comparator:
         else:
             self.semver = semver(m.group(2), self.loose)
 
-    def __repr__(self) -> str:
-        """Return a detailed string representation."""
+    def __repr__(self):
         return f'<SemVer Comparator "{self}">'
 
-    def __str__(self) -> str:
-        """Return the comparator value string."""
+    def __str__(self):
         return self.value
 
-    def test(self, version: str | Any) -> bool:
-        """Test whether the given version satisfies this comparator."""
+    def test(self, version):
         logger.debug("Comparator, test %s, %s", version, self.loose)
         if self.semver == ANY:
             return True
-        return cmp(version, self.operator, self.semver, self.loose)
+        else:
+            return cmp(version, self.operator, self.semver, self.loose)
 
 
-def make_range(range_: str | Any, loose: bool) -> Any:
-    """Return a Range instance for the given range string."""
+def make_range(range_, loose):
     if isinstance(range_, Range) and range_.loose == loose:
         return range_
 
@@ -797,10 +747,7 @@ def make_range(range_: str | Any, loose: bool) -> Any:
 
 
 class Range:
-    """Represent a semver range (e.g., >=1.2.3 <2.0.0)."""
-
-    def __init__(self, range_: str, loose: bool) -> None:
-        """Initialize a Range by parsing the range string."""
+    def __init__(self, range_, loose):
         self.loose = loose
         #  First, split based on boolean or ||
         self.raw = range_
@@ -808,29 +755,24 @@ class Range:
         self.set = [r for r in xs if r]
 
         if not len(self.set):
-            msg = f"Invalid SemVer Range: {range_}"
-            raise ValueError(msg)
+            raise ValueError(f"Invalid SemVer Range: {range_}")
 
         self.format()
 
-    def __repr__(self) -> str:
-        """Return a detailed string representation."""
+    def __repr__(self):
         return f'<SemVer Range "{self.range}">'
 
-    def format(self) -> str:
-        """Format the range set into a canonical range string."""
+    def format(self):
         self.range = "||".join(
-            [" ".join(c.value for c in comps).strip() for comps in self.set],
+            [" ".join(c.value for c in comps).strip() for comps in self.set]
         ).strip()
         logger.debug("Range format %s", self.range)
         return self.range
 
-    def __str__(self) -> str:
-        """Return the range string."""
+    def __str__(self):
         return self.range
 
-    def parse_range(self, range_: str) -> list[Any]:
-        """Parse a single range component into a list of Comparators."""
+    def parse_range(self, range_):
         loose = self.loose
         logger.debug("range %s %s", range_, loose)
         #  `1.2.3 - 1.2.4` => `>=1.2.3 <=1.2.4`
@@ -859,16 +801,15 @@ class Range:
         #  ready to be split into comparators.
         comp_re = regexp[COMPARATORLOOSE] if loose else regexp[COMPARATOR]
         set_ = re.split(
-            r"\s+",
-            " ".join([parse_comparator(comp, loose) for comp in range_.split(" ")]),
+            r"\s+", " ".join([parse_comparator(comp, loose) for comp in range_.split(" ")])
         )
         if self.loose:
             # in loose mode, throw out any that are not valid comparators
             set_ = [comp for comp in set_ if comp_re.search(comp)]
-        return [make_comparator(comp, loose) for comp in set_]
+        set_ = [make_comparator(comp, loose) for comp in set_]
+        return set_
 
-    def test(self, version: str | Any) -> bool:
-        """Test whether the given version satisfies this range."""
+    def test(self, version):
         if not version:  # xxx
             return False
 
@@ -879,8 +820,7 @@ class Range:
 
 
 #  Mostly just for testing and legacy API reasons
-def to_comparators(range_: str | Any, loose: bool) -> list[Any]:
-    """Convert a range to a list of comparator string lists."""
+def to_comparators(range_, loose):
     return [
         " ".join([c.value for c in comp]).strip().split(" ")
         for comp in make_range(range_, loose).set
@@ -892,8 +832,7 @@ def to_comparators(range_: str | Any, loose: bool) -> list[Any]:
 #  turn into a set of JUST comparators.
 
 
-def parse_comparator(comp: str, loose: bool) -> str:
-    """Parse and normalize a comparator string."""
+def parse_comparator(comp, loose):
     logger.debug("comp %s", comp)
     comp = replace_carets(comp, loose)
     logger.debug("caret %s", comp)
@@ -906,8 +845,7 @@ def parse_comparator(comp: str, loose: bool) -> str:
     return comp
 
 
-def is_x(id_: str | None) -> bool:
-    """Return True if the identifier is a wildcard (x, X, *, or empty)."""
+def is_x(id_):
     return id_ is None or id_ == "" or id_.lower() == "x" or id_ == "*"
 
 
@@ -919,17 +857,14 @@ def is_x(id_: str | None) -> bool:
 #  ~1.2.0, ~>1.2.0 --> >=1.2.0 <1.3.0
 
 
-def replace_tildes(comp: str, loose: bool) -> str:
-    """Replace tilde ranges in a comparator string."""
+def replace_tildes(comp, loose):
     return " ".join([replace_tilde(c, loose) for c in re.split(r"\s+", comp.strip())])
 
 
-def replace_tilde(comp: str, loose: bool) -> str:
-    """Replace a single tilde range with an equivalent comparator pair."""
+def replace_tilde(comp, loose):
     r = regexp[TILDELOOSE] if loose else regexp[TILDE]
 
-    def repl(mob: Any) -> str:
-        """Expand a tilde range match into explicit comparators."""
+    def repl(mob):
         _ = mob.group(0)
         M, m, p, pr, _ = mob.groups()
         logger.debug("tilde %s %s %s %s %s %s", comp, _, M, m, p, pr)
@@ -960,17 +895,14 @@ def replace_tilde(comp: str, loose: bool) -> str:
 #  ^1.2, ^1.2.x --> >=1.2.0 <2.0.0
 #  ^1.2.3 --> >=1.2.3 <2.0.0
 #  ^1.2.0 --> >=1.2.0 <2.0.0
-def replace_carets(comp: str, loose: bool) -> str:
-    """Replace caret ranges in a comparator string."""
+def replace_carets(comp, loose):
     return " ".join([replace_caret(c, loose) for c in re.split(r"\s+", comp.strip())])
 
 
-def replace_caret(comp: str, loose: bool) -> str:
-    """Replace a single caret range with an equivalent comparator pair."""
+def replace_caret(comp, loose):
     r = regexp[CARETLOOSE] if loose else regexp[CARET]
 
-    def repl(mob: Any) -> str:
-        """Expand a caret range match into explicit comparators."""
+    def repl(mob):
         m0 = mob.group(0)
         M, m, p, pr, _ = mob.groups()
         logger.debug("caret %s %s %s %s %s %s", comp, m0, M, m, p, pr)
@@ -1061,19 +993,16 @@ def replace_caret(comp: str, loose: bool) -> str:
     return r.sub(repl, comp)
 
 
-def replace_xranges(comp: str, loose: bool) -> str:
-    """Replace all x-range specifiers in a comparator string."""
+def replace_xranges(comp, loose):
     logger.debug("replaceXRanges %s %s", comp, loose)
     return " ".join([replace_xrange(c, loose) for c in re.split(r"\s+", comp.strip())])
 
 
-def replace_xrange(comp: str, loose: bool) -> str:
-    """Replace a single x-range specifier with equivalent comparators."""
+def replace_xrange(comp, loose):
     comp = comp.strip()
     r = regexp[XRANGELOOSE] if loose else regexp[XRANGE]
 
-    def repl(mob: Any) -> str:
-        """Expand an x-range match into explicit comparators."""
+    def repl(mob):
         ret = mob.group(0)
         gtlt, M, m, p, pr, _ = mob.groups()
 
@@ -1089,7 +1018,7 @@ def replace_xrange(comp: str, loose: bool) -> str:
 
         logger.debug("xrange gtlt=%s any_x=%s", gtlt, any_x)
         if xM:
-            if gtlt == ">" or gtlt == "<":  # noqa: SIM108
+            if gtlt == ">" or gtlt == "<":  # noqa SIM108
                 # nothing is allowed
                 ret = "<0.0.0"
             else:
@@ -1136,8 +1065,7 @@ def replace_xrange(comp: str, loose: bool) -> str:
 
 #  Because * is AND-ed with everything else in the comparator,
 #  and '' means "any version", just remove the *s entirely.
-def replace_stars(comp: str, loose: bool) -> str:
-    """Remove star wildcards from a comparator string."""
+def replace_stars(comp, loose):
     logger.debug("replaceStars %s %s", comp, loose)
     #  Looseness is ignored here.  star is always as loose as it gets!
     return regexp[STAR].sub("", comp.strip())
@@ -1148,8 +1076,7 @@ def replace_stars(comp: str, loose: bool) -> str:
 #  1.2 - 3.4.5 => >=1.2.0 <=3.4.5
 #  1.2.3 - 3.4 => >=1.2.0 <3.5.0 Any 3.4.x will do
 #  1.2 - 3.4 => >=1.2.0 <3.5.0
-def hyphen_replace(mob: Any) -> str:
-    """Replace a hyphen range match with explicit comparators."""
+def hyphen_replace(mob):
     from_, fM, fm, fp, fpr, fb, to, tM, tm, tp, tpr, tb = mob.groups()
     if is_x(fM):
         from_ = ""
@@ -1173,8 +1100,7 @@ def hyphen_replace(mob: Any) -> str:
     return (from_ + " " + to).strip()
 
 
-def test_set(set_: list[Any], version: Any) -> bool:
-    """Test whether a version satisfies all comparators in a set."""
+def test_set(set_, version):
     for e in set_:
         if not e.test(version):
             return False
@@ -1200,8 +1126,7 @@ def test_set(set_: list[Any], version: Any) -> bool:
     return True
 
 
-def satisfies(version: str | Any, range_: str | Any, loose: bool = False) -> bool:
-    """Return True if version satisfies the given range."""
+def satisfies(version, range_, loose=False):
     try:
         range_ = make_range(range_, loose)
     except Exception:
@@ -1209,8 +1134,7 @@ def satisfies(version: str | Any, range_: str | Any, loose: bool = False) -> boo
     return range_.test(version)
 
 
-def max_satisfying(versions: list[Any], range_: str | Any, loose: bool = False) -> Any:
-    """Return the maximum version from the list that satisfies the range."""
+def max_satisfying(versions, range_, loose=False):
     try:
         range_ob = make_range(range_, loose=loose)
     except Exception:
@@ -1218,15 +1142,14 @@ def max_satisfying(versions: list[Any], range_: str | Any, loose: bool = False) 
     max_ = None
     max_sv = None
     for v in versions:
-        if range_ob.test(v):  # satisfies(v, range_, loose=loose)
+        if range_ob.test(v):  # noqa  # satisfies(v, range_, loose=loose)
             if max_ is None or max_sv.compare(v) == -1:  # compare(max, v, true)
                 max_ = v
                 max_sv = make_semver(max_, loose=loose)
     return max_
 
 
-def valid_range(range_: str | Any, loose: bool) -> str | None:
-    """Return the canonical range string, or None if invalid."""
+def valid_range(range_, loose):
     try:
         #  Return '*' instead of '' so that truthiness works.
         #  This will throw if it's invalid anyway
@@ -1236,19 +1159,16 @@ def valid_range(range_: str | Any, loose: bool) -> str | None:
 
 
 #  Determine if version is less than all the versions possible in the range
-def ltr(version: str | Any, range_: str | Any, loose: bool) -> bool:
-    """Return True if version is less than all versions in the range."""
+def ltr(version, range_, loose):
     return outside(version, range_, "<", loose)
 
 
 #  Determine if version is greater than all the versions possible in the range.
-def rtr(version: str | Any, range_: str | Any, loose: bool) -> bool:
-    """Return True if version is greater than all versions in the range."""
+def rtr(version, range_, loose):
     return outside(version, range_, ">", loose)
 
 
-def outside(version: str | Any, range_: str | Any, hilo: str, loose: bool) -> bool:
-    """Return True if version is outside the range in the given direction."""
+def outside(version, range_, hilo, loose):
     version = make_semver(version, loose)
     range_ = make_range(range_, loose)
 
@@ -1265,8 +1185,7 @@ def outside(version: str | Any, range_: str | Any, hilo: str, loose: bool) -> bo
         comp = "<"
         ecomp = "<="
     else:
-        msg = "Must provide a hilo val of '<' or '>'"
-        raise ValueError(msg)
+        raise ValueError("Must provide a hilo val of '<' or '>'")
 
     #  If it satisfies the range it is not outside
     if satisfies(version, range_, loose):
@@ -1294,6 +1213,8 @@ def outside(version: str | Any, range_: str | Any, hilo: str, loose: bool) -> bo
 
     #  If the lowest version comparator has an operator and our version
     #  is less than it then it isn't higher than the range
-    if (not low.operator or low.operator == comp) and ltefn(version, low.semver):
+    if (not low.operator or low.operator == comp) and ltefn(version, low.semver):  # noqa SIM114
         return False
-    return not (low.operator == ecomp and ltfn(version, low.semver))
+    elif low.operator == ecomp and ltfn(version, low.semver):
+        return False
+    return True
