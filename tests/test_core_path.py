@@ -82,7 +82,7 @@ def test_get_core_meta_fetches_npm_core_meta_before_github(tmp_path, monkeypatch
 
     calls = []
 
-    def fake_get(url, _timeout):
+    def fake_get(url, **_kwargs):
         calls.append(url)
         if url == "https://unpkg.com/@jupyterlab/core-meta@4.6.0-alpha.4/core.package.json":
             return FakeResponse(content=b'{"devDependencies": {}}')
@@ -131,7 +131,7 @@ def test_get_core_meta_falls_back_to_github_when_npm_fails(tmp_path, monkeypatch
 
     calls = []
 
-    def fake_get(url, _timeout):
+    def fake_get(url, **_kwargs):
         calls.append(url)
         if url == "https://unpkg.com/@jupyterlab/core-meta@4.6.0-alpha.4/core.package.json":
             return FakeResponse(should_fail=True)
@@ -266,7 +266,7 @@ def test_get_core_meta_latest_uses_npm_latest_and_caches_by_resolved_version(tmp
 
     calls = []
 
-    def fake_get(url, _timeout):
+    def fake_get(url, **_kwargs):
         calls.append(url)
         if url == "https://registry.npmjs.org/@jupyterlab/core-meta/latest":
             return FakeResponse(json_data={"version": "4.6.0-alpha.4"})
