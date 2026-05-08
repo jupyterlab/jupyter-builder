@@ -2,6 +2,26 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 1.0.0b0
+
+([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v0.0.9...7b1ec5b09d96be3b8632d610b82900b309cef391))
+
+### Maintenance and upkeep improvements
+
+- Enforce stricter linting across the entire codebase, covering both TypeScript and Python files. [#96](https://github.com/jupyterlab/jupyter-builder/pull/96) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+- Bump rspack to `v2.0.0` [#93](https://github.com/jupyterlab/jupyter-builder/pull/93) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-05-06&to=2026-05-08&type=c))
+
+@Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-05-06..2026-05-08&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-05-06..2026-05-08&type=Issues))
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 0.0.9
 
 ([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v0.0.8...7614c1b125820f35a8e46d2c110688662de2599a))
@@ -24,8 +44,6 @@ See [our definition of contributors](https://github-activity.readthedocs.io/en/l
 ([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-04-23&to=2026-05-06&type=c))
 
 @Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-04-23..2026-05-06&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-04-23..2026-05-06&type=Issues))
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 0.0.8
 
