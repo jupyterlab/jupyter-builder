@@ -103,12 +103,8 @@ def bump(spec: str, skip_if_dirty: bool) -> None:
     print(f"JS version: {js_version}")  # noqa: T201
 
     here = Path(__file__).parent.parent.resolve()
-    print(f"Updating version in: {here}")  # noqa: T201
-    print(f"Version file: {here / 'jupyter_builder/_version.py'}")  # noqa: T201
-    print(f"Package file: {here / 'package.json'}")  # noqa: T201 
     for version_file in here.glob("jupyter_builder/_version.py"):
         content = version_file.read_text().splitlines()
-        print("Before-py: ", content)  # noqa: T201
         variable, _ = content[0].split(" = ")
 
         if variable != "__version__":
@@ -116,17 +112,12 @@ def bump(spec: str, skip_if_dirty: bool) -> None:
             raise ValueError(msg)
 
         version_file.write_text(f'__version__ = "{new_version}"\n')
-        content = version_file.read_text().splitlines()
-        print("After-py: ", content)  # noqa: T201
 
     pkg_path = here / "package.json"
     if pkg_path.exists():
         data = json.loads(pkg_path.read_text())
-        print("Before-js: ", data["version"])  # noqa: T201  
         data["version"] = js_version
         pkg_path.write_text(json.dumps(data, indent=2) + "\n")
-        data = json.loads(pkg_path.read_text())
-        print("After-js: ", data["version"])  # noqa: T201
     else:
         msg = "package.json not found"
         raise FileNotFoundError(msg)
