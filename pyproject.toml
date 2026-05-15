@@ -62,6 +62,9 @@ ignore = ["W002", "W004"]
 [tool.hatch.version]
 source = "nodejs"
 
+[tool.hatch.build.hooks.version] 
+path = "jupyter_builder/_version.py" 
+
 [tool.hatch.build.targets.sdist]
 exclude = [".github"]
 
