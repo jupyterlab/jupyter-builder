@@ -153,3 +153,4 @@ ignore = ["FBT001", "FBT002", "FBT003"]
 # Ported from the node-semver JS library; preserve original style/structure
 # rather than refactoring to Python idioms or adding annotations/docstrings.
 "jupyter_builder/jupyterlab_semver.py" = ["ALL"]
+"scripts/*" = ["INP001"]

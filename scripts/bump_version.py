@@ -1,7 +1,7 @@
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
-"""Script to bump the version of jupyter-builder."""  # noqa: INP001
+"""Script to bump the version of jupyter-builder."""
 
 import json
 from pathlib import Path
