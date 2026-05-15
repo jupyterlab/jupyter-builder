@@ -69,7 +69,7 @@ path = "jupyter_builder/_version.py"
 exclude = [".github"]
 
 [tool.jupyter-releaser.options]
-version-cmd = "cd ../.. && python scripts/bump_version.py"
+version-cmd = "cd ../ && python scripts/bump_version.py"
 
 [tool.jupyter-releaser.hooks]
 before-build-npm = [
