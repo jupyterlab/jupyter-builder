@@ -69,7 +69,7 @@ path = "jupyter_builder/_version.py"
 exclude = [".github"]
 
 [tool.jupyter-releaser.options]
-version_cmd = "hatch version"
+version-cmd = "python scripts/bump_version.py --skip-if-dirty"
 
 [tool.jupyter-releaser.hooks]
 before-build-npm = [
@@ -153,3 +153,4 @@ ignore = ["FBT001", "FBT002", "FBT003"]
 # Ported from the node-semver JS library; preserve original style/structure
 # rather than refactoring to Python idioms or adding annotations/docstrings.
 "jupyter_builder/jupyterlab_semver.py" = ["ALL"]
+"scripts/*" = ["INP001"]
