@@ -127,5 +127,4 @@ def bump(spec: str, skip_if_dirty: bool) -> None:
 
 
 if __name__ == "__main__":
-
     bump()
