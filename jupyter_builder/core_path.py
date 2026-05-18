@@ -5,13 +5,13 @@
 
 import io
 import json
+import logging
 import os
 import re
 import subprocess
 import tarfile
 import urllib.error
 import urllib.request
-import warnings
 from pathlib import Path
 
 from .constants import JPBLD_NPM_URL, JPBLD_RAW_GITHUB_URL
@@ -39,22 +39,22 @@ def _http_get(url: str, *, headers: dict[str, str] | None = None, timeout: int =
 def get_core_meta(
     version: str | None = None,
     ext_path: str | os.PathLike[str] | None = None,
+    logger: logging.Logger | None = None,
 ) -> str:
     """Return the path to the core package JSON, downloading it if needed."""
     requested_version = version
-
     if requested_version is None:
         if ext_path is not None:
             installed_core_meta = _get_installed_core_meta(Path(ext_path).resolve())
             if installed_core_meta is not None:
                 return installed_core_meta
-            warnings.warn(
-                "@jupyterlab/core-meta was not found in node_modules, so a network download "
-                "will be used as a fallback. To avoid this, "
-                "add @jupyter/builder as a devDependency instead of @jupyterlab/builder.",
-                UserWarning,
-                stacklevel=2,
-            )
+            if logger:
+                logger.warning(
+                    "\033[33m@jupyterlab/core-meta was not found in node_modules, "
+                    "so a network download will be used as a fallback. To avoid this, "
+                    "add @jupyter/builder as a devDependency instead of "
+                    "@jupyterlab/builder.\n \033[0m",
+                )
         requested_version = "main"
 
     cache_root = _home_dir() / ".cache" / "jupyterlab_builder" / "core"
