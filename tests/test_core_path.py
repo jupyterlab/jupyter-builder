@@ -82,7 +82,7 @@ def test_get_core_meta_fetches_npm_core_meta_before_github(tmp_path, monkeypatch
 
     tarball_content = b'{"devDependencies": {}}'
     tarball_bytes = _make_core_package_tarball(tarball_content)
-    tarball_url = f"{core_path.NPM_REGISTRY}/@jupyterlab/core-meta/-/core-meta-4.6.0-alpha.4.tgz"
+    tarball_url = f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/-/core-meta-4.6.0-alpha.4.tgz"
     registry_meta = json.dumps({"dist": {"tarball": tarball_url}}).encode()
 
     calls = []
@@ -90,7 +90,7 @@ def test_get_core_meta_fetches_npm_core_meta_before_github(tmp_path, monkeypatch
     def fake_urlopen(req_or_url, **_kwargs):
         url = getattr(req_or_url, "full_url", req_or_url)
         calls.append(url)
-        if url == f"{core_path.NPM_REGISTRY}/@jupyterlab/core-meta/4.6.0-alpha.4":
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.6.0-alpha.4":
             return io.BytesIO(registry_meta)
         if url == tarball_url:
             return io.BytesIO(tarball_bytes)
@@ -103,7 +103,7 @@ def test_get_core_meta_fetches_npm_core_meta_before_github(tmp_path, monkeypatch
     location = core_path.get_core_meta(version="4.6.0-alpha.4", ext_path=ext_path)
 
     assert calls == [
-        f"{core_path.NPM_REGISTRY}/@jupyterlab/core-meta/4.6.0-alpha.4",
+        f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.6.0-alpha.4",
         tarball_url,
     ]
     assert location == str(
@@ -136,7 +136,7 @@ def test_get_core_meta_falls_back_to_github_when_npm_fails(tmp_path, monkeypatch
     def fake_urlopen(req_or_url, **_kwargs):
         url = getattr(req_or_url, "full_url", req_or_url)
         calls.append(url)
-        if url == f"{core_path.NPM_REGISTRY}/@jupyterlab/core-meta/4.6.0-alpha.4":
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.6.0-alpha.4":
             msg = "Not Found"
             raise urllib.error.URLError(msg)
         if url == github_url:
@@ -149,7 +149,7 @@ def test_get_core_meta_falls_back_to_github_when_npm_fails(tmp_path, monkeypatch
     location = core_path.get_core_meta(version="4.6.0-alpha.4", ext_path=ext_path)
 
     assert calls == [
-        f"{core_path.NPM_REGISTRY}/@jupyterlab/core-meta/4.6.0-alpha.4",
+        f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.6.0-alpha.4",
         github_url,
     ]
     assert location == str(
@@ -167,7 +167,7 @@ def test_get_core_meta_wildcard_version_resolves_from_npm_and_downloads_core_met
 
     tarball_content = b'{"devDependencies": {}}'
     tarball_bytes = _make_core_package_tarball(tarball_content)
-    tarball_url = f"{core_path.NPM_REGISTRY}/@jupyterlab/core-meta/-/core-meta-4.5.3.tgz"
+    tarball_url = f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/-/core-meta-4.5.3.tgz"
     registry_meta = json.dumps({"dist": {"tarball": tarball_url}}).encode()
 
     calls = []
@@ -175,11 +175,11 @@ def test_get_core_meta_wildcard_version_resolves_from_npm_and_downloads_core_met
     def fake_urlopen(req_or_url, **_kwargs):
         url = getattr(req_or_url, "full_url", req_or_url)
         calls.append(url)
-        if url == f"{core_path.NPM_REGISTRY}/@jupyterlab/core-meta":
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta":
             return io.BytesIO(
                 json.dumps({"versions": {"4.5.0": {}, "4.5.3": {}, "4.6.0": {}}}).encode(),
             )
-        if url == f"{core_path.NPM_REGISTRY}/@jupyterlab/core-meta/4.5.3":
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.5.3":
             return io.BytesIO(registry_meta)
         if url == tarball_url:
             return io.BytesIO(tarball_bytes)
@@ -191,8 +191,8 @@ def test_get_core_meta_wildcard_version_resolves_from_npm_and_downloads_core_met
     location = core_path.get_core_meta(version="4.5.x", ext_path=ext_path)
 
     assert calls == [
-        f"{core_path.NPM_REGISTRY}/@jupyterlab/core-meta",
-        f"{core_path.NPM_REGISTRY}/@jupyterlab/core-meta/4.5.3",
+        f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta",
+        f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.5.3",
         tarball_url,
     ]
     assert location == str(
@@ -203,7 +203,7 @@ def test_get_core_meta_wildcard_version_resolves_from_npm_and_downloads_core_met
 def test_resolve_wildcard_npm_version_returns_highest_match(monkeypatch):
     def fake_urlopen(req_or_url, **_kwargs):
         url = getattr(req_or_url, "full_url", req_or_url)
-        assert url == f"{core_path.NPM_REGISTRY}/@jupyterlab/core-meta"
+        assert url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta"
         return io.BytesIO(
             json.dumps(
                 {
@@ -227,7 +227,7 @@ def test_resolve_wildcard_npm_version_returns_highest_match(monkeypatch):
 def test_resolve_wildcard_npm_version_matches_prerelease_versions(monkeypatch):
     def fake_urlopen(req_or_url, **_kwargs):
         url = getattr(req_or_url, "full_url", req_or_url)
-        assert url == f"{core_path.NPM_REGISTRY}/@jupyterlab/core-meta"
+        assert url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta"
         return io.BytesIO(
             json.dumps(
                 {
@@ -267,7 +267,7 @@ def test_get_core_meta_latest_uses_npm_latest_and_caches_by_resolved_version(tmp
 
     tarball_content = b'{"devDependencies": {}}'
     tarball_bytes = _make_core_package_tarball(tarball_content)
-    tarball_url = f"{core_path.NPM_REGISTRY}/@jupyterlab/core-meta/-/core-meta-4.6.0-alpha.4.tgz"
+    tarball_url = f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/-/core-meta-4.6.0-alpha.4.tgz"
     registry_meta = json.dumps({"dist": {"tarball": tarball_url}}).encode()
 
     calls = []
@@ -275,9 +275,9 @@ def test_get_core_meta_latest_uses_npm_latest_and_caches_by_resolved_version(tmp
     def fake_urlopen(req_or_url, **_kwargs):
         url = getattr(req_or_url, "full_url", req_or_url)
         calls.append(url)
-        if url == f"{core_path.NPM_REGISTRY}/@jupyterlab/core-meta/latest":
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/latest":
             return io.BytesIO(json.dumps({"version": "4.6.0-alpha.4"}).encode())
-        if url == f"{core_path.NPM_REGISTRY}/@jupyterlab/core-meta/4.6.0-alpha.4":
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.6.0-alpha.4":
             return io.BytesIO(registry_meta)
         if url == tarball_url:
             return io.BytesIO(tarball_bytes)
@@ -289,8 +289,8 @@ def test_get_core_meta_latest_uses_npm_latest_and_caches_by_resolved_version(tmp
     location = core_path.get_core_meta(version="latest", ext_path=ext_path)
 
     assert calls == [
-        f"{core_path.NPM_REGISTRY}/@jupyterlab/core-meta/latest",
-        f"{core_path.NPM_REGISTRY}/@jupyterlab/core-meta/4.6.0-alpha.4",
+        f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/latest",
+        f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.6.0-alpha.4",
         tarball_url,
     ]
     assert location == str(

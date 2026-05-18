@@ -11,9 +11,11 @@ import subprocess
 import tarfile
 import urllib.error
 import urllib.request
+import warnings
 from pathlib import Path
 
-NPM_REGISTRY = "https://registry.npmjs.org"
+from .constants import JPBLD_NPM_URL, JPBLD_RAW_GITHUB_URL
+
 _MAX_CORE_META_BYTES = 5 * 1024 * 1024  # 5 MB — generous upper bound for core.package.json
 
 
@@ -46,6 +48,13 @@ def get_core_meta(
             installed_core_meta = _get_installed_core_meta(Path(ext_path).resolve())
             if installed_core_meta is not None:
                 return installed_core_meta
+            warnings.warn(
+                "@jupyterlab/core-meta was not found in node_modules, so a network download "
+                "will be used as a fallback. To avoid this, "
+                "add @jupyter/builder as a devDependency instead of @jupyterlab/builder.",
+                UserWarning,
+                stacklevel=2,
+            )
         requested_version = "main"
 
     cache_root = _home_dir() / ".cache" / "jupyterlab_builder" / "core"
@@ -82,7 +91,7 @@ def _resolve_npm_version(version: str) -> str:
     - anything else is returned as-is (assumed to be a concrete version)
     """
     if version == "latest":
-        data = _http_get(f"{NPM_REGISTRY}/@jupyterlab/core-meta/latest")
+        data = _http_get(f"{JPBLD_NPM_URL}/@jupyterlab/core-meta/latest")
         latest_version = json.loads(data).get("version")
         if not isinstance(latest_version, str) or not latest_version:
             msg = "Failed to resolve latest @jupyterlab/core-meta version from npm"
@@ -101,7 +110,7 @@ def _resolve_wildcard_npm_version(version: str) -> str:
     Raises urllib.error.URLError if no matching version is found.
     """
     data = _http_get(
-        f"{NPM_REGISTRY}/@jupyterlab/core-meta",
+        f"{JPBLD_NPM_URL}/@jupyterlab/core-meta",
         headers={"Accept": "application/vnd.npm.install-v1+json"},
     )
     all_versions: list[str] = list(json.loads(data).get("versions", {}).keys())
@@ -117,11 +126,12 @@ def _resolve_wildcard_npm_version(version: str) -> str:
         msg = f"No published @jupyterlab/core-meta versions match range '{version}'"
         raise urllib.error.URLError(msg)
 
-    def semver_key(v: str) -> tuple[tuple[int, ...], int]:
-        release, _, _ = v.partition("-")
+    def semver_key(v: str) -> tuple[tuple[int, ...], int, tuple[int, ...]]:
+        release, _, prerelease = v.partition("-")
         numeric = tuple(int(p) for p in release.split(".") if p.isdigit())
-        # Stable releases sort higher than pre-releases.
-        return (numeric, 0 if "-" in v else 1)
+        # Stable releases sort higher than pre-releases; within pre-releases,
+        pre_numeric = tuple(int(p) for p in prerelease.split(".") if p.isdigit())
+        return (numeric, 0 if prerelease else 1, pre_numeric)
 
     return max(matching, key=semver_key)
 
@@ -139,7 +149,7 @@ def _get_cached_core_meta_file(cache_root: Path, version: str) -> Path | None:
 
 def _download_npm_core_meta(version: str, destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
-    metadata = json.loads(_http_get(f"{NPM_REGISTRY}/@jupyterlab/core-meta/{version}"))
+    metadata = json.loads(_http_get(f"{JPBLD_NPM_URL}/@jupyterlab/core-meta/{version}"))
     try:
         tarball_url = metadata["dist"]["tarball"]
     except (KeyError, TypeError) as exc:
@@ -165,11 +175,7 @@ def _download_npm_core_meta(version: str, destination: Path) -> None:
 
 def _download_github_core_meta(version: str, destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
-    url = (
-        "https://raw.githubusercontent.com/"
-        f"jupyterlab/jupyterlab/{version}/"
-        "jupyterlab/staging/package.json"
-    )
+    url = f"{JPBLD_RAW_GITHUB_URL}/jupyterlab/jupyterlab/{version}/jupyterlab/staging/package.json"
     destination.write_bytes(_http_get(url))
 
 
