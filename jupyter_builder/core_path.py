@@ -14,6 +14,7 @@ import urllib.request
 from pathlib import Path
 
 NPM_REGISTRY = "https://registry.npmjs.org"
+_MAX_CORE_META_BYTES = 5 * 1024 * 1024  # 5 MB — generous upper bound for core.package.json
 
 
 def _home_dir() -> Path:
@@ -22,10 +23,15 @@ def _home_dir() -> Path:
 
 
 def _http_get(url: str, *, headers: dict[str, str] | None = None, timeout: int = 10) -> bytes:
-    req = urllib.request.Request(url, headers=headers) if headers else url  # noqa: S310
+    if not url.startswith(("http:", "https:")):
+        msg = "URL must start with 'http:' or 'https:'"
+        raise ValueError(msg)
+    request_headers = {"User-Agent": "jupyter-builder"}
+    if headers:
+        request_headers.update(headers)
+    req = urllib.request.Request(url, headers=request_headers)  # noqa: S310
     with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
-        data = resp.read()
-        return data if isinstance(data, bytes) else data.encode()
+        return bytes(resp.read())
 
 
 def get_core_meta(
@@ -111,8 +117,11 @@ def _resolve_wildcard_npm_version(version: str) -> str:
         msg = f"No published @jupyterlab/core-meta versions match range '{version}'"
         raise urllib.error.URLError(msg)
 
-    def semver_key(v: str) -> tuple[int, ...]:
-        return tuple(int(part) for part in re.split(r"[.\-]", v) if part.isdigit())
+    def semver_key(v: str) -> tuple[tuple[int, ...], int]:
+        release, _, _ = v.partition("-")
+        numeric = tuple(int(p) for p in release.split(".") if p.isdigit())
+        # Stable releases sort higher than pre-releases.
+        return (numeric, 0 if "-" in v else 1)
 
     return max(matching, key=semver_key)
 
@@ -131,17 +140,27 @@ def _get_cached_core_meta_file(cache_root: Path, version: str) -> Path | None:
 def _download_npm_core_meta(version: str, destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     metadata = json.loads(_http_get(f"{NPM_REGISTRY}/@jupyterlab/core-meta/{version}"))
-    tarball_url = metadata["dist"]["tarball"]
+    try:
+        tarball_url = metadata["dist"]["tarball"]
+    except (KeyError, TypeError) as exc:
+        msg = f"Unexpected registry metadata for {version}: {exc}"
+        raise urllib.error.URLError(msg) from exc
     tarball_data = _http_get(tarball_url, timeout=20)
     with tarfile.open(fileobj=io.BytesIO(tarball_data), mode="r:gz") as tar:
         for member in tar.getmembers():
-            if member.name.endswith("core.package.json"):
+            if member.name == "package/core.package.json":
+                if not member.isfile():
+                    msg = "core.package.json entry is not a regular file"
+                    raise urllib.error.URLError(msg)
+                if member.size > _MAX_CORE_META_BYTES:
+                    msg = f"core.package.json entry exceeds size limit ({member.size} bytes)"
+                    raise urllib.error.URLError(msg)
                 f = tar.extractfile(member)
                 if f:
-                    destination.write_bytes(f.read())
+                    destination.write_bytes(f.read(_MAX_CORE_META_BYTES))
                     return
-    msg = "core.package.json not found in package tarball"
-    raise FileNotFoundError(msg)
+    msg = f"core.package.json not found in tarball for {version}"
+    raise urllib.error.URLError(msg)
 
 
 def _download_github_core_meta(version: str, destination: Path) -> None:

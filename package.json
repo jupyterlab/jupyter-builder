@@ -1,100 +1,100 @@
 {
-    "name": "@jupyter/builder",
-    "version": "1.0.0-beta.1",
-    "description": "Jupyter build tools.",
-    "keywords": [
-        "jupyter",
-        "jupyterlab"
-    ],
-    "homepage": "https://github.com/jupyterlab/jupyter-builder",
-    "bugs": {
-        "url": "https://github.com/jupyterlab/jupyter-builder/issues"
-    },
-    "license": "BSD-3-Clause",
-    "author": {
-        "name": "Jupyter Development Team",
-        "email": "jupyter@googlegroups.com"
-    },
-    "files": [
-        "lib/**/*.{d.ts,eot,gif,html,jpg,js,js.map,json,png,svg,woff2,ttf}",
-        "src/**/*.{ts,tsx}"
-    ],
-    "main": "lib/index.js",
-    "types": "lib/index.d.ts",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/jupyterlab/jupyter-builder.git"
-    },
-    "scripts": {
-        "build": "jlpm build:lib",
-        "build:prod": "jlpm clean && jlpm build:lib:prod",
-        "build:lib": "tsc --sourceMap",
-        "build:lib:prod": "tsc",
-        "clean": "jlpm clean:lib",
-        "clean:lib": "rimraf lib tsconfig.tsbuildinfo",
-        "clean:lintcache": "rimraf .eslintcache",
-        "clean:all": "jlpm clean:lib && jlpm clean:lintcache",
-        "eslint": "jlpm eslint:check --fix",
-        "eslint:check": "eslint . --cache --ext .ts,.tsx",
-        "lint": "jlpm prettier && jlpm eslint",
-        "lint:check": "jlpm prettier:check && jlpm eslint:check",
-        "prettier": "jlpm prettier:base --write --list-different",
-        "prettier:base": "prettier \"**/*{.ts,.tsx,.js,.jsx,.css,.json,.md}\"",
-        "prettier:check": "jlpm prettier:base --check",
-        "watch": "tsc -w --sourceMap"
-    },
-    "dependencies": {
-        "@jupyterlab/core-meta": "4.6.0-alpha.4",
-        "@module-federation/runtime-tools": "^2.0.0",
-        "@rspack/core": "^2.0.2",
-        "ajv": "^8.12.0",
-        "commander": "^9.4.1",
-        "css-loader": "^6.7.1",
-        "duplicate-package-checker-webpack-plugin": "^3.0.0",
-        "fs-extra": "^10.1.0",
-        "glob": "~7.1.6",
-        "license-webpack-plugin": "^4.0.2",
-        "mini-svg-data-uri": "^1.4.4",
-        "path-browserify": "^1.0.0",
-        "process": "^0.11.10",
-        "source-map-loader": "~1.0.2",
-        "style-loader": "~3.3.1",
-        "supports-color": "^7.2.0",
-        "webpack-merge": "^5.8.0",
-        "worker-loader": "^3.0.2"
-    },
-    "devDependencies": {
-        "@eslint/js": "^10.0.1",
-        "@types/fs-extra": "^9.0.1",
-        "@types/glob": "^7.1.1",
-        "@types/node": "^20.14.8",
-        "@types/supports-color": "^5.3.0",
-        "@types/watchpack": "^2.4.4",
-        "eslint": "^9.26.0",
-        "eslint-config-prettier": "^10.0.0",
-        "eslint-plugin-prettier": "^5.0.0",
-        "npm-run-all": "^4.1.5",
-        "prettier": "^3.8.1",
-        "rimraf": "~5.0.5",
-        "source-map-loader": "^1.0.2",
-        "typescript": "~5.9.3",
-        "typescript-eslint": "^8.0.0"
-    },
-    "publishConfig": {
-        "access": "public"
-    },
-    "prettier": {
-        "singleQuote": true,
-        "trailingComma": "none",
-        "arrowParens": "avoid",
-        "endOfLine": "auto",
-        "overrides": [
-            {
-                "files": "package.json",
-                "options": {
-                    "tabWidth": 4
-                }
-            }
-        ]
-    }
+  "name": "@jupyter/builder",
+  "version": "1.0.0-beta.1",
+  "description": "Jupyter build tools.",
+  "keywords": [
+    "jupyter",
+    "jupyterlab"
+  ],
+  "homepage": "https://github.com/jupyterlab/jupyter-builder",
+  "bugs": {
+    "url": "https://github.com/jupyterlab/jupyter-builder/issues"
+  },
+  "license": "BSD-3-Clause",
+  "author": {
+    "name": "Jupyter Development Team",
+    "email": "jupyter@googlegroups.com"
+  },
+  "files": [
+    "lib/**/*.{d.ts,eot,gif,html,jpg,js,js.map,json,png,svg,woff2,ttf}",
+    "src/**/*.{ts,tsx}"
+  ],
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jupyterlab/jupyter-builder.git"
+  },
+  "scripts": {
+    "build": "jlpm build:lib",
+    "build:prod": "jlpm clean && jlpm build:lib:prod",
+    "build:lib": "tsc --sourceMap",
+    "build:lib:prod": "tsc",
+    "clean": "jlpm clean:lib",
+    "clean:lib": "rimraf lib tsconfig.tsbuildinfo",
+    "clean:lintcache": "rimraf .eslintcache",
+    "clean:all": "jlpm clean:lib && jlpm clean:lintcache",
+    "eslint": "jlpm eslint:check --fix",
+    "eslint:check": "eslint . --cache --ext .ts,.tsx",
+    "lint": "jlpm prettier && jlpm eslint",
+    "lint:check": "jlpm prettier:check && jlpm eslint:check",
+    "prettier": "jlpm prettier:base --write --list-different",
+    "prettier:base": "prettier \"**/*{.ts,.tsx,.js,.jsx,.css,.json,.md}\"",
+    "prettier:check": "jlpm prettier:base --check",
+    "watch": "tsc -w --sourceMap"
+  },
+  "dependencies": {
+    "@jupyterlab/core-meta": "4.6.0-alpha.4",
+    "@module-federation/runtime-tools": "^2.0.0",
+    "@rspack/core": "^2.0.2",
+    "ajv": "^8.12.0",
+    "commander": "^9.4.1",
+    "css-loader": "^6.7.1",
+    "duplicate-package-checker-webpack-plugin": "^3.0.0",
+    "fs-extra": "^10.1.0",
+    "glob": "~7.1.6",
+    "license-webpack-plugin": "^4.0.2",
+    "mini-svg-data-uri": "^1.4.4",
+    "path-browserify": "^1.0.0",
+    "process": "^0.11.10",
+    "source-map-loader": "~1.0.2",
+    "style-loader": "~3.3.1",
+    "supports-color": "^7.2.0",
+    "webpack-merge": "^5.8.0",
+    "worker-loader": "^3.0.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/fs-extra": "^9.0.1",
+    "@types/glob": "^7.1.1",
+    "@types/node": "^20.14.8",
+    "@types/supports-color": "^5.3.0",
+    "@types/watchpack": "^2.4.4",
+    "eslint": "^9.26.0",
+    "eslint-config-prettier": "^10.0.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^3.8.1",
+    "rimraf": "~5.0.5",
+    "source-map-loader": "^1.0.2",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "trailingComma": "none",
+    "arrowParens": "avoid",
+    "endOfLine": "auto",
+    "overrides": [
+      {
+        "files": "package.json",
+        "options": {
+          "tabWidth": 2
+        }
+      }
+    ]
+  }
 }
