@@ -3,9 +3,6 @@
 
 """URL constants for jupyter-builder network fetches, overridable via environment variables."""
 
-# Copyright (c) Jupyter Development Team.
-# Distributed under the terms of the Modified BSD License.
-
 import os
 import warnings
 
