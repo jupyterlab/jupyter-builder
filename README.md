@@ -127,15 +127,13 @@ watch_labextension(
 
 ### Environment variables
 
-jupyter-builder uses several URLs when fetching JupyterLab core metadata. Each can be overridden
-via an environment variable — for example, to point at an internal mirror or a local proxy. A
-warning is emitted at startup whenever a variable is set.
+jupyter-builder supports the following environment variable to override the npm registry URL —
+for example, to point at an internal mirror or a local proxy. A warning is emitted at startup
+whenever the variable is set.
 
-| Variable               | Default                             | Purpose                                                           |
-| ---------------------- | ----------------------------------- | ----------------------------------------------------------------- |
-| `JPBLD_NPM_URL`        | `https://registry.npmjs.org`        | npm registry used to resolve and download `@jupyterlab/core-meta` |
-| `JPBLD_GITHUB_URL`     | `https://github.com`                | Base GitHub URL (reserved for future use)                         |
-| `JPBLD_RAW_GITHUB_URL` | `https://raw.githubusercontent.com` | Raw GitHub content URL used as a fallback when npm is unavailable |
+| Variable        | Default                      | Purpose                                                           |
+| --------------- | ---------------------------- | ----------------------------------------------------------------- |
+| `JPBLD_NPM_URL` | `https://registry.npmjs.org` | npm registry used to resolve and download `@jupyterlab/core-meta` |
 
 **Example — redirect to a corporate npm mirror:**
 
