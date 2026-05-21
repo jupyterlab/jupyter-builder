@@ -273,7 +273,7 @@ def test_builder_version_mismatch(tmp_path):
     # This exercises the backwards-compatible version-check path.
     with pytest.raises(subprocess.CalledProcessError) as excinfo:
         run(
-            ["jupyter-builder", "build", str(extension_folder)],
+            ["jupyter-builder", "build", str(extension_folder), "--core-version", "4.5.x"],
             cwd=extension_folder,
             check=True,
             capture_output=True,
