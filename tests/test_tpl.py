@@ -270,9 +270,9 @@ def test_builder_version_mismatch(tmp_path):
 
     package_json_path = extension_folder / "package.json"
 
-    # Modify the @jupyter/builder version to an incompatible range
+    # Modify the @jupyterlab/builder version to an incompatible range
     package_data = json.loads(package_json_path.read_text())
-    package_data["devDependencies"]["@jupyter/builder"] = "0.0.9"
+    package_data["devDependencies"]["@jupyterlab/builder"] = "4.0.0"
     package_json_path.write_text(json.dumps(package_data, indent=2))
 
     env = os.environ.copy()
@@ -289,7 +289,7 @@ def test_builder_version_mismatch(tmp_path):
     # This exercises the backwards-compatible version-check path.
     with pytest.raises(subprocess.CalledProcessError) as excinfo:
         run(
-            ["jupyter-builder", "build", str(extension_folder)],
+            ["jupyter-builder", "build", str(extension_folder), "--core-version", "4.5.x"],
             cwd=extension_folder,
             check=True,
             capture_output=True,
@@ -299,7 +299,7 @@ def test_builder_version_mismatch(tmp_path):
     assert re.search(
         (
             r"ValueError: Extensions require a devDependency on @jupyterlab/builder@\^.+?, "
-            r"you have a dependency on 0\.0\.9"
+            r"you have a dependency on 4\.0\.0"
         ),
         excinfo.value.stderr,
     ), "Expected version mismatch error message not found in output!"
