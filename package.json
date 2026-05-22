@@ -1,6 +1,6 @@
 {
   "name": "@jupyter/builder",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0",
   "description": "Jupyter build tools.",
   "keywords": [
     "jupyter",
