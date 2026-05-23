@@ -108,6 +108,14 @@ def test_files_build_jupyterlab_builder(tmp_path):
     extension_folder.mkdir()
     helper(str(extension_folder))
 
+    pin_webpack = (
+        "const fs=require('fs');"
+        " const p=require('./package.json');"
+        " p.resolutions = p.resolutions || {};"
+        " p.resolutions.webpack='5.106.0';"
+        " fs.writeFileSync('package.json', JSON.stringify(p,null,2));"
+    )
+    run(["node", "-e", pin_webpack], cwd=extension_folder, check=True)
     env = os.environ.copy()
     env.update({"YARN_ENABLE_IMMUTABLE_INSTALLS": "false"})
     run(["jlpm", "install"], cwd=extension_folder, check=True, env=env)
@@ -206,6 +214,14 @@ def test_watch_functionality_jupyterlab_builder(tmp_path):
     extension_folder.mkdir()
     helper(str(extension_folder))
 
+    pin_webpack = (
+        "const fs=require('fs');"
+        " const p=require('./package.json');"
+        " p.resolutions = p.resolutions || {};"
+        " p.resolutions.webpack='5.106.0';"
+        " fs.writeFileSync('package.json', JSON.stringify(p,null,2));"
+    )
+    run(["node", "-e", pin_webpack], cwd=extension_folder, check=True)
     env = os.environ.copy()
     env.update({"YARN_ENABLE_IMMUTABLE_INSTALLS": "false"})
     run(["jlpm", "install"], cwd=extension_folder, check=True, env=env)
@@ -273,7 +289,7 @@ def test_builder_version_mismatch(tmp_path):
     # This exercises the backwards-compatible version-check path.
     with pytest.raises(subprocess.CalledProcessError) as excinfo:
         run(
-            ["jupyter-builder", "build", str(extension_folder)],
+            ["jupyter-builder", "build", str(extension_folder), "--core-version", "4.5.x"],
             cwd=extension_folder,
             check=True,
             capture_output=True,
