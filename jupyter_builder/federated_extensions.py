@@ -498,6 +498,29 @@ def _get_labextension_dir(
     return labext
 
 
+def _find_packages(path: str) -> list[str]:
+    """Find all Python packages (directories containing __init__.py) under path."""
+    path_obj = Path(path)
+    return [
+        ".".join(init.parent.relative_to(path_obj).parts)
+        for init in path_obj.rglob("__init__.py")
+        if init.parent != path_obj
+    ]
+
+
+def _find_namespace_packages(path: str) -> list[str]:
+    """Find all Python namespace packages (any subdirectory containing .py files) under path."""
+    path_obj = Path(path)
+    dirs: set[str] = set()
+    for py_file in path_obj.rglob("*.py"):
+        rel = py_file.parent.relative_to(path_obj)
+        if not rel.parts:
+            continue
+        for i in range(len(rel.parts)):
+            dirs.add(".".join(rel.parts[: i + 1]))
+    return list(dirs)
+
+
 def _get_labextension_metadata(module: str) -> tuple[Any, list[dict[str, str]]]:  # noqa: C901
     """Get the list of labextension paths associated with a Python module.
 
@@ -562,14 +585,12 @@ def _get_labextension_metadata(module: str) -> tuple[Any, list[dict[str, str]]]:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", mod_path])  # noqa: S603
         sys.path.insert(0, mod_path)
 
-    from setuptools import find_namespace_packages, find_packages  # noqa: PLC0415
-
     package_candidates = [
         package.replace("-", "_"),  # Module with the same name as package
     ]
-    package_candidates.extend(find_packages(mod_path))  # Packages in the module path
+    package_candidates.extend(_find_packages(mod_path))  # Packages in the module path
     package_candidates.extend(
-        find_namespace_packages(mod_path),
+        _find_namespace_packages(mod_path),
     )  # Namespace packages in the module path
 
     for package in package_candidates:

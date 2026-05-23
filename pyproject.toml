@@ -100,7 +100,6 @@ disable_error_code = ["attr-defined"]
 [tool.pytest.ini_options]
 filterwarnings = [
     "error",
-    "module:pkg_resources is deprecated:DeprecationWarning",
     "module:This template was designed for Copier:copier.errors.OldTemplateWarning",
     "ignore::ImportWarning",
 ]
