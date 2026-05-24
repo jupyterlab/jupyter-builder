@@ -27,7 +27,7 @@ jobs:
         python -m pip install .
 
     - name: Install dependencies
-      run: jlpm install
+      run: YARN_ENABLE_IMMUTABLE_INSTALLS=false jlpm install
 
     - name: Test `jlpm workspaces foreach` command
       run: |
