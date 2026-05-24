@@ -227,7 +227,11 @@ def build_labextension(  # noqa: PLR0913
         if core_path_package.exists():
             core_package_file = str(core_path_package)
 
-    core_package_file = core_package_file or get_core_meta(core_version, ext_path=ext_path)
+    core_package_file = core_package_file or get_core_meta(
+        core_version,
+        ext_path=ext_path,
+        logger=logger,
+    )
     core_package_file = str(Path(core_package_file).resolve())
 
     if logger:
@@ -262,7 +266,11 @@ def watch_labextension(  # noqa: PLR0913
 ) -> None:
     """Watch a labextension in a given path."""
     ext_path = str(Path(path).resolve())
-    core_package_file = core_package_file or get_core_meta(core_version, ext_path=ext_path)
+    core_package_file = core_package_file or get_core_meta(
+        core_version,
+        ext_path=ext_path,
+        logger=logger,
+    )
     core_package_file = str(Path(core_package_file).resolve())
 
     if logger:

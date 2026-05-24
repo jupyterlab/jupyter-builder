@@ -1,6 +1,6 @@
 {
   "name": "@jupyter/builder",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0",
   "description": "Jupyter build tools.",
   "keywords": [
     "jupyter",
@@ -44,7 +44,7 @@
     "watch": "tsc -w --sourceMap"
   },
   "dependencies": {
-    "@jupyterlab/core-meta": "4.6.0-alpha.4",
+    "@jupyterlab/core-meta": "4.6.0-beta.0",
     "@module-federation/runtime-tools": "^2.0.0",
     "@rspack/core": "^2.0.2",
     "ajv": "^8.12.0",
@@ -92,7 +92,7 @@
       {
         "files": "package.json",
         "options": {
-          "tabWidth": 4
+          "tabWidth": 2
         }
       }
     ]

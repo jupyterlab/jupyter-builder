@@ -1,14 +1,25 @@
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
+import io
 import json
+import tarfile
+import urllib.error
 from pathlib import Path
 
 import pytest
-import requests
 
 from jupyter_builder import core_path
 from jupyter_builder.federated_extensions import _ensure_builder
+
+
+def _make_core_package_tarball(content: bytes) -> bytes:
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tar:
+        info = tarfile.TarInfo(name="package/core.package.json")
+        info.size = len(content)
+        tar.addfile(info, io.BytesIO(content))
+    return buf.getvalue()
 
 
 def test_get_core_meta_prefers_installed_core_meta(tmp_path):
@@ -69,32 +80,32 @@ def test_get_core_meta_fetches_npm_core_meta_before_github(tmp_path, monkeypatch
     def fake_check_call(_args, cwd):
         (Path(cwd) / "node_modules").mkdir(parents=True)
 
-    class FakeResponse:
-        def __init__(self, content=b"", json_data=None):
-            self.content = content
-            self._json_data = json_data
-
-        def raise_for_status(self):
-            return None
-
-        def json(self):
-            return self._json_data
+    tarball_content = b'{"devDependencies": {}}'
+    tarball_bytes = _make_core_package_tarball(tarball_content)
+    tarball_url = f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/-/core-meta-4.6.0-alpha.4.tgz"
+    registry_meta = json.dumps({"dist": {"tarball": tarball_url}}).encode()
 
     calls = []
 
-    def fake_get(url, **_kwargs):
+    def fake_urlopen(req_or_url, **_kwargs):
+        url = getattr(req_or_url, "full_url", req_or_url)
         calls.append(url)
-        if url == "https://unpkg.com/@jupyterlab/core-meta@4.6.0-alpha.4/core.package.json":
-            return FakeResponse(content=b'{"devDependencies": {}}')
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.6.0-alpha.4":
+            return io.BytesIO(registry_meta)
+        if url == tarball_url:
+            return io.BytesIO(tarball_bytes)
         msg = f"Unexpected URL {url}"
         raise AssertionError(msg)
 
     monkeypatch.setattr(core_path.subprocess, "check_call", fake_check_call)
-    monkeypatch.setattr(core_path.requests, "get", fake_get)
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", fake_urlopen)
 
     location = core_path.get_core_meta(version="4.6.0-alpha.4", ext_path=ext_path)
 
-    assert calls == ["https://unpkg.com/@jupyterlab/core-meta@4.6.0-alpha.4/core.package.json"]
+    assert calls == [
+        f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.6.0-alpha.4",
+        tarball_url,
+    ]
     assert location == str(
         tmp_path / ".cache" / "jupyterlab_builder" / "core" / "4.6.0-alpha.4" / "core.package.json",
     )
@@ -115,42 +126,31 @@ def test_get_core_meta_falls_back_to_github_when_npm_fails(tmp_path, monkeypatch
     ext_path.mkdir()
     monkeypatch.setenv("HOME", str(tmp_path))
 
-    class FakeResponse:
-        def __init__(self, content=b"", json_data=None, should_fail=False):
-            self.content = content
-            self._json_data = json_data
-            self._should_fail = should_fail
-
-        def raise_for_status(self):
-            if self._should_fail:
-                msg = "failed"
-                raise requests.HTTPError(msg)
-
-        def json(self):
-            return self._json_data
-
+    github_url = (
+        "https://raw.githubusercontent.com/"
+        "jupyterlab/jupyterlab/4.6.0-alpha.4/"
+        "jupyterlab/staging/package.json"
+    )
     calls = []
 
-    def fake_get(url, **_kwargs):
+    def fake_urlopen(req_or_url, **_kwargs):
+        url = getattr(req_or_url, "full_url", req_or_url)
         calls.append(url)
-        if url == "https://unpkg.com/@jupyterlab/core-meta@4.6.0-alpha.4/core.package.json":
-            return FakeResponse(should_fail=True)
-        if url == (
-            "https://raw.githubusercontent.com/"
-            "jupyterlab/jupyterlab/4.6.0-alpha.4/"
-            "jupyterlab/staging/package.json"
-        ):
-            return FakeResponse(content=b'{"dependencies": {}}')
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.6.0-alpha.4":
+            msg = "Not Found"
+            raise urllib.error.URLError(msg)
+        if url == github_url:
+            return io.BytesIO(b'{"dependencies": {}}')
         msg = f"Unexpected URL {url}"
         raise AssertionError(msg)
 
-    monkeypatch.setattr(core_path.requests, "get", fake_get)
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", fake_urlopen)
 
     location = core_path.get_core_meta(version="4.6.0-alpha.4", ext_path=ext_path)
 
     assert calls == [
-        "https://unpkg.com/@jupyterlab/core-meta@4.6.0-alpha.4/core.package.json",
-        "https://raw.githubusercontent.com/jupyterlab/jupyterlab/4.6.0-alpha.4/jupyterlab/staging/package.json",
+        f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.6.0-alpha.4",
+        github_url,
     ]
     assert location == str(
         tmp_path / ".cache" / "jupyterlab_builder" / "core" / "4.6.0-alpha.4" / "core.package.json",
@@ -165,38 +165,35 @@ def test_get_core_meta_wildcard_version_resolves_from_npm_and_downloads_core_met
     ext_path.mkdir()
     monkeypatch.setenv("HOME", str(tmp_path))
 
-    class FakeResponse:
-        def __init__(self, content=b"", json_data=None):
-            self.content = content
-            self._json_data = json_data
-
-        def raise_for_status(self):
-            return None
-
-        def json(self):
-            return self._json_data
+    tarball_content = b'{"devDependencies": {}}'
+    tarball_bytes = _make_core_package_tarball(tarball_content)
+    tarball_url = f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/-/core-meta-4.5.3.tgz"
+    registry_meta = json.dumps({"dist": {"tarball": tarball_url}}).encode()
 
     calls = []
 
-    def fake_get(url, **_kwargs):
+    def fake_urlopen(req_or_url, **_kwargs):
+        url = getattr(req_or_url, "full_url", req_or_url)
         calls.append(url)
-        if url == "https://registry.npmjs.org/@jupyterlab/core-meta":
-            return FakeResponse(
-                content=b"",
-                json_data={"versions": {"4.5.0": {}, "4.5.3": {}, "4.6.0": {}}},
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta":
+            return io.BytesIO(
+                json.dumps({"versions": {"4.5.0": {}, "4.5.3": {}, "4.6.0": {}}}).encode(),
             )
-        if url == "https://unpkg.com/@jupyterlab/core-meta@4.5.3/core.package.json":
-            return FakeResponse(content=b'{"devDependencies": {}}')
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.5.3":
+            return io.BytesIO(registry_meta)
+        if url == tarball_url:
+            return io.BytesIO(tarball_bytes)
         msg = f"Unexpected URL {url}"
         raise AssertionError(msg)
 
-    monkeypatch.setattr(core_path.requests, "get", fake_get)
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", fake_urlopen)
 
     location = core_path.get_core_meta(version="4.5.x", ext_path=ext_path)
 
     assert calls == [
-        "https://registry.npmjs.org/@jupyterlab/core-meta",
-        "https://unpkg.com/@jupyterlab/core-meta@4.5.3/core.package.json",
+        f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta",
+        f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.5.3",
+        tarball_url,
     ]
     assert location == str(
         tmp_path / ".cache" / "jupyterlab_builder" / "core" / "4.5.3" / "core.package.json",
@@ -204,47 +201,62 @@ def test_get_core_meta_wildcard_version_resolves_from_npm_and_downloads_core_met
 
 
 def test_resolve_wildcard_npm_version_returns_highest_match(monkeypatch):
-    class FakeResponse:
-        def __init__(self, json_data):
-            self._json_data = json_data
-
-        def raise_for_status(self):
-            return None
-
-        def json(self):
-            return self._json_data
-
-    def fake_get(url, **_kwargs):
-        assert url == "https://registry.npmjs.org/@jupyterlab/core-meta"
-        return FakeResponse(
-            {
-                "versions": {
-                    "4.4.9": {},
-                    "4.5.1": {},
-                    "4.5.12": {},
-                    "4.6.0-alpha.4": {},
+    def fake_urlopen(req_or_url, **_kwargs):
+        url = getattr(req_or_url, "full_url", req_or_url)
+        assert url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta"
+        return io.BytesIO(
+            json.dumps(
+                {
+                    "versions": {
+                        "4.4.9": {},
+                        "4.5.1": {},
+                        "4.5.12": {},
+                        "4.6.0-alpha.4": {},
+                    },
                 },
-            },
+            ).encode(),
         )
 
-    monkeypatch.setattr(core_path.requests, "get", fake_get)
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", fake_urlopen)
 
     resolved = core_path._resolve_wildcard_npm_version("4.5.x")
 
     assert resolved == "4.5.12"
 
 
+def test_resolve_wildcard_npm_version_matches_prerelease_versions(monkeypatch):
+    def fake_urlopen(req_or_url, **_kwargs):
+        url = getattr(req_or_url, "full_url", req_or_url)
+        assert url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta"
+        return io.BytesIO(
+            json.dumps(
+                {
+                    "versions": {
+                        "4.6.0-alpha.3": {},
+                        "4.6.0-alpha.4": {},
+                        "4.6.0-alpha.5": {},
+                    },
+                },
+            ).encode(),
+        )
+
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", fake_urlopen)
+
+    resolved = core_path._resolve_wildcard_npm_version("4.6.x")
+
+    assert resolved == "4.6.0-alpha.5"
+
+
 def test_resolve_wildcard_npm_version_raises_when_no_matches(monkeypatch):
-    class FakeResponse:
-        def raise_for_status(self):
-            return None
+    monkeypatch.setattr(
+        core_path.urllib.request,
+        "urlopen",
+        lambda *_args, **_kwargs: io.BytesIO(
+            json.dumps({"versions": {"4.6.0": {}, "5.0.0": {}}}).encode(),
+        ),
+    )
 
-        def json(self):
-            return {"versions": {"4.6.0": {}, "5.0.0": {}}}
-
-    monkeypatch.setattr(core_path.requests, "get", lambda *_args, **_kwargs: FakeResponse())
-
-    with pytest.raises(requests.RequestException, match="No published @jupyterlab/core-meta"):
+    with pytest.raises(urllib.error.URLError, match="No published @jupyterlab/core-meta"):
         core_path._resolve_wildcard_npm_version("4.5.x")
 
 
@@ -253,35 +265,33 @@ def test_get_core_meta_latest_uses_npm_latest_and_caches_by_resolved_version(tmp
     ext_path.mkdir()
     monkeypatch.setenv("HOME", str(tmp_path))
 
-    class FakeResponse:
-        def __init__(self, content=b"", json_data=None):
-            self.content = content
-            self._json_data = json_data
-
-        def raise_for_status(self):
-            return None
-
-        def json(self):
-            return self._json_data
+    tarball_content = b'{"devDependencies": {}}'
+    tarball_bytes = _make_core_package_tarball(tarball_content)
+    tarball_url = f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/-/core-meta-4.6.0-alpha.4.tgz"
+    registry_meta = json.dumps({"dist": {"tarball": tarball_url}}).encode()
 
     calls = []
 
-    def fake_get(url, **_kwargs):
+    def fake_urlopen(req_or_url, **_kwargs):
+        url = getattr(req_or_url, "full_url", req_or_url)
         calls.append(url)
-        if url == "https://registry.npmjs.org/@jupyterlab/core-meta/latest":
-            return FakeResponse(json_data={"version": "4.6.0-alpha.4"})
-        if url == "https://unpkg.com/@jupyterlab/core-meta@4.6.0-alpha.4/core.package.json":
-            return FakeResponse(content=b'{"devDependencies": {}}')
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/latest":
+            return io.BytesIO(json.dumps({"version": "4.6.0-alpha.4"}).encode())
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.6.0-alpha.4":
+            return io.BytesIO(registry_meta)
+        if url == tarball_url:
+            return io.BytesIO(tarball_bytes)
         msg = f"Unexpected URL {url}"
         raise AssertionError(msg)
 
-    monkeypatch.setattr(core_path.requests, "get", fake_get)
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", fake_urlopen)
 
     location = core_path.get_core_meta(version="latest", ext_path=ext_path)
 
     assert calls == [
-        "https://registry.npmjs.org/@jupyterlab/core-meta/latest",
-        "https://unpkg.com/@jupyterlab/core-meta@4.6.0-alpha.4/core.package.json",
+        f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/latest",
+        f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.6.0-alpha.4",
+        tarball_url,
     ]
     assert location == str(
         tmp_path / ".cache" / "jupyterlab_builder" / "core" / "4.6.0-alpha.4" / "core.package.json",
