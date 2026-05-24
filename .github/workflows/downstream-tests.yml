@@ -29,6 +29,10 @@ jobs:
     - name: Install dependencies
       run: jlpm install
 
+    - name: Test `jlpm workspaces foreach` command
+      run: |
+        jlpm workspaces foreach --parallel exec sh -c 'echo Hello from $PWD'
+
     - name: Build TypeScript
       run: jlpm build:prod
 
