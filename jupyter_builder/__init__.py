@@ -13,3 +13,6 @@ except ImportError:
 
     warnings.warn("Importing 'jupyter_builder' outside a proper installation.", stacklevel=1)
     __version__ = "dev"
+
+from ._yarn_info import YARN_SHA256 as YARN_SHA256
+from ._yarn_info import YARN_VERSION as YARN_VERSION
