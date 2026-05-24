@@ -17,10 +17,6 @@ if _match:
     _var = re.escape(_match.group(1))
     _match = re.search(rb"var " + _var + rb'="([^"]+)"', _yarn_bytes)
 
-# Fallback for non-minified builds: YARN_VERSION = "x.y.z"
-if not _match:
-    _match = re.search(rb'YARN_VERSION\s*=\s*["\']([^"\']+)["\']', _yarn_bytes)
-
 if not _match:
     msg = "Could not extract YARN_VERSION from vendored yarn.js"
     raise RuntimeError(msg)
