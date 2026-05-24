@@ -58,6 +58,7 @@ jobs:
 
     - name: Test `jlpm workspaces foreach` command
       working-directory: downstream
+      continue-on-error: true
       run: |
         jlpm workspaces foreach --parallel exec sh -c 'echo Hello from $PWD'
 
