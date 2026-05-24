@@ -29,10 +29,6 @@ jobs:
     - name: Install dependencies
       run: YARN_ENABLE_IMMUTABLE_INSTALLS=false jlpm install
 
-    - name: Test `jlpm workspaces foreach` command
-      run: |
-        jlpm workspaces foreach --parallel exec sh -c 'echo Hello from $PWD'
-
     - name: Build TypeScript
       run: jlpm build:prod
 
@@ -59,6 +55,11 @@ jobs:
     - name: Install deps
       working-directory: downstream
       run: YARN_ENABLE_IMMUTABLE_INSTALLS=false jlpm install
+
+    - name: Test `jlpm workspaces foreach` command
+      working-directory: downstream
+      run: |
+        jlpm workspaces foreach --parallel exec sh -c 'echo Hello from $PWD'
 
     - name: Build ${{ matrix.name }}
       working-directory: downstream
