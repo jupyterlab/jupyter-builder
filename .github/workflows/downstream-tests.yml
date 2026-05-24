@@ -27,7 +27,7 @@ jobs:
         python -m pip install .
 
     - name: Install dependencies
-      run: YARN_ENABLE_IMMUTABLE_INSTALLS=false jlpm install
+      run: jlpm install
 
     - name: Build TypeScript
       run: jlpm build:prod
@@ -54,7 +54,7 @@ jobs:
 
     - name: Install deps
       working-directory: downstream
-      run: YARN_ENABLE_IMMUTABLE_INSTALLS=false jlpm install
+      run: jlpm install
 
     - name: Test `jlpm workspaces foreach` command
       working-directory: downstream
