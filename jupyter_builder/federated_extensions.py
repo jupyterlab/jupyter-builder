@@ -506,27 +506,39 @@ def _get_labextension_dir(
     return labext
 
 
+def _valid_package_dirs(dirs: list[str]) -> list[str]:
+    """Filter out dirs that can never be Python package components."""
+    return [d for d in dirs if "." not in d and d != "__pycache__"]
+
+
 def _find_packages(path: str) -> list[str]:
-    """Find all Python packages (directories containing __init__.py) under path."""
+    """Find Python packages (dirs with __init__.py), pruning __pycache__ and dotted names."""
     path_obj = Path(path)
-    return [
-        ".".join(init.parent.relative_to(path_obj).parts)
-        for init in path_obj.rglob("__init__.py")
-        if init.parent != path_obj
-    ]
+    packages = []
+    for root, dirs, files in os.walk(str(path_obj), followlinks=True):
+        dirs[:] = _valid_package_dirs(dirs)
+        if "__init__.py" in files:
+            rel = Path(root).relative_to(path_obj)
+            if rel.parts:
+                packages.append(".".join(rel.parts))
+    return packages
 
 
 def _find_namespace_packages(path: str) -> list[str]:
-    """Find all Python namespace packages (any subdirectory containing .py files) under path."""
+    """Find namespace packages (dirs with .py files, no __init__.py required).
+
+    Prunes __pycache__ and dotted names.
+    """
     path_obj = Path(path)
-    dirs: set[str] = set()
-    for py_file in path_obj.rglob("*.py"):
-        rel = py_file.parent.relative_to(path_obj)
-        if not rel.parts:
-            continue
-        for i in range(len(rel.parts)):
-            dirs.add(".".join(rel.parts[: i + 1]))
-    return list(dirs)
+    found: set[str] = set()
+    for root, dirs, files in os.walk(str(path_obj), followlinks=True):
+        dirs[:] = _valid_package_dirs(dirs)
+        if any(f.endswith(".py") for f in files):
+            rel = Path(root).relative_to(path_obj)
+            if rel.parts:
+                for i in range(len(rel.parts)):
+                    found.add(".".join(rel.parts[: i + 1]))
+    return list(found)
 
 
 def _get_labextension_metadata(module: str) -> tuple[Any, list[dict[str, str]]]:  # noqa: C901
