@@ -53,6 +53,7 @@
           working-directory: berry
           env:
             YARN_ENABLE_IMMUTABLE_INSTALLS: 'false'
+            YARN_NODE_LINKER: 'pnp'
           run: |
             node scripts/run-yarn.js install --mode=update-lockfile
             node scripts/run-yarn.js install
