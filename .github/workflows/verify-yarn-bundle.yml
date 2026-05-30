@@ -49,11 +49,15 @@
               packages/yarnpkg-builder/package.json > builder.tmp.json
             mv builder.tmp.json packages/yarnpkg-builder/package.json
 
-        - name: yarn install
+        - name: yarn install (PnP, full link)
           working-directory: berry
           env:
             YARN_ENABLE_IMMUTABLE_INSTALLS: 'false'
-          run: node scripts/run-yarn.js install
+            YARN_ENABLE_HARDENED_MODE: 'false'
+          run: |
+            node scripts/run-yarn.js install --mode=update-lockfile
+            node scripts/run-yarn.js install
+            test -f .pnp.cjs || { echo "::error::.pnp.cjs was not generated"; ls -la; exit 1; }
 
         - name: Build the bundle
           working-directory: berry
