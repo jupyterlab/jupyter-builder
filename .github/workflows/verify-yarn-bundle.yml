@@ -17,7 +17,7 @@
         # For reproducibility
         BERRY_TAG: '@yarnpkg/cli/3.5.0'
         ESBUILD_WASM_VERSION: '0.15.18'
-        NODE_VERSION: '24'
+        NODE_VERSION: '24.11.1'
         YARN_NODE_LINKER: 'pnp'
 
       steps:
@@ -94,3 +94,9 @@
           with:
             name: rebuilt-yarn.js
             path: berry/packages/yarnpkg-cli/bundles/yarn.js
+        - name: Upload Berry's yarn.lock (for debugging dependency resolution issues)
+          if: always()
+          uses: actions/upload-artifact@v6
+          with:
+            name: berry-yarn-lock
+            path: berry/yarn.lock
