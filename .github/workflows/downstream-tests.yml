@@ -73,7 +73,7 @@ jobs:
         python -m build --wheel
 
     - name: Upload wheel
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: ${{ matrix.name }}-wheel
         path: downstream/dist/*.whl
