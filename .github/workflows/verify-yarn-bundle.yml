@@ -18,6 +18,7 @@
         BERRY_TAG: '@yarnpkg/cli/3.5.0'
         ESBUILD_WASM_VERSION: '0.15.18'
         NODE_VERSION: '24'
+        YARN_NODE_LINKER: 'pnp'
 
       steps:
         - uses: actions/checkout@v6
@@ -53,7 +54,6 @@
           working-directory: berry
           env:
             YARN_ENABLE_IMMUTABLE_INSTALLS: 'false'
-            YARN_NODE_LINKER: 'pnp'
           run: |
             node scripts/run-yarn.js install --mode=update-lockfile
             node scripts/run-yarn.js install
