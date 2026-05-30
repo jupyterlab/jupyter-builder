@@ -94,9 +94,3 @@
           with:
             name: rebuilt-yarn.js
             path: berry/packages/yarnpkg-cli/bundles/yarn.js
-        - name: Upload Berry's yarn.lock (for debugging dependency resolution issues)
-          if: always()
-          uses: actions/upload-artifact@v6
-          with:
-            name: berry-yarn-lock
-            path: berry/yarn.lock
