@@ -16,7 +16,7 @@
       env:
         # For reproducibility
         BERRY_TAG: '@yarnpkg/cli/3.5.0'
-        ESBUILD_WASM_VERSION: '0.15.18'
+        ESBUILD_WASM_VERSION: '0.15.15'
         NODE_VERSION: '24.11.1'
         YARN_NODE_LINKER: 'pnp'
 
