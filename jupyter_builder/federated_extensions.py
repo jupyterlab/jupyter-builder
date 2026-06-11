@@ -594,7 +594,7 @@ def _get_labextension_metadata(module: str) -> tuple[Any, list[dict[str, str]]]:
         except subprocess.CalledProcessError:
             msg = (
                 f"The Python package `{module}` is not a valid package, "
-                "it is missing the `setup.py` file."
+                "it does not specify a `name` in `pyproject.toml` nor has a legacy `setup.py` file."
             )
             raise FileNotFoundError(msg) from None
 
