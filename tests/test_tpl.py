@@ -107,9 +107,8 @@ def test_files_build_jupyterlab_builder(tmp_path):
         " p.resolutions = p.resolutions || {};"
         " p.resolutions.webpack='5.106.0';"
         " p.devDependencies = p.devDependencies || {};"
-        " const v = p.devDependencies['@jupyter/builder'] || '^4.0.0';"
         " delete p.devDependencies['@jupyter/builder'];"
-        " p.devDependencies['@jupyterlab/builder'] = v;"
+        " p.devDependencies['@jupyterlab/builder'] = '^4.0.0';"
         " fs.writeFileSync('package.json', JSON.stringify(p,null,2));"
     )
     run(["node", "-e", prepare], cwd=extension_folder, check=True)
@@ -213,9 +212,8 @@ def test_watch_functionality_jupyterlab_builder(tmp_path):
         " p.resolutions = p.resolutions || {};"
         " p.resolutions.webpack='5.106.0';"
         " p.devDependencies = p.devDependencies || {};"
-        " const v = p.devDependencies['@jupyter/builder'] || '^4.0.0';"
         " delete p.devDependencies['@jupyter/builder'];"
-        " p.devDependencies['@jupyterlab/builder'] = v;"
+        " p.devDependencies['@jupyterlab/builder'] = '^4.0.0';"
         " fs.writeFileSync('package.json', JSON.stringify(p,null,2));"
     )
     run(["node", "-e", prepare], cwd=extension_folder, check=True)
@@ -268,7 +266,7 @@ def test_builder_version_mismatch(tmp_path):
 
     # Modify the @jupyter/builder version to an incompatible range
     package_data = json.loads(package_json_path.read_text())
-    package_data["devDependencies"]["@jupyter/builder"] = "0.0.0"
+    package_data["devDependencies"]["@jupyter/builder"] = "^0.0.0"
     package_json_path.write_text(json.dumps(package_data, indent=2))
 
     env = os.environ.copy()
