@@ -264,9 +264,14 @@ def test_builder_version_mismatch(tmp_path):
 
     package_json_path = extension_folder / "package.json"
 
-    # Modify the @jupyter/builder version to an incompatible range
+    # The template ships `@jupyter/builder` by default, but the version
+    # incompatibility check can only be verified on `@jupyterlab/builder` for
+    # now. So we remove `@jupyter/builder` and pin `@jupyterlab/builder` to an
+    # incompatible range, leaving it as the only builder marker. We keep the
+    # test this way for now; it will be changed later.
     package_data = json.loads(package_json_path.read_text())
-    package_data["devDependencies"]["@jupyter/builder"] = "^0.0.0"
+    package_data["devDependencies"].pop("@jupyter/builder", None)
+    package_data["devDependencies"]["@jupyterlab/builder"] = "4.0.0"
     package_json_path.write_text(json.dumps(package_data, indent=2))
 
     env = os.environ.copy()
@@ -290,7 +295,7 @@ def test_builder_version_mismatch(tmp_path):
     assert re.search(
         (
             r"ValueError: Extensions require a devDependency on @jupyterlab/builder@\^.+?, "
-            r"you have a dependency on 0\.0\.0"
+            r"you have a dependency on 4\.0\.0"
         ),
         excinfo.value.stderr,
     ), "Expected version mismatch error message not found in output!"
