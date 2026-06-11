@@ -48,12 +48,7 @@ def test_files_build(tmp_path):
         check=True,
         env=env,
     )
-    run(
-        ["jlpm", "add", "-D", "@jupyter/builder"],
-        cwd=extension_folder,
-        check=True,
-        env=env,
-    )
+
     run(["jlpm", "run", "build:lib:prod"], cwd=extension_folder, check=True)
 
     run(["jupyter-builder", "build", str(extension_folder)], cwd=extension_folder, check=True)
@@ -80,12 +75,7 @@ def test_files_build_development(tmp_path):
         check=True,
         env=env,
     )
-    run(
-        ["jlpm", "add", "-D", "@jupyter/builder"],
-        cwd=extension_folder,
-        check=True,
-        env=env,
-    )
+
     run(["jlpm", "run", "build:lib:prod"], cwd=extension_folder, check=True)
 
     run(
@@ -108,19 +98,23 @@ def test_files_build_jupyterlab_builder(tmp_path):
     extension_folder.mkdir()
     helper(str(extension_folder))
 
-    pin_webpack = (
+    # The template declares @jupyter/builder by default, which is the preferred
+    # builder marker. To exercise the @jupyterlab/builder path we swap it in for
+    # @jupyter/builder before installing.
+    prepare = (
         "const fs=require('fs');"
         " const p=require('./package.json');"
         " p.resolutions = p.resolutions || {};"
         " p.resolutions.webpack='5.106.0';"
+        " p.devDependencies = p.devDependencies || {};"
+        " delete p.devDependencies['@jupyter/builder'];"
+        " p.devDependencies['@jupyterlab/builder'] = '^4.0.0';"
         " fs.writeFileSync('package.json', JSON.stringify(p,null,2));"
     )
-    run(["node", "-e", pin_webpack], cwd=extension_folder, check=True)
+    run(["node", "-e", prepare], cwd=extension_folder, check=True)
     env = os.environ.copy()
     env.update({"YARN_ENABLE_IMMUTABLE_INSTALLS": "false"})
     run(["jlpm", "install"], cwd=extension_folder, check=True, env=env)
-    # Intentionally do NOT add @jupyter/builder; the template already declares
-    # @jupyterlab/builder, so this exercises the jupyterlab/builder path.
     run(["jlpm", "run", "build:lib:prod"], cwd=extension_folder, check=True)
 
     run(["jupyter-builder", "build", str(extension_folder)], cwd=extension_folder, check=True)
@@ -153,12 +147,7 @@ def test_watch_functionality(tmp_path):
         check=True,
         env=env,
     )
-    run(
-        ["jlpm", "add", "-D", "@jupyter/builder"],
-        cwd=extension_folder,
-        check=True,
-        env=env,
-    )
+
     run(["jlpm", "run", "build:lib:prod"], cwd=extension_folder, check=True)
 
     # Path to the TypeScript file to change
@@ -214,18 +203,23 @@ def test_watch_functionality_jupyterlab_builder(tmp_path):
     extension_folder.mkdir()
     helper(str(extension_folder))
 
-    pin_webpack = (
+    # The template declares @jupyter/builder by default, which is the preferred
+    # builder marker. To exercise the @jupyterlab/builder path we swap it in for
+    # @jupyter/builder before installing.
+    prepare = (
         "const fs=require('fs');"
         " const p=require('./package.json');"
         " p.resolutions = p.resolutions || {};"
         " p.resolutions.webpack='5.106.0';"
+        " p.devDependencies = p.devDependencies || {};"
+        " delete p.devDependencies['@jupyter/builder'];"
+        " p.devDependencies['@jupyterlab/builder'] = '^4.0.0';"
         " fs.writeFileSync('package.json', JSON.stringify(p,null,2));"
     )
-    run(["node", "-e", pin_webpack], cwd=extension_folder, check=True)
+    run(["node", "-e", prepare], cwd=extension_folder, check=True)
     env = os.environ.copy()
     env.update({"YARN_ENABLE_IMMUTABLE_INSTALLS": "false"})
     run(["jlpm", "install"], cwd=extension_folder, check=True, env=env)
-    # Intentionally do NOT add @jupyter/builder; exercises the jupyterlab/builder path.
     run(["jlpm", "run", "build:lib:prod"], cwd=extension_folder, check=True)
 
     index_ts_path = extension_folder / "src/index.ts"
@@ -270,8 +264,13 @@ def test_builder_version_mismatch(tmp_path):
 
     package_json_path = extension_folder / "package.json"
 
-    # Modify the @jupyterlab/builder version to an incompatible range
+    # The template ships `@jupyter/builder` by default, but the version
+    # incompatibility check can only be verified on `@jupyterlab/builder` for
+    # now. So we remove `@jupyter/builder` and pin `@jupyterlab/builder` to an
+    # incompatible range, leaving it as the only builder marker. We keep the
+    # test this way for now; it will be changed later.
     package_data = json.loads(package_json_path.read_text())
+    package_data["devDependencies"].pop("@jupyter/builder", None)
     package_data["devDependencies"]["@jupyterlab/builder"] = "4.0.0"
     package_json_path.write_text(json.dumps(package_data, indent=2))
 
@@ -284,9 +283,6 @@ def test_builder_version_mismatch(tmp_path):
         env=env,
     )
 
-    # Note: we intentionally do not add `@jupyter/builder` here so that the
-    # extension only declares `@jupyterlab/builder` as the builder marker.
-    # This exercises the backwards-compatible version-check path.
     with pytest.raises(subprocess.CalledProcessError) as excinfo:
         run(
             ["jupyter-builder", "build", str(extension_folder), "--core-version", "4.5.x"],

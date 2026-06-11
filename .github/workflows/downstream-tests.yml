@@ -56,6 +56,12 @@ jobs:
       working-directory: downstream
       run: jlpm install
 
+    - name: Test `jlpm workspaces foreach` command
+      working-directory: downstream
+      continue-on-error: true
+      run: |
+        jlpm workspaces foreach --parallel exec sh -c 'echo Hello from $PWD'
+
     - name: Build ${{ matrix.name }}
       working-directory: downstream
       run: jlpm build
@@ -67,7 +73,7 @@ jobs:
         python -m build --wheel
 
     - name: Upload wheel
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: ${{ matrix.name }}-wheel
         path: downstream/dist/*.whl
