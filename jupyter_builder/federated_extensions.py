@@ -506,6 +506,41 @@ def _get_labextension_dir(
     return labext
 
 
+def _valid_package_dirs(dirs: list[str]) -> list[str]:
+    """Filter out dirs that can never be Python package components."""
+    return [d for d in dirs if "." not in d and d != "__pycache__"]
+
+
+def _find_packages(path: str) -> list[str]:
+    """Find Python packages (dirs with __init__.py), pruning __pycache__ and dotted names."""
+    path_obj = Path(path)
+    packages = []
+    for root, dirs, files in os.walk(str(path_obj), followlinks=True):
+        dirs[:] = _valid_package_dirs(dirs)
+        if "__init__.py" in files:
+            rel = Path(root).relative_to(path_obj)
+            if rel.parts:
+                packages.append(".".join(rel.parts))
+    return packages
+
+
+def _find_namespace_packages(path: str) -> list[str]:
+    """Find namespace packages (dirs with .py files, no __init__.py required).
+
+    Prunes __pycache__ and dotted names.
+    """
+    path_obj = Path(path)
+    found: set[str] = set()
+    for root, dirs, files in os.walk(str(path_obj), followlinks=True):
+        dirs[:] = _valid_package_dirs(dirs)
+        if any(f.endswith(".py") for f in files):
+            rel = Path(root).relative_to(path_obj)
+            if rel.parts:
+                for i in range(len(rel.parts)):
+                    found.add(".".join(rel.parts[: i + 1]))
+    return list(found)
+
+
 def _get_labextension_metadata(module: str) -> tuple[Any, list[dict[str, str]]]:  # noqa: C901
     """Get the list of labextension paths associated with a Python module.
 
@@ -559,7 +594,7 @@ def _get_labextension_metadata(module: str) -> tuple[Any, list[dict[str, str]]]:
         except subprocess.CalledProcessError:
             msg = (
                 f"The Python package `{module}` is not a valid package, "
-                "it is missing the `setup.py` file."
+                "it does not specify a `name` in `pyproject.toml` nor has a legacy `setup.py` file."
             )
             raise FileNotFoundError(msg) from None
 
@@ -570,14 +605,12 @@ def _get_labextension_metadata(module: str) -> tuple[Any, list[dict[str, str]]]:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", mod_path])  # noqa: S603
         sys.path.insert(0, mod_path)
 
-    from setuptools import find_namespace_packages, find_packages  # noqa: PLC0415
-
     package_candidates = [
         package.replace("-", "_"),  # Module with the same name as package
     ]
-    package_candidates.extend(find_packages(mod_path))  # Packages in the module path
+    package_candidates.extend(_find_packages(mod_path))  # Packages in the module path
     package_candidates.extend(
-        find_namespace_packages(mod_path),
+        _find_namespace_packages(mod_path),
     )  # Namespace packages in the module path
 
     for package in package_candidates:
