@@ -2,6 +2,26 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 1.0.2
+
+([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v1.0.1...4709f8bb4f1ebf1f46525e08459296dc444338d9))
+
+### Maintenance and upkeep improvements
+
+- Update template tests for new `@jupyter/builder` default [#115](https://github.com/jupyterlab/jupyter-builder/pull/115) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+- Remove `setuptools` dependency [#108](https://github.com/jupyterlab/jupyter-builder/pull/108) ([@Darshan808](https://github.com/Darshan808), [@bollwyvl](https://github.com/bollwyvl), [@krassowski](https://github.com/krassowski))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-06-08&to=2026-06-12&type=c))
+
+@bollwyvl ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Abollwyvl+updated%3A2026-06-08..2026-06-12&type=Issues)) | @Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-06-08..2026-06-12&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-06-08..2026-06-12&type=Issues))
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 1.0.1
 
 ([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v1.0.0...d861177e23459b80f17798e33b434d17ba59101f))
@@ -18,8 +38,6 @@ See [our definition of contributors](https://github-activity.readthedocs.io/en/l
 ([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-05-22&to=2026-06-08&type=c))
 
 @bollwyvl ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Abollwyvl+updated%3A2026-05-22..2026-06-08&type=Issues)) | @Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-05-22..2026-06-08&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-05-22..2026-06-08&type=Issues))
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 1.0.0
 
