@@ -56,13 +56,18 @@ def get_core_meta(
                     "@jupyterlab/builder.\n \033[0m",
                 )
         requested_version = "main"
+    else:
+        # Accept both "v4.5.7" and "4.5.7" for an explicitly requested version.
+        requested_version = _normalize_version(requested_version)
 
     cache_root = _home_dir() / ".cache" / "jupyterlab_builder" / "core"
     cached_file = _get_cached_core_meta_file(cache_root, requested_version)
     if cached_file is not None:
         return str(cached_file)
 
-    # Try to retrieve core meta from npm first
+    # Try to retrieve core meta from npm first, then fall back to GitHub. If the
+    # requested version cannot be found in either source, raise a hard error
+    # rather than silently building against unexpected core metadata.
     try:
         npm_version = _resolve_npm_version(requested_version)
         npm_cache_file = cache_root / npm_version / "core.package.json"
@@ -70,12 +75,34 @@ def get_core_meta(
             return str(npm_cache_file)
         _download_npm_core_meta(npm_version, npm_cache_file)
         return str(npm_cache_file)
-    except urllib.error.URLError:
-        pass  # Fallback to GitHub below
+    except urllib.error.URLError as npm_error:
+        github_cache_file = cache_root / requested_version / "core.package.json"
+        try:
+            _download_github_core_meta(_github_ref(requested_version), github_cache_file)
+        except urllib.error.URLError as github_error:
+            msg = (
+                f"Could not resolve @jupyterlab/core-meta for requested version "
+                f"{requested_version!r}: not found on the npm registry "
+                f"({npm_error}) or in the jupyterlab/jupyterlab GitHub repository "
+                f"({github_error}). Verify that the version exists "
+                f"(both '4.5.7' and 'v4.5.7' are accepted)."
+            )
+            raise RuntimeError(msg) from github_error
+        return str(github_cache_file)
 
-    github_cache_file = cache_root / requested_version / "core.package.json"
-    _download_github_core_meta(requested_version, github_cache_file)
-    return str(github_cache_file)
+
+def _normalize_version(version: str) -> str:
+    """Strip a leading 'v' from a numeric version so 'v4.5.7' and '4.5.7' are equivalent."""
+    return version[1:] if re.match(r"v\d", version) else version
+
+
+def _github_ref(version: str) -> str:
+    """Map a resolved version to its jupyterlab/jupyterlab git ref.
+
+    Numeric releases are published as tags like 'v4.5.7', while branch names
+    such as 'main' are used verbatim.
+    """
+    return f"v{version}" if re.match(r"\d", version) else version
 
 
 def _is_wildcard_version(version: str) -> bool:
