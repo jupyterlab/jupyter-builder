@@ -1,6 +1,6 @@
 # Jupyter Builder
 
-[![Build](https://github.com/jupyterlab/jupyter-builder/actions/workflows/build.yml/badge.svg)](https://github.com/jupyterlab/jupyter-builder/actions/workflows/build.yml)
+[![Jupyter Builder Tests](https://github.com/jupyterlab/jupyter-builder/actions/workflows/builder-tests.yml/badge.svg)](https://github.com/jupyterlab/jupyter-builder/actions/workflows/builder-tests.yml)
 [![version on npm](https://img.shields.io/npm/v/@jupyter/builder.svg)](https://www.npmjs.com/package/@jupyter/builder)
 [![version on PyPI](https://img.shields.io/pypi/v/jupyter-builder.svg)](https://pypi.org/project/jupyter-builder/)
 [![version on conda-forge](https://img.shields.io/conda/vn/conda-forge/jupyter-builder.svg)](https://anaconda.org/conda-forge/jupyter-builder)
@@ -124,6 +124,32 @@ watch_labextension(
     source_map=False,
 )
 ```
+
+### Environment variables
+
+jupyter-builder supports the following environment variables to override network URLs —
+for example, to point at an internal mirror or a local proxy. A warning is emitted at startup
+whenever a variable is set.
+
+| Variable               | Default                             | Purpose                                                           |
+| ---------------------- | ----------------------------------- | ----------------------------------------------------------------- |
+| `JPBLD_NPM_URL`        | `https://registry.npmjs.org`        | npm registry used to resolve and download `@jupyterlab/core-meta` |
+| `JPBLD_RAW_GITHUB_URL` | `https://raw.githubusercontent.com` | Raw GitHub content URL used as a fallback when npm is unavailable |
+
+**Example — redirect to a corporate npm mirror:**
+
+```bash
+export JPBLD_NPM_URL=https://npm.internal.example.com
+jupyter-builder build /path/to/extension
+```
+
+**Core metadata resolution order**
+
+When no explicit `--core-version` is given, jupyter-builder looks for
+`@jupyterlab/core-meta` in the extension's `node_modules` first (no network
+required). If the package is not found there a warning is printed and the
+metadata is fetched from the npm registry, falling back to raw GitHub if npm
+is unreachable.
 
 ## Uninstall
 

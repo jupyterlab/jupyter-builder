@@ -2,6 +2,181 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 1.0.2
+
+([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v1.0.1...4709f8bb4f1ebf1f46525e08459296dc444338d9))
+
+### Maintenance and upkeep improvements
+
+- Update template tests for new `@jupyter/builder` default [#115](https://github.com/jupyterlab/jupyter-builder/pull/115) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+- Remove `setuptools` dependency [#108](https://github.com/jupyterlab/jupyter-builder/pull/108) ([@Darshan808](https://github.com/Darshan808), [@bollwyvl](https://github.com/bollwyvl), [@krassowski](https://github.com/krassowski))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-06-08&to=2026-06-12&type=c))
+
+@bollwyvl ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Abollwyvl+updated%3A2026-06-08..2026-06-12&type=Issues)) | @Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-06-08..2026-06-12&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-06-08..2026-06-12&type=Issues))
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
+## 1.0.1
+
+([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v1.0.0...d861177e23459b80f17798e33b434d17ba59101f))
+
+### Enhancements made
+
+- Bundle `yarn.js` with `workspaces foreach` support [#109](https://github.com/jupyterlab/jupyter-builder/pull/109) ([@Darshan808](https://github.com/Darshan808), [@bollwyvl](https://github.com/bollwyvl), [@krassowski](https://github.com/krassowski))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-05-22&to=2026-06-08&type=c))
+
+@bollwyvl ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Abollwyvl+updated%3A2026-05-22..2026-06-08&type=Issues)) | @Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-05-22..2026-06-08&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-05-22..2026-06-08&type=Issues))
+
+## 1.0.0
+
+([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v1.0.0beta1...8551e15a622c2a50d846b37966ba84eff76c30ab))
+
+### Enhancements made
+
+- Switch to stdlib HTTP + npm registry tarball fetching [#102](https://github.com/jupyterlab/jupyter-builder/pull/102) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+
+### Maintenance and upkeep improvements
+
+- Bump `@jupyterlab/core-meta` [#103](https://github.com/jupyterlab/jupyter-builder/pull/103) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-05-15&to=2026-05-22&type=c))
+
+@Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-05-15..2026-05-22&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-05-15..2026-05-22&type=Issues))
+
+## 1.0.0beta1
+
+([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v1.0.0b0...c20e90108c076b401f5b772fa616a952cdbb5e2c))
+
+### Maintenance and upkeep improvements
+
+- Adds version bump script [#101](https://github.com/jupyterlab/jupyter-builder/pull/101) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-05-08&to=2026-05-15&type=c))
+
+@Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-05-08..2026-05-15&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-05-08..2026-05-15&type=Issues))
+
+## 1.0.0b0
+
+([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v0.0.9...7b1ec5b09d96be3b8632d610b82900b309cef391))
+
+### Maintenance and upkeep improvements
+
+- Enforce stricter linting across the entire codebase, covering both TypeScript and Python files. [#96](https://github.com/jupyterlab/jupyter-builder/pull/96) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+- Bump rspack to `v2.0.0` [#93](https://github.com/jupyterlab/jupyter-builder/pull/93) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-05-06&to=2026-05-08&type=c))
+
+@Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-05-06..2026-05-08&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-05-06..2026-05-08&type=Issues))
+
+## 0.0.9
+
+([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v0.0.8...7614c1b125820f35a8e46d2c110688662de2599a))
+
+### Enhancements made
+
+- Patch to fully support `@jupyterlab/builder` [#98](https://github.com/jupyterlab/jupyter-builder/pull/98) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+
+### Maintenance and upkeep improvements
+
+- Update build badge in README.md [#97](https://github.com/jupyterlab/jupyter-builder/pull/97) ([@krassowski](https://github.com/krassowski), [@Darshan808](https://github.com/Darshan808))
+- Fix CI: remove duplicate jobs (check release and check link), detect typescript build issues early [#94](https://github.com/jupyterlab/jupyter-builder/pull/94) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+- Add downstream build tests [#91](https://github.com/jupyterlab/jupyter-builder/pull/91) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-04-23&to=2026-05-06&type=c))
+
+@Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-04-23..2026-05-06&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-04-23..2026-05-06&type=Issues))
+
+## 0.0.8
+
+([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v0.0.7...ecb1905d60b66fbef6e46de00134b353bfae3260))
+
+### Enhancements made
+
+- Handle both `@jupyter/builder` and `@jupyterlab/builder` [#87](https://github.com/jupyterlab/jupyter-builder/pull/87) ([@jtpio](https://github.com/jtpio), [@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+
+### Bugs fixed
+
+- Fix missing `tomli` dependency for Python \< 3.11 [#83](https://github.com/jupyterlab/jupyter-builder/pull/83) ([@jtpio](https://github.com/jtpio), [@krassowski](https://github.com/krassowski))
+
+### Maintenance and upkeep improvements
+
+- Require Python 3.10+, bump `ruff` [#85](https://github.com/jupyterlab/jupyter-builder/pull/85) ([@jtpio](https://github.com/jtpio), [@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-04-11&to=2026-04-23&type=c))
+
+@Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-04-11..2026-04-23&type=Issues)) | @jtpio ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Ajtpio+updated%3A2026-04-11..2026-04-23&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-04-11..2026-04-23&type=Issues))
+
+## 0.0.7
+
+([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v0.0.6...8b01993d382cb366dd367caa6178d049025f2182))
+
+### Maintenance and upkeep improvements
+
+- Add Licenses [#79](https://github.com/jupyterlab/jupyter-builder/pull/79) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-04-10&to=2026-04-11&type=c))
+
+@Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-04-10..2026-04-11&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-04-10..2026-04-11&type=Issues))
+
+## 0.0.6
+
+([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v0.0.5...14238e2b794d812309b68d597f5a7e6f0179e6f0))
+
+### Maintenance and upkeep improvements
+
+- Remove `jupyterlab` from test dependencies and drop `jupyter_sever` usage. [#78](https://github.com/jupyterlab/jupyter-builder/pull/78) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-04-10&to=2026-04-10&type=c))
+
+@Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-04-10..2026-04-10&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-04-10..2026-04-10&type=Issues))
+
 ## 0.0.5
 
 ([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v0.0.4...2d1c4632d7fb21c3868e20d0fdd785d579b6dd96))
@@ -22,8 +197,6 @@ See [our definition of contributors](https://github-activity.readthedocs.io/en/l
 ([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-04-10&to=2026-04-10&type=c))
 
 @Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-04-10..2026-04-10&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-04-10..2026-04-10&type=Issues))
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 0.0.4
 

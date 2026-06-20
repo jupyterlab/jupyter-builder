@@ -33,7 +33,8 @@ const rules = [
     type: 'asset',
     generator: {
       dataUrl: {
-        content: (content: any) => miniSVGDataURI(content.content),
+        content: (source: { content: string }) =>
+          miniSVGDataURI(source.content),
         mimetype: 'image/svg+xml'
       }
     }

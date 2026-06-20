@@ -1,0 +1,96 @@
+  name: Verify vendored yarn.js
+
+  on:
+    pull_request:
+      paths:
+        - 'jupyter_builder/yarn.js'
+        - '.github/workflows/verify-yarn-bundle.yml'
+    push:
+      branches: [main]
+    workflow_dispatch:
+
+  jobs:
+    rebuild-and-compare:
+      runs-on: ubuntu-latest
+
+      env:
+        # For reproducibility
+        BERRY_TAG: '@yarnpkg/cli/3.5.0'
+        ESBUILD_WASM_VERSION: '0.15.18'
+        NODE_VERSION: '24.11.1'
+        YARN_NODE_LINKER: 'pnp'
+
+      steps:
+        - uses: actions/checkout@v6
+
+        - uses: actions/setup-node@v4
+          with:
+            node-version: ${{ env.NODE_VERSION }}
+
+        - name: Clone Berry at ${{ env.BERRY_TAG }}
+          run: |
+            git clone --depth 1 --branch "$BERRY_TAG" \
+              https://github.com/yarnpkg/berry.git berry
+
+        - name: Add @yarnpkg/plugin-workspace-tools to the CLI bundle
+          working-directory: berry
+          run: |
+            jq '
+              .dependencies["@yarnpkg/plugin-workspace-tools"] = "workspace:^"
+              | .["@yarnpkg/builder"].bundles.standard
+                  |= (. + ["@yarnpkg/plugin-workspace-tools"] | unique)
+            ' packages/yarnpkg-cli/package.json > cli.tmp.json
+            mv cli.tmp.json packages/yarnpkg-cli/package.json
+
+        - name: Pin esbuild-wasm to a Node 18+ compatible version
+          working-directory: berry
+          run: |
+            jq --arg v "$ESBUILD_WASM_VERSION" \
+              '.dependencies.esbuild = "npm:esbuild-wasm@" + $v' \
+              packages/yarnpkg-builder/package.json > builder.tmp.json
+            mv builder.tmp.json packages/yarnpkg-builder/package.json
+
+        - name: yarn install (PnP, full link)
+          working-directory: berry
+          env:
+            YARN_ENABLE_IMMUTABLE_INSTALLS: 'false'
+          run: |
+            node scripts/run-yarn.js install
+            test -f .pnp.cjs || { echo "::error::.pnp.cjs was not generated"; ls -la; exit 1; }
+
+        - name: Build the bundle
+          working-directory: berry
+          run: |
+            node scripts/run-yarn.js workspace @yarnpkg/cli run build:cli --no-git-hash
+
+        # Smoke test outside the Berry repo so Berry's yarnPath dev-launcher
+        # doesn't hijack `node yarn.js`.
+        - name: Smoke test the rebuilt bundle
+          run: |
+            BUNDLE="$GITHUB_WORKSPACE/berry/packages/yarnpkg-cli/bundles/yarn.js"
+            cd /tmp
+            ver=$(node "$BUNDLE" --version)
+            if [ "$ver" != "3.5.0" ]; then
+              echo "::error::version mismatch: got '$ver', expected '3.5.0'"
+              exit 1
+            fi
+            node "$BUNDLE" workspaces foreach --help > /dev/null
+
+        - name: Compare SHA-256 with vendored bundle
+          run: |
+            expected=$(sha256sum jupyter_builder/yarn.js | awk '{print $1}')
+            rebuilt=$(sha256sum berry/packages/yarnpkg-cli/bundles/yarn.js | awk '{print $1}')
+            echo "vendored: $expected"
+            echo "rebuilt:  $rebuilt"
+            if [ "$expected" != "$rebuilt" ]; then
+              echo "::error::Hash mismatch — vendored yarn.js does not match a reproducible build from $BERRY_TAG."
+              echo "If this is intentional, re-vendor the bundle from CI's artifact and update the commit."
+              exit 1
+            fi
+
+        - name: Upload rebuilt bundle (for diffing on failure)
+          if: always()
+          uses: actions/upload-artifact@v6
+          with:
+            name: rebuilt-yarn.js
+            path: berry/packages/yarnpkg-cli/bundles/yarn.js
