@@ -126,9 +126,11 @@ def test_get_core_meta_falls_back_to_github_when_npm_fails(tmp_path, monkeypatch
     ext_path.mkdir()
     monkeypatch.setenv("HOME", str(tmp_path))
 
+    # JupyterLab releases are published as git tags like "v4.5.7", so a numeric
+    # version requested from GitHub must be looked up with the "v" prefix.
     github_url = (
         "https://raw.githubusercontent.com/"
-        "jupyterlab/jupyterlab/4.6.0-alpha.4/"
+        "jupyterlab/jupyterlab/v4.5.7/"
         "jupyterlab/staging/package.json"
     )
     calls = []
@@ -136,7 +138,7 @@ def test_get_core_meta_falls_back_to_github_when_npm_fails(tmp_path, monkeypatch
     def fake_urlopen(req_or_url, **_kwargs):
         url = getattr(req_or_url, "full_url", req_or_url)
         calls.append(url)
-        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.6.0-alpha.4":
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.5.7":
             msg = "Not Found"
             raise urllib.error.URLError(msg)
         if url == github_url:
@@ -146,15 +148,69 @@ def test_get_core_meta_falls_back_to_github_when_npm_fails(tmp_path, monkeypatch
 
     monkeypatch.setattr(core_path.urllib.request, "urlopen", fake_urlopen)
 
-    location = core_path.get_core_meta(version="4.6.0-alpha.4", ext_path=ext_path)
+    location = core_path.get_core_meta(version="4.5.7", ext_path=ext_path)
 
     assert calls == [
-        f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.6.0-alpha.4",
+        f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.5.7",
         github_url,
     ]
     assert location == str(
-        tmp_path / ".cache" / "jupyterlab_builder" / "core" / "4.6.0-alpha.4" / "core.package.json",
+        tmp_path / ".cache" / "jupyterlab_builder" / "core" / "4.5.7" / "core.package.json",
     )
+
+
+def test_get_core_meta_accepts_v_prefixed_version(tmp_path, monkeypatch):
+    """A 'v'-prefixed version is normalized so it resolves identically to the bare form."""
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    github_url = (
+        "https://raw.githubusercontent.com/"
+        "jupyterlab/jupyterlab/v4.5.7/"
+        "jupyterlab/staging/package.json"
+    )
+    calls = []
+
+    def fake_urlopen(req_or_url, **_kwargs):
+        url = getattr(req_or_url, "full_url", req_or_url)
+        calls.append(url)
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.5.7":
+            msg = "Not Found"
+            raise urllib.error.URLError(msg)
+        if url == github_url:
+            return io.BytesIO(b'{"dependencies": {}}')
+        msg = f"Unexpected URL {url}"
+        raise AssertionError(msg)
+
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", fake_urlopen)
+
+    location = core_path.get_core_meta(version="v4.5.7", ext_path=ext_path)
+
+    # Both the npm lookup and the cache directory use the normalized "4.5.7".
+    assert calls == [
+        f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.5.7",
+        github_url,
+    ]
+    assert location == str(
+        tmp_path / ".cache" / "jupyterlab_builder" / "core" / "4.5.7" / "core.package.json",
+    )
+
+
+def test_get_core_meta_raises_when_requested_version_is_unresolvable(tmp_path, monkeypatch):
+    """An explicitly requested version that exists nowhere must fail loudly."""
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    def fake_urlopen(*_args, **_kwargs):
+        msg = "Not Found"
+        raise urllib.error.URLError(msg)
+
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", fake_urlopen)
+
+    with pytest.raises(RuntimeError, match="Could not resolve @jupyterlab/core-meta"):
+        core_path.get_core_meta(version="9.9.9", ext_path=ext_path)
 
 
 def test_get_core_meta_wildcard_version_resolves_from_npm_and_downloads_core_meta(
