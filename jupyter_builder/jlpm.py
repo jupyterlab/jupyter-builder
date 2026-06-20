@@ -63,4 +63,6 @@ def main(argv: list[str] | None = None) -> None:
     """Run node and return the result."""
     # Make sure node is available.
     argv = argv or sys.argv[1:]
+    # Disable Yarn telemetry by default for jlpm
+    os.environ.setdefault("YARN_ENABLE_TELEMETRY", "0")
     _execvp_node(["node", YARN_PATH, *argv])
