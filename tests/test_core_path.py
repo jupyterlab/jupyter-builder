@@ -197,6 +197,63 @@ def test_get_core_meta_accepts_v_prefixed_version(tmp_path, monkeypatch):
     )
 
 
+@pytest.mark.parametrize(
+    ("version", "expected_ref"),
+    [
+        ("4.5.7", "v4.5.7"),
+        ("4.6.0-alpha.4", "v4.6.0a4"),
+        ("4.6.0-beta.1", "v4.6.0b1"),
+        ("4.6.0-rc.2", "v4.6.0rc2"),
+        ("main", "main"),
+        ("some-branch", "some-branch"),
+    ],
+)
+def test_github_ref_maps_versions_to_git_tags(version, expected_ref):
+    assert core_path._github_ref(version) == expected_ref
+
+
+@pytest.mark.parametrize("version", ["4.5.7", "v4.5.7"])
+def test_normalize_version_accepts_both_forms(version):
+    assert core_path._normalize_version(version) == "4.5.7"
+
+
+def test_get_core_meta_falls_back_to_github_for_prerelease(tmp_path, monkeypatch):
+    """An npm-style prerelease that npm lacks is fetched from the matching git tag."""
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    github_url = (
+        "https://raw.githubusercontent.com/"
+        "jupyterlab/jupyterlab/v4.6.0a4/"
+        "jupyterlab/staging/package.json"
+    )
+    calls = []
+
+    def fake_urlopen(req_or_url, **_kwargs):
+        url = getattr(req_or_url, "full_url", req_or_url)
+        calls.append(url)
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.6.0-alpha.4":
+            msg = "Not Found"
+            raise urllib.error.URLError(msg)
+        if url == github_url:
+            return io.BytesIO(b'{"dependencies": {}}')
+        msg = f"Unexpected URL {url}"
+        raise AssertionError(msg)
+
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", fake_urlopen)
+
+    location = core_path.get_core_meta(version="4.6.0-alpha.4", ext_path=ext_path)
+
+    assert calls == [
+        f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.6.0-alpha.4",
+        github_url,
+    ]
+    assert location == str(
+        tmp_path / ".cache" / "jupyterlab_builder" / "core" / "4.6.0-alpha.4" / "core.package.json",
+    )
+
+
 def test_get_core_meta_raises_when_requested_version_is_unresolvable(tmp_path, monkeypatch):
     """An explicitly requested version that exists nowhere must fail loudly."""
     ext_path = tmp_path / "ext"

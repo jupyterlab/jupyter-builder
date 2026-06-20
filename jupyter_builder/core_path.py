@@ -57,7 +57,7 @@ def get_core_meta(
                 )
         requested_version = "main"
     else:
-        # Accept both "v4.5.7" and "4.5.7" for an explicitly requested version.
+        # Accept both "vX.Y.Z" and "X.Y.Z" for an explicitly requested version.
         requested_version = _normalize_version(requested_version)
 
     cache_root = _home_dir() / ".cache" / "jupyterlab_builder" / "core"
@@ -66,8 +66,7 @@ def get_core_meta(
         return str(cached_file)
 
     # Try to retrieve core meta from npm first, then fall back to GitHub. If the
-    # requested version cannot be found in either source, raise a hard error
-    # rather than silently building against unexpected core metadata.
+    # requested version cannot be found in either source, raise an error.
     try:
         npm_version = _resolve_npm_version(requested_version)
         npm_cache_file = cache_root / npm_version / "core.package.json"
@@ -92,17 +91,29 @@ def get_core_meta(
 
 
 def _normalize_version(version: str) -> str:
-    """Strip a leading 'v' from a numeric version so 'v4.5.7' and '4.5.7' are equivalent."""
+    """Strip a leading 'v' from a numeric version so 'vX.Y.Z' and 'X.Y.Z' are equivalent."""
     return version[1:] if re.match(r"v\d", version) else version
 
 
 def _github_ref(version: str) -> str:
     """Map a resolved version to its jupyterlab/jupyterlab git ref.
 
-    Numeric releases are published as tags like 'v4.5.7', while branch names
-    such as 'main' are used verbatim.
+    Numeric releases are published as git tags. Stable releases are tagged like
+    'v4.5.7', while npm-style prereleases such as '4.6.0-alpha.4' correspond to
+    the PEP 440 tag form JupyterLab uses, 'v4.6.0a4'. Branch names such as
+    'main' (and other non-numeric refs) are used verbatim.
     """
-    return f"v{version}" if re.match(r"\d", version) else version
+    if not re.match(r"\d", version):
+        return version
+    release, separator, prerelease = version.partition("-")
+    if separator:
+        # Translate npm prerelease identifiers (alpha.4 / beta.1 / rc.2) to the
+        # PEP 440 form JupyterLab tags use (a4 / b1 / rc2).
+        prerelease = re.sub(r"alpha\.?", "a", prerelease)
+        prerelease = re.sub(r"beta\.?", "b", prerelease)
+        prerelease = re.sub(r"rc\.", "rc", prerelease)
+        version = release + prerelease
+    return f"v{version}"
 
 
 def _is_wildcard_version(version: str) -> bool:

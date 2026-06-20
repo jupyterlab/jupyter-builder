@@ -42,7 +42,7 @@ class BuildLabExtensionApp(BaseExtensionApp):
         "",
         config=True,
         help=(
-            "Version of JupyterLab core to use when building, e.g. '4.5.7' or 'v4.5.7' "
+            "Version of JupyterLab core to use when building, e.g. 'X.Y.Z' or 'vX.Y.Z' "
             "(ignored if core-package-file is set). Building fails if the version cannot "
             "be resolved."
         ),
