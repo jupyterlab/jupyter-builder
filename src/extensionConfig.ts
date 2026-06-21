@@ -273,7 +273,8 @@ function generateConfig({
     rules.push({
       test: /\.js$/,
       enforce: 'pre',
-      use: [require.resolve('source-map-loader')]
+      use: [require.resolve('source-map-loader')], 
+      exclude: [/node_modules\/@module-federation/]
     });
   }
 
