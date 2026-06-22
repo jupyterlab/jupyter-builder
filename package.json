@@ -44,7 +44,7 @@
     "watch": "tsc -w --sourceMap"
   },
   "dependencies": {
-    "@jupyterlab/core-meta": "4.6.0-beta.0",
+    "@jupyterlab/core-meta": "4.6.0",
     "@module-federation/runtime-tools": "^2.0.0",
     "@rspack/core": "^2.0.2",
     "ajv": "^8.12.0",
