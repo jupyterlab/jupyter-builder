@@ -21,9 +21,9 @@
         YARN_NODE_LINKER: 'pnp'
 
       steps:
-        - uses: actions/checkout@v6
+        - uses: actions/checkout@v7
 
-        - uses: actions/setup-node@v4
+        - uses: actions/setup-node@v6
           with:
             node-version: ${{ env.NODE_VERSION }}
 
@@ -90,7 +90,7 @@
 
         - name: Upload rebuilt bundle (for diffing on failure)
           if: always()
-          uses: actions/upload-artifact@v6
+          uses: actions/upload-artifact@v7
           with:
             name: rebuilt-yarn.js
             path: berry/packages/yarnpkg-cli/bundles/yarn.js
