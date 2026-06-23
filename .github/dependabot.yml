@@ -18,3 +18,11 @@ updates:
       pip:
         patterns:
           - "*"
+  # JavaScript/TypeScript
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    versioning-strategy: increase
+    allow:
+      - dependency-name: "@jupyterlab/core-meta"
