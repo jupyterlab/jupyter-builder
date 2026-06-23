@@ -254,6 +254,62 @@ def test_get_core_meta_falls_back_to_github_for_prerelease(tmp_path, monkeypatch
     )
 
 
+def test_get_core_meta_wildcard_resolves_from_github_when_npm_has_no_match(tmp_path, monkeypatch):
+    """A wildcard that npm cannot satisfy is resolved against GitHub release tags."""
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    tags_page1 = f"{core_path._GITHUB_TAGS_API_URL}?per_page=100&page=1"
+    tags_page2 = f"{core_path._GITHUB_TAGS_API_URL}?per_page=100&page=2"
+    # 4.5.10 must win over 4.5.2 — confirms numeric (not lexical) ordering.
+    github_url = (
+        "https://raw.githubusercontent.com/"
+        "jupyterlab/jupyterlab/v4.5.10/"
+        "jupyterlab/staging/package.json"
+    )
+    calls = []
+
+    def fake_urlopen(req_or_url, **_kwargs):
+        url = getattr(req_or_url, "full_url", req_or_url)
+        calls.append(url)
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta":
+            # npm publishes no 4.5.x, so the npm wildcard lookup finds no match.
+            return io.BytesIO(json.dumps({"versions": {"4.6.0": {}}}).encode())
+        if url == tags_page1:
+            return io.BytesIO(
+                json.dumps(
+                    [
+                        {"name": "v4.6.0"},
+                        {"name": "v4.5.2"},
+                        {"name": "v4.5.10"},
+                        {"name": "v4.5.1"},
+                    ],
+                ).encode(),
+            )
+        if url == tags_page2:
+            # Older tags with no 4.5.x match — resolution stops here.
+            return io.BytesIO(json.dumps([{"name": "v4.4.9"}]).encode())
+        if url == github_url:
+            return io.BytesIO(b'{"dependencies": {}}')
+        msg = f"Unexpected URL {url}"
+        raise AssertionError(msg)
+
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", fake_urlopen)
+
+    location = core_path.get_core_meta(version="4.5.x", ext_path=ext_path)
+
+    assert calls == [
+        f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta",
+        tags_page1,
+        tags_page2,
+        github_url,
+    ]
+    assert location == str(
+        tmp_path / ".cache" / "jupyterlab_builder" / "core" / "4.5.10" / "core.package.json",
+    )
+
+
 def test_get_core_meta_raises_when_requested_version_is_unresolvable(tmp_path, monkeypatch):
     """An explicitly requested version that exists nowhere must fail loudly."""
     ext_path = tmp_path / "ext"

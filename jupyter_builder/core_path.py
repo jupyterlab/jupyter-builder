@@ -18,6 +18,12 @@ from .constants import JPBLD_NPM_URL, JPBLD_RAW_GITHUB_URL
 
 _MAX_CORE_META_BYTES = 5 * 1024 * 1024  # 5 MB — generous upper bound for core.package.json
 
+#: GitHub API endpoint used to resolve wildcard versions to concrete release tags
+_GITHUB_TAGS_API_URL = "https://api.github.com/repos/jupyterlab/jupyterlab/tags"
+
+#: Upper bound on tag-list pages fetched when resolving a wildcard (100 tags per page)
+_MAX_GITHUB_TAG_PAGES = 10
+
 
 def _home_dir() -> Path:
     home = os.environ.get("HOME")
@@ -75,9 +81,18 @@ def get_core_meta(
         _download_npm_core_meta(npm_version, npm_cache_file)
         return str(npm_cache_file)
     except urllib.error.URLError as npm_error:
-        github_cache_file = cache_root / requested_version / "core.package.json"
         try:
-            _download_github_core_meta(_github_ref(requested_version), github_cache_file)
+            # Wildcards (e.g. "4.5.x") have no single git ref, so resolve them
+            # to a concrete tag from the GitHub tag list before downloading.
+            github_version = (
+                _resolve_wildcard_github_version(requested_version)
+                if _is_wildcard_version(requested_version)
+                else requested_version
+            )
+            github_cache_file = cache_root / github_version / "core.package.json"
+            if github_cache_file.exists():
+                return str(github_cache_file)
+            _download_github_core_meta(_github_ref(github_version), github_cache_file)
         except urllib.error.URLError as github_error:
             msg = (
                 f"Could not resolve @jupyterlab/core-meta for requested version "
@@ -164,14 +179,53 @@ def _resolve_wildcard_npm_version(version: str) -> str:
         msg = f"No published @jupyterlab/core-meta versions match range '{version}'"
         raise urllib.error.URLError(msg)
 
-    def semver_key(v: str) -> tuple[tuple[int, ...], int, tuple[int, ...]]:
-        release, _, prerelease = v.partition("-")
-        numeric = tuple(int(p) for p in release.split(".") if p.isdigit())
-        # Stable releases sort higher than pre-releases; within pre-releases,
-        pre_numeric = tuple(int(p) for p in prerelease.split(".") if p.isdigit())
-        return (numeric, 0 if prerelease else 1, pre_numeric)
+    return max(matching, key=_semver_key)
 
-    return max(matching, key=semver_key)
+
+def _semver_key(v: str) -> tuple[tuple[int, ...], int, tuple[int, ...]]:
+    release, _, prerelease = v.partition("-")
+    numeric = tuple(int(p) for p in release.split(".") if p.isdigit())
+    # Stable releases sort higher than pre-releases; within pre-releases,
+    # order by the numeric identifiers (e.g. alpha.3 < alpha.4).
+    pre_numeric = tuple(int(p) for p in prerelease.split(".") if p.isdigit())
+    return (numeric, 0 if prerelease else 1, pre_numeric)
+
+
+def _resolve_wildcard_github_version(version: str) -> str:
+    """Resolve a wildcard range like '4.5.x' to the highest matching git tag.
+
+    JupyterLab publishes stable releases as git tags (e.g. 'v4.5.9') that may
+    predate @jupyterlab/core-meta on npm, so wildcards that npm cannot satisfy
+    are resolved here against the jupyterlab/jupyterlab tag list.
+
+    Raises urllib.error.URLError if no matching tag is found.
+    """
+    escaped = re.escape(version)
+    wildcard_pattern = re.sub(r"x", r"\\d+", escaped, flags=re.IGNORECASE)
+    pattern = re.compile("^" + wildcard_pattern + r"$")
+
+    matching: list[str] = []
+    for page in range(1, _MAX_GITHUB_TAG_PAGES + 1):
+        data = _http_get(f"{_GITHUB_TAGS_API_URL}?per_page=100&page={page}")
+        tags = json.loads(data)
+        if not tags:
+            break
+        page_matches = [
+            normalized
+            for tag in tags
+            if (normalized := _normalize_version(tag.get("name", ""))) and pattern.match(normalized)
+        ]
+        # Tags are returned newest-first, so once matches stop appearing
+        # (after they have started) the rest are older and can be skipped.
+        if matching and not page_matches:
+            break
+        matching.extend(page_matches)
+
+    if not matching:
+        msg = f"No jupyterlab/jupyterlab git tags match range '{version}'"
+        raise urllib.error.URLError(msg)
+
+    return max(matching, key=_semver_key)
 
 
 def _get_cached_core_meta_file(cache_root: Path, version: str) -> Path | None:
