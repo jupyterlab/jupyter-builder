@@ -78,3 +78,41 @@ jobs:
         name: ${{ matrix.name }}-wheel
         path: downstream/dist/*.whl
         if-no-files-found: error
+
+  extension-template:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+
+    - name: Base Setup
+      uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
+
+    - name: Install Builder
+      run: |
+        pip install hatchling>=1.21.1
+        python -m pip install .
+
+    - name: Copy extension template
+      run: |
+        pip install copier jinja2-time
+        mkdir -p extension
+        copier copy --trust -l \
+          -d author_name=tester \
+          -d repository=dummy \
+          https://github.com/jupyterlab/extension-template \
+          extension
+        touch extension/yarn.lock
+
+    - name: Install dependencies
+      working-directory: extension
+      env:
+        YARN_ENABLE_IMMUTABLE_INSTALLS: "false"
+      run: jlpm install
+
+    - name: Build extension
+      working-directory: extension
+      run: |
+        jlpm run build:lib:prod
+        jupyter-builder build .
