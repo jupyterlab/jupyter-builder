@@ -6,7 +6,8 @@ import miniSVGDataURI from 'mini-svg-data-uri';
 const rules = [
   {
     test: /(?<!\.raw)\.css$/,
-    use: [require.resolve('style-loader'), require.resolve('css-loader')]
+    use: ['style-loader', 'css-loader'],
+    type: 'javascript/auto'
   },
   { test: /\.raw\.css$/, type: 'asset/source' },
   { test: /\.txt$/, type: 'asset/source' },
