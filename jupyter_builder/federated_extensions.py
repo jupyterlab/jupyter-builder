@@ -32,6 +32,8 @@ else:
 
 from .commands import _test_overlap
 from .core_path import get_core_meta
+from .jlpm import _which_node_js
+from .jupyterlab_semver import clean, satisfies
 
 DEPRECATED_ARGUMENT = object()
 
@@ -238,6 +240,7 @@ def build_labextension(  # noqa: PLR0913
         logger.info("Building extension in %s", path)
 
     builder, marker_pkg = _ensure_builder(ext_path, core_package_file)
+    _check_node_version(builder, ext_path, logger=logger)
 
     if marker_pkg == "@jupyterlab/builder":
         core_flag = ["--core-path", _resolve_core_path_for_jupyterlab_builder(core_package_file)]
@@ -296,6 +299,7 @@ def watch_labextension(  # noqa: PLR0913
             Path(full_dest).symlink_to(output_dir)
 
     builder, marker_pkg = _ensure_builder(ext_path, core_package_file)
+    _check_node_version(builder, ext_path, logger=logger)
 
     if marker_pkg == "@jupyterlab/builder":
         core_flag = ["--core-path", _resolve_core_path_for_jupyterlab_builder(core_package_file)]
@@ -319,6 +323,57 @@ def watch_labextension(  # noqa: PLR0913
 # Marker packages an extension may declare to identify its builder, in order
 # of preference.
 _BUILDER_MARKER_CANDIDATES = ("@jupyter/builder", "@jupyterlab/builder")
+
+# Minimum Node.js range required by `@rspack/core` when its own `engines.node`
+# field cannot be read. `@rspack/core` is a pure ES module that older Node.js
+# versions cannot `require()`.
+_FALLBACK_NODE_RANGE = ">=20.19.0"
+
+
+def _read_rspack_node_range(builder: str, ext_path: str) -> str:
+    """Return the ``engines.node`` range declared by ``@rspack/core``."""
+    for root in (Path(builder).parent, Path(ext_path)):
+        target = root
+        while True:
+            pkg = target / "node_modules" / "@rspack" / "core" / "package.json"
+            if pkg.exists():
+                try:
+                    with pkg.open() as fid:
+                        node_range = json.load(fid).get("engines", {}).get("node")
+                except (OSError, ValueError):
+                    node_range = None
+                if node_range:
+                    return str(node_range)
+                break
+            if target.parent == target:
+                break
+            target = target.parent
+    return _FALLBACK_NODE_RANGE
+
+
+def _check_node_version(
+    builder: str,
+    ext_path: str,
+    logger: logging.Logger | None = None,
+) -> None:
+    """Fail early with a clear message when Node.js is too old to load the builder."""
+    node = _which_node_js()
+    node_range = _read_rspack_node_range(builder, ext_path)
+    try:
+        raw = subprocess.check_output([node, "--version"]).decode("utf8").strip()  # noqa: S603
+    except (OSError, subprocess.CalledProcessError):
+        return
+    current = clean(raw, loose=True)  # type: ignore[no-untyped-call]
+    if current is None or satisfies(current, node_range, loose=True):  # type: ignore[no-untyped-call]
+        return
+    msg = (
+        f"Building this extension requires Node.js {node_range} (found {raw}). "
+        "'@rspack/core' is an ES module that older Node.js versions cannot load. "
+        "Please upgrade Node.js."
+    )
+    if logger:
+        logger.error(msg)
+    raise RuntimeError(msg)
 
 
 def _resolve_core_path_for_jupyterlab_builder(core_package_file: str) -> str:
