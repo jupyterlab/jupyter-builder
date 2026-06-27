@@ -273,7 +273,7 @@ function generateConfig({
     rules.push({
       test: /\.js$/,
       enforce: 'pre',
-      use: [require.resolve('source-map-loader')]
+      extractSourceMap: true
     });
   }
 
