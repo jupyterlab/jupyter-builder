@@ -26,3 +26,4 @@ updates:
     versioning-strategy: increase
     allow:
       - dependency-name: "@jupyterlab/core-meta"
+      - dependency-name: "@rspack/core"
