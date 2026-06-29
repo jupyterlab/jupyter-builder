@@ -368,7 +368,6 @@ def _check_node_version(
         return
     msg = (
         f"Building this extension requires Node.js {node_range} (found {raw}). "
-        "'@rspack/core' is an ES module that older Node.js versions cannot load. "
         "Please upgrade Node.js."
     )
     if logger:
