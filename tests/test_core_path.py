@@ -363,7 +363,7 @@ def test_read_rspack_node_range_falls_back_when_missing(tmp_path):
     ext_path = tmp_path / "ext"
     ext_path.mkdir()
 
-    assert _read_rspack_node_range(str(ext_path), str(ext_path)) == ">=20.19.0"
+    assert _read_rspack_node_range(str(ext_path), str(ext_path)) == "^20.19.0 || >=22.12.0"
 
 
 def test_check_node_version_raises_on_old_node(tmp_path, monkeypatch):

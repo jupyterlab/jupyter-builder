@@ -327,7 +327,7 @@ _BUILDER_MARKER_CANDIDATES = ("@jupyter/builder", "@jupyterlab/builder")
 # Minimum Node.js range required by `@rspack/core` when its own `engines.node`
 # field cannot be read. `@rspack/core` is a pure ES module that older Node.js
 # versions cannot `require()`.
-_FALLBACK_NODE_RANGE = ">=20.19.0"
+_FALLBACK_NODE_RANGE = "^20.19.0 || >=22.12.0"
 
 
 def _read_rspack_node_range(builder: str, ext_path: str) -> str:
