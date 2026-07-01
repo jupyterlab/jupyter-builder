@@ -193,7 +193,7 @@ __metadata:
   resolution: "@jupyter/builder@workspace:."
   dependencies:
     "@eslint/js": ^10.0.1
-    "@jupyterlab/core-meta": 4.6.0
+    "@jupyterlab/core-meta": 4.6.1
     "@module-federation/runtime-tools": ^2.0.0
     "@rspack/core": ^2.1.1
     "@types/fs-extra": ^9.0.1
@@ -225,10 +225,10 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@jupyterlab/core-meta@npm:4.6.0":
-  version: 4.6.0
-  resolution: "@jupyterlab/core-meta@npm:4.6.0"
-  checksum: c1a584fa6cb4b79c01bfce1d024eca4d1572f019b9600cd8fd614b1d9de1983c41313c3b9e49eb5f507d116137877f20989261c9b1350ad9a5b235b4cdecad5c
+"@jupyterlab/core-meta@npm:4.6.1":
+  version: 4.6.1
+  resolution: "@jupyterlab/core-meta@npm:4.6.1"
+  checksum: 8f91135b66806b65db81c4371dae36f794b476a869810b2c99ac243a94fc6a55a392a2dfbb2a93b5c225f4f45b5f50e43fa5641e68d15fa71db3c570cead161d
   languageName: node
   linkType: hard
 
@@ -3341,11 +3341,11 @@ __metadata:
 
 "typescript@patch:typescript@~5.9.3#~builtin<compat/typescript>":
   version: 5.9.3
-  resolution: "typescript@patch:typescript@npm%3A5.9.3#~builtin<compat/typescript>::version=5.9.3&hash=85af82"
+  resolution: "typescript@patch:typescript@npm%3A5.9.3#~builtin<compat/typescript>::version=5.9.3&hash=5786d5"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 8bb8d86819ac86a498eada254cad7fb69c5f74778506c700c2a712daeaff21d3a6f51fd0d534fe16903cb010d1b74f89437a3d02d4d0ff5ca2ba9a4660de8497
+  checksum: a5a6dc399d3761ded54192031f11d3ad5df8001c7febe3fbbc8098efcb552cdf8f2f402b3618c56dafcd04fef63dee005f4900f608e185404caedc46480539ed
   languageName: node
   linkType: hard
 
