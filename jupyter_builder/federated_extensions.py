@@ -247,7 +247,8 @@ def build_labextension(  # noqa: PLR0913
     else:
         core_flag = ["--core-package-file", core_package_file]
 
-    arguments = ["node", builder, *core_flag, ext_path]
+    node = _which_node_js()
+    arguments = [node, builder, *core_flag, ext_path]
     if static_url is not None:
         arguments.extend(["--static-url", static_url])
     if development:
@@ -306,7 +307,8 @@ def watch_labextension(  # noqa: PLR0913
     else:
         core_flag = ["--core-package-file", core_package_file]
 
-    arguments = ["node", builder, *core_flag, "--watch", ext_path]
+    node = _which_node_js()
+    arguments = [node, builder, *core_flag, "--watch", ext_path]
     if development:
         arguments.append("--development")
     if source_map:
