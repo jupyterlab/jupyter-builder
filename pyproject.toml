@@ -42,10 +42,12 @@ Pypi = "https://pypi.org/project/jupyter-builder"
 
 [project.optional-dependencies]
 test = [
-    "coverage",
+    # coverage>=7.10 provides `patch = ["subprocess"]`, which pytest-cov>=7
+    # relies on for measuring the CLI subprocesses spawned by the tests
+    "coverage[toml]>=7.10",
     "pytest>=7.0",
     "pytest-check-links>=0.7",
-    "pytest-cov",
+    "pytest-cov>=7",
     "copier>=9.3,<10",
     "jinja2-time"
 ]
@@ -116,6 +118,35 @@ addopts = [
     "--junitxml=junit.xml",
 ]
 xfail_strict = true
+markers = [
+    "slow: tests that render the extension template and run yarn installs (deselect with -m 'not slow')",
+]
+
+[tool.coverage.run]
+source_pkgs = ["jupyter_builder"]
+# Start coverage automatically inside Python subprocesses (the pip-installed
+# CLIs the tests invoke via subprocess.run). Requires coverage>=7.10, implies
+# `parallel`; pytest-cov combines the per-process data files at session end.
+# See https://coverage.readthedocs.io/en/latest/subprocess.html
+patch = ["subprocess"]
+parallel = true
+# The watch tests stop `jupyter-builder watch` with SIGTERM, which would skip
+# the normal at-exit save of its coverage data. No effect on Windows.
+sigterm = true
+# Store measured file paths relative to the repo root so the data files from
+# the different CI matrix jobs (Linux/macOS/Windows) can be combined.
+relative_files = true
+omit = [
+    "jupyter_builder/jupyterlab_semver.py",
+]
+
+[tool.coverage.paths]
+# Fold path variants recorded by the subprocesses (absolute paths, per-OS
+# checkout locations) back into the repo-relative layout when combining.
+source = [
+    "jupyter_builder/",
+    "*/jupyter_builder/",
+]
 
 [tool.repo-review]
 ignore = ["PC111", "PC180", "PY004", "PY007", "RTD100"]
