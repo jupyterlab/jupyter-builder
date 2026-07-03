@@ -9,8 +9,12 @@ from pathlib import Path
 
 import pytest
 
-from jupyter_builder import core_path
-from jupyter_builder.federated_extensions import _ensure_builder
+from jupyter_builder import core_path, federated_extensions
+from jupyter_builder.federated_extensions import (
+    _check_node_version,
+    _ensure_builder,
+    _read_rspack_node_range,
+)
 
 
 def _make_core_package_tarball(content: bytes) -> bytes:
@@ -507,3 +511,56 @@ def test_ensure_builder_with_jupyterlab_builder(tmp_path):
 
     assert builder_path == str(builder_dir / "lib" / "build-labextension.js")
     assert marker_pkg == "@jupyterlab/builder"
+
+
+def _write_rspack(ext_path: Path, node_range: str) -> None:
+    rspack_dir = ext_path / "node_modules" / "@rspack" / "core"
+    rspack_dir.mkdir(parents=True)
+    (rspack_dir / "package.json").write_text(json.dumps({"engines": {"node": node_range}}))
+
+
+def test_read_rspack_node_range_reads_engines(tmp_path):
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    _write_rspack(ext_path, "^20.19.0 || >=22.12.0")
+
+    builder = str(ext_path / "node_modules" / "@jupyter" / "builder" / "lib" / "x.js")
+    assert _read_rspack_node_range(builder, str(ext_path)) == "^20.19.0 || >=22.12.0"
+
+
+def test_read_rspack_node_range_falls_back_when_missing(tmp_path):
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+
+    assert _read_rspack_node_range(str(ext_path), str(ext_path)) == "^20.19.0 || >=22.12.0"
+
+
+def test_check_node_version_raises_on_old_node(tmp_path, monkeypatch):
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    _write_rspack(ext_path, "^20.19.0 || >=22.12.0")
+
+    monkeypatch.setattr(federated_extensions, "_which_node_js", lambda: "node")
+    monkeypatch.setattr(
+        federated_extensions.subprocess,
+        "check_output",
+        lambda *_args, **_kwargs: b"v18.20.8\n",
+    )
+
+    with pytest.raises(RuntimeError, match=r"requires Node\.js .* \(found v18\.20\.8\)"):
+        _check_node_version(str(ext_path), str(ext_path))
+
+
+def test_check_node_version_passes_on_supported_node(tmp_path, monkeypatch):
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    _write_rspack(ext_path, "^20.19.0 || >=22.12.0")
+
+    monkeypatch.setattr(federated_extensions, "_which_node_js", lambda: "node")
+    monkeypatch.setattr(
+        federated_extensions.subprocess,
+        "check_output",
+        lambda *_args, **_kwargs: b"v22.12.0\n",
+    )
+
+    _check_node_version(str(ext_path), str(ext_path))
