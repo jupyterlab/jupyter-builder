@@ -562,29 +562,38 @@ def _get_labextension_dir(
     return labext
 
 
+# Directory names that are valid Python identifiers but never contain
+# importable extension source we care about.
+_SKIP_DIRS = frozenset({"__pycache__", "node_modules", "venv", "env"})
+
+
 def _valid_package_dirs(dirs: list[str]) -> list[str]:
     """Filter out dirs that can never be Python package components."""
-    return [d for d in dirs if "." not in d and d != "__pycache__"]
+    return [d for d in dirs if d.isidentifier() and d not in _SKIP_DIRS]
 
 
 def _find_packages(path: str) -> list[str]:
-    """Find Python packages (dirs with __init__.py), pruning __pycache__ and dotted names."""
+    """Find importable regular packages (dirs with ``__init__.py``) under *path*.
+
+    Recursion only continues into directories that are themselves regular packages.
+    Also prunes non-identifier names and common non-source directories.
+    """
     path_obj = Path(path)
-    packages = []
+    packages: list[str] = []
     for root, dirs, files in os.walk(str(path_obj), followlinks=True):
-        dirs[:] = _valid_package_dirs(dirs)
-        if "__init__.py" in files:
-            rel = Path(root).relative_to(path_obj)
-            if rel.parts:
-                packages.append(".".join(rel.parts))
+        # Only keep descending into subdirectories that are themselves
+        # packages; prune everything else.
+        dirs[:] = [
+            d for d in _valid_package_dirs(dirs) if (Path(root) / d / "__init__.py").is_file()
+        ]
+        rel = Path(root).relative_to(path_obj)
+        if rel.parts and "__init__.py" in files:
+            packages.append(".".join(rel.parts))
     return packages
 
 
 def _find_namespace_packages(path: str) -> list[str]:
-    """Find namespace packages (dirs with .py files, no __init__.py required).
-
-    Prunes __pycache__ and dotted names.
-    """
+    """Find namespace packages (dirs with .py files, no __init__.py required)."""
     path_obj = Path(path)
     found: set[str] = set()
     for root, dirs, files in os.walk(str(path_obj), followlinks=True):
