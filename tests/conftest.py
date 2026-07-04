@@ -13,16 +13,12 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # Subprocess coverage (`[tool.coverage.run] patch = ["subprocess"]`) makes the
 # `jupyter-builder`/`jlpm` CLIs spawned by the tests record their own coverage
-# data. Those CLIs run with cwd set to a temporary extension folder, so a
-# relative data file would be written there and lost when the folder is
-# removed. Point every process at an absolute data file in the repo root so
-# pytest-cov finds and combines all of the pieces. Harmless when coverage is
-# not running; assumes pytest itself is invoked from the repo root.
+# data. Point every process at an absolute data file in the repo root so
+# pytest-cov finds and combines all of the pieces.
 os.environ.setdefault("COVERAGE_FILE", str(REPO_ROOT / ".coverage"))
 
-# The template declares @jupyter/builder by default, which is the preferred
-# builder marker. To exercise the @jupyterlab/builder path we swap it in for
-# @jupyter/builder before installing.
+# The template declares @jupyter/builder by default. To exercise the @jupyterlab/builder
+#  path we swap it in before installing.
 _SWAP_TO_JUPYTERLAB_BUILDER = (
     "const fs=require('fs');"
     " const p=require('./package.json');"

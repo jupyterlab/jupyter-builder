@@ -122,10 +122,7 @@ markers = [
 
 [tool.coverage.run]
 source_pkgs = ["jupyter_builder"]
-# Start coverage automatically inside Python subprocesses (the pip-installed
-# CLIs the tests invoke via subprocess.run). Requires coverage>=7.10, implies
-# `parallel`; pytest-cov combines the per-process data files at session end.
-# See https://coverage.readthedocs.io/en/latest/subprocess.html
+# Start coverage automatically inside Python subprocesses
 patch = ["subprocess"]
 parallel = true
 # The watch tests stop `jupyter-builder watch` with SIGTERM, which would skip
