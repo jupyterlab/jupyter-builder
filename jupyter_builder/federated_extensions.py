@@ -517,11 +517,11 @@ def _valid_package_dirs(dirs: list[str]) -> list[str]:
 
 
 def _find_packages(path: str) -> list[str]:
-"""Find importable regular packages (dirs with ``__init__.py``) under *path*.
+    """Find importable regular packages (dirs with ``__init__.py``) under *path*.
 
-Recursion only continues into directories that are themselves regular packages.
-Also prunes non-identifier names and common non-source directories.
-"""
+    Recursion only continues into directories that are themselves regular packages.
+    Also prunes non-identifier names and common non-source directories.
+    """
     path_obj = Path(path)
     packages: list[str] = []
     for root, dirs, files in os.walk(str(path_obj), followlinks=True):
