@@ -165,7 +165,6 @@ def test_builder_version_mismatch(mismatch_extension_folder):
         )
     # Check if the expected error message is in the output
     output = excinfo.value.stderr
-    print("\n\nCaptured stderr output:\n", output, "\n\n")
     assert re.search(
         (
             r"ValueError: Extensions require a devDependency on @jupyterlab/builder@\^[^,]+, "

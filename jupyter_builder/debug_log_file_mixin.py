@@ -55,6 +55,9 @@ class DebugLogFileMixin(Configurable):
             msg = traceback.format_exception(ex.__class__, ex, exc_traceback)
             for line in msg:
                 self.log.debug(line)
+            log.removeHandler(_debug_handler)
+            _debug_handler.flush()
+            _debug_handler.close()
             if isinstance(ex, SystemExit):
                 warnings.warn(
                     f"An error occurred. See the log file for details: {log_path}",
@@ -73,4 +76,3 @@ class DebugLogFileMixin(Configurable):
             # PermissionError if another process still has the file open.
             with contextlib.suppress(OSError):
                 Path(log_path).unlink()
-        log.removeHandler(_debug_handler)
