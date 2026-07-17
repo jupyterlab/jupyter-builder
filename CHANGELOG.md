@@ -2,6 +2,48 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 1.1.0
+
+([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v1.0.2...1020be871266359a05a830be9c6882e2de49fe37))
+
+### Enhancements made
+
+- Improve packages discovery [#138](https://github.com/jupyterlab/jupyter-builder/pull/138) ([@Darshan808](https://github.com/Darshan808), [@Copilot](https://github.com/Copilot), [@krassowski](https://github.com/krassowski))
+- Fail fast with a clear error on unsupported Node.js and remove hard-coded `node` [#135](https://github.com/jupyterlab/jupyter-builder/pull/135) ([@Darshan808](https://github.com/Darshan808), [@Copilot](https://github.com/Copilot), [@krassowski](https://github.com/krassowski))
+- Raise an error when a requested core version can't be found (and accept v-prefixed versions) [#121](https://github.com/jupyterlab/jupyter-builder/pull/121) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+
+### Maintenance and upkeep improvements
+
+- Pin packageManager to yarn 3.5.0 [#143](https://github.com/jupyterlab/jupyter-builder/pull/143) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+- Bump `@jupyterlab/core-meta` to v4.6.1 [#142](https://github.com/jupyterlab/jupyter-builder/pull/142) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+- Upgrade glob dependency [#136](https://github.com/jupyterlab/jupyter-builder/pull/136) ([@fleming79](https://github.com/fleming79), [@Darshan808](https://github.com/Darshan808))
+- Upgrade style-loader and css-loader [#134](https://github.com/jupyterlab/jupyter-builder/pull/134) ([@fleming79](https://github.com/fleming79), [@krassowski](https://github.com/krassowski))
+- Replace source-map-loader with rspack equivalent [#132](https://github.com/jupyterlab/jupyter-builder/pull/132) ([@fleming79](https://github.com/fleming79), [@krassowski](https://github.com/krassowski))
+- Bump rspack to 2.1 [#131](https://github.com/jupyterlab/jupyter-builder/pull/131) ([@Darshan808](https://github.com/Darshan808), [@fleming79](https://github.com/fleming79), [@krassowski](https://github.com/krassowski))
+- Drop worker-loader dependency [#130](https://github.com/jupyterlab/jupyter-builder/pull/130) ([@fleming79](https://github.com/fleming79), [@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+- Bump `@jupyterlab/core-meta` to v4.6.0 [#125](https://github.com/jupyterlab/jupyter-builder/pull/125) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+- Add Dependabot npm config to keep core-meta evergreen [#119](https://github.com/jupyterlab/jupyter-builder/pull/119) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+- Disable Yarn telemetry by default in `jlpm` [#118](https://github.com/jupyterlab/jupyter-builder/pull/118) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+
+### Other merged PRs
+
+- Bump @rspack/core from 2.1.1 to 2.1.2 [#140](https://github.com/jupyterlab/jupyter-builder/pull/140) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+- Bump ruff from 0.15.18 to 0.15.20 in the pip group [#133](https://github.com/jupyterlab/jupyter-builder/pull/133) ([@krassowski](https://github.com/krassowski))
+- Bump the actions group with 3 updates [#123](https://github.com/jupyterlab/jupyter-builder/pull/123) ([@Darshan808](https://github.com/Darshan808))
+- Bump ruff from 0.15.11 to 0.15.18 in the pip group across 1 directory [#92](https://github.com/jupyterlab/jupyter-builder/pull/92) ([@Darshan808](https://github.com/Darshan808))
+- Bump the actions group across 1 directory with 3 updates [#66](https://github.com/jupyterlab/jupyter-builder/pull/66) ([@Copilot](https://github.com/Copilot), [@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-06-12&to=2026-07-11&type=c))
+
+@Copilot ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ACopilot+updated%3A2026-06-12..2026-07-11&type=Issues)) | @Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-06-12..2026-07-11&type=Issues)) | @fleming79 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Afleming79+updated%3A2026-06-12..2026-07-11&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-06-12..2026-07-11&type=Issues))
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 1.0.2
 
 ([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v1.0.1...4709f8bb4f1ebf1f46525e08459296dc444338d9))
@@ -19,8 +61,6 @@ See [our definition of contributors](https://github-activity.readthedocs.io/en/l
 ([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-06-08&to=2026-06-12&type=c))
 
 @bollwyvl ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Abollwyvl+updated%3A2026-06-08..2026-06-12&type=Issues)) | @Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-06-08..2026-06-12&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-06-08..2026-06-12&type=Issues))
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 1.0.1
 
