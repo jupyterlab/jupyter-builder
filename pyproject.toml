@@ -131,8 +131,18 @@ sigterm = true
 # Store measured file paths relative to the repo root so the data files from
 # the different CI matrix jobs (Linux/macOS/Windows) can be combined.
 relative_files = true
+# Files excluded from coverage. The `*/` prefix is required: the CLIs run with
+# cwd inside a temporary extension folder, where a repo-relative pattern would
+# not match and the subprocess would record the file anyway.
 omit = [
-    "jupyter_builder/jupyterlab_semver.py",
+    "*/jupyter_builder/jupyterlab_semver.py",
+]
+
+[tool.coverage.report]
+# Run-time `omit` only stops NEW data from being recorded; this filters the
+# report itself, covering data recorded by processes the run-omit missed.
+omit = [
+    "*/jupyter_builder/jupyterlab_semver.py",
 ]
 
 [tool.coverage.paths]

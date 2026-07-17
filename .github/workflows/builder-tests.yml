@@ -174,9 +174,26 @@ jobs:
       - test
     steps:
       - uses: actions/checkout@v7
-      - uses: jupyterlab/maintainer-tools/.github/actions/report-coverage@v1
+      - uses: actions/setup-python@v6
         with:
-          fail_under: 80
+          python-version: "3.13"
+      # Each test job uploads its .coverage.* data files as a coverage-*
+      # artifact; pull them all into the workspace root for combining.
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: coverage-*
+          merge-multiple: true
+      - name: Combine coverage and fail if below threshold
+        run: |
+          set -eux
+          pip install "coverage[toml]>=7.10.6"
+          coverage combine
+          {
+            echo '```'
+            coverage report
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          coverage report --fail-under=80
 
   tests_check: # This job does nothing and is only used for the branch protection
     if: always()
@@ -189,6 +206,7 @@ jobs:
       - test_prereleases
       - check_links
       - test_sdist
+      - coverage
     runs-on: ubuntu-latest
     steps:
       - name: Decide whether the needed jobs succeeded or failed
