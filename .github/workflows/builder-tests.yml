@@ -107,6 +107,8 @@ jobs:
         run: |
           python -m pre_commit run --all
           # pipx run interrogate -v .
+      - name: Check dependencies with deptry
+        run: deptry .
 
   test_minimum_versions:
     name: Test Minimum Versions
