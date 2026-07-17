@@ -2,6 +2,26 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 1.1.1
+
+([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v1.1.0...778b3b2e02f3534c767c4b1319e4eb27f5d5bd37))
+
+### Bugs fixed
+
+- Do not resolve symlinks when locating `node`, fixing Volta-style shims [#149](https://github.com/jupyterlab/jupyter-builder/pull/149) ([@jtpio](https://github.com/jtpio), [@Darshan808](https://github.com/Darshan808))
+- Add `py.typed` [#147](https://github.com/jupyterlab/jupyter-builder/pull/147) ([@bollwyvl](https://github.com/bollwyvl), [@krassowski](https://github.com/krassowski))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-07-11&to=2026-07-17&type=c))
+
+@bollwyvl ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Abollwyvl+updated%3A2026-07-11..2026-07-17&type=Issues)) | @Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-07-11..2026-07-17&type=Issues)) | @jtpio ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Ajtpio+updated%3A2026-07-11..2026-07-17&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-07-11..2026-07-17&type=Issues))
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 1.1.0
 
 ([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v1.0.2...1020be871266359a05a830be9c6882e2de49fe37))
@@ -41,8 +61,6 @@ See [our definition of contributors](https://github-activity.readthedocs.io/en/l
 ([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-06-12&to=2026-07-11&type=c))
 
 @Copilot ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ACopilot+updated%3A2026-06-12..2026-07-11&type=Issues)) | @Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-06-12..2026-07-11&type=Issues)) | @fleming79 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Afleming79+updated%3A2026-06-12..2026-07-11&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-06-12..2026-07-11&type=Issues))
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 1.0.2
 
