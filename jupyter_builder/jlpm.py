@@ -40,7 +40,11 @@ def _which_node_js(env: dict[str, str] | None = None) -> str:
             "(https://nodejs.org)."
         )
         raise ValueError(msg)
-    return str(Path(command_with_path).resolve())
+    # Return the path as found on PATH, without resolving symlinks: version
+    # managers such as Volta install `node` as a symlink to a dispatcher
+    # binary that selects the tool from the name it is invoked under, so the
+    # dispatch only works when the command keeps the `node` name.
+    return command_with_path
 
 
 def _execvp_node(argv: list[str]) -> None:

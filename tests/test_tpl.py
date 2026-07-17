@@ -319,10 +319,11 @@ def test_builder_version_mismatch(tmp_path):
             text=True,
         )
     # Check if the expected error message is in the output
+    output = excinfo.value.stderr
     assert re.search(
         (
-            r"ValueError: Extensions require a devDependency on @jupyterlab/builder@\^.+?, "
+            r"ValueError: Extensions require a devDependency on @jupyterlab/builder@\^[^,]+, "
             r"you have a dependency on 4\.0\.0"
         ),
-        excinfo.value.stderr,
+        output,
     ), "Expected version mismatch error message not found in output!"

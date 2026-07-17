@@ -32,6 +32,8 @@ else:
 
 from .commands import _test_overlap
 from .core_path import get_core_meta
+from .jlpm import _which_node_js
+from .jupyterlab_semver import clean, satisfies
 
 DEPRECATED_ARGUMENT = object()
 
@@ -238,13 +240,15 @@ def build_labextension(  # noqa: PLR0913
         logger.info("Building extension in %s", path)
 
     builder, marker_pkg = _ensure_builder(ext_path, core_package_file)
+    _check_node_version(builder, ext_path, logger=logger)
 
     if marker_pkg == "@jupyterlab/builder":
         core_flag = ["--core-path", _resolve_core_path_for_jupyterlab_builder(core_package_file)]
     else:
         core_flag = ["--core-package-file", core_package_file]
 
-    arguments = ["node", builder, *core_flag, ext_path]
+    node = _which_node_js()
+    arguments = [node, builder, *core_flag, ext_path]
     if static_url is not None:
         arguments.extend(["--static-url", static_url])
     if development:
@@ -296,13 +300,15 @@ def watch_labextension(  # noqa: PLR0913
             Path(full_dest).symlink_to(output_dir)
 
     builder, marker_pkg = _ensure_builder(ext_path, core_package_file)
+    _check_node_version(builder, ext_path, logger=logger)
 
     if marker_pkg == "@jupyterlab/builder":
         core_flag = ["--core-path", _resolve_core_path_for_jupyterlab_builder(core_package_file)]
     else:
         core_flag = ["--core-package-file", core_package_file]
 
-    arguments = ["node", builder, *core_flag, "--watch", ext_path]
+    node = _which_node_js()
+    arguments = [node, builder, *core_flag, "--watch", ext_path]
     if development:
         arguments.append("--development")
     if source_map:
@@ -319,6 +325,56 @@ def watch_labextension(  # noqa: PLR0913
 # Marker packages an extension may declare to identify its builder, in order
 # of preference.
 _BUILDER_MARKER_CANDIDATES = ("@jupyter/builder", "@jupyterlab/builder")
+
+# Minimum Node.js range required by `@rspack/core` when its own `engines.node`
+# field cannot be read. `@rspack/core` is a pure ES module that older Node.js
+# versions cannot `require()`.
+_FALLBACK_NODE_RANGE = "^20.19.0 || >=22.12.0"
+
+
+def _read_rspack_node_range(builder: str, ext_path: str) -> str:
+    """Return the ``engines.node`` range declared by ``@rspack/core``."""
+    for root in (Path(builder).parent, Path(ext_path)):
+        target = root
+        while True:
+            pkg = target / "node_modules" / "@rspack" / "core" / "package.json"
+            if pkg.exists():
+                try:
+                    with pkg.open() as fid:
+                        node_range = json.load(fid).get("engines", {}).get("node")
+                except (OSError, ValueError):
+                    node_range = None
+                if node_range:
+                    return str(node_range)
+                break
+            if target.parent == target:
+                break
+            target = target.parent
+    return _FALLBACK_NODE_RANGE
+
+
+def _check_node_version(
+    builder: str,
+    ext_path: str,
+    logger: logging.Logger | None = None,
+) -> None:
+    """Fail early with a clear message when Node.js is too old to load the builder."""
+    node = _which_node_js()
+    node_range = _read_rspack_node_range(builder, ext_path)
+    try:
+        raw = subprocess.check_output([node, "--version"]).decode("utf8").strip()  # noqa: S603
+    except (OSError, subprocess.CalledProcessError):
+        return
+    current = clean(raw, loose=True)  # type: ignore[no-untyped-call]
+    if current is None or satisfies(current, node_range, loose=True):  # type: ignore[no-untyped-call]
+        return
+    msg = (
+        f"Building this extension requires Node.js {node_range} (found {raw}). "
+        "Please upgrade Node.js."
+    )
+    if logger:
+        logger.error(msg)
+    raise RuntimeError(msg)
 
 
 def _resolve_core_path_for_jupyterlab_builder(core_package_file: str) -> str:
@@ -506,29 +562,38 @@ def _get_labextension_dir(
     return labext
 
 
+# Directory names that are valid Python identifiers but never contain
+# importable extension source we care about.
+_SKIP_DIRS = frozenset({"__pycache__", "node_modules", "venv", "env"})
+
+
 def _valid_package_dirs(dirs: list[str]) -> list[str]:
     """Filter out dirs that can never be Python package components."""
-    return [d for d in dirs if "." not in d and d != "__pycache__"]
+    return [d for d in dirs if d.isidentifier() and d not in _SKIP_DIRS]
 
 
 def _find_packages(path: str) -> list[str]:
-    """Find Python packages (dirs with __init__.py), pruning __pycache__ and dotted names."""
+    """Find importable regular packages (dirs with ``__init__.py``) under *path*.
+
+    Recursion only continues into directories that are themselves regular packages.
+    Also prunes non-identifier names and common non-source directories.
+    """
     path_obj = Path(path)
-    packages = []
+    packages: list[str] = []
     for root, dirs, files in os.walk(str(path_obj), followlinks=True):
-        dirs[:] = _valid_package_dirs(dirs)
-        if "__init__.py" in files:
-            rel = Path(root).relative_to(path_obj)
-            if rel.parts:
-                packages.append(".".join(rel.parts))
+        # Only keep descending into subdirectories that are themselves
+        # packages; prune everything else.
+        dirs[:] = [
+            d for d in _valid_package_dirs(dirs) if (Path(root) / d / "__init__.py").is_file()
+        ]
+        rel = Path(root).relative_to(path_obj)
+        if rel.parts and "__init__.py" in files:
+            packages.append(".".join(rel.parts))
     return packages
 
 
 def _find_namespace_packages(path: str) -> list[str]:
-    """Find namespace packages (dirs with .py files, no __init__.py required).
-
-    Prunes __pycache__ and dotted names.
-    """
+    """Find namespace packages (dirs with .py files, no __init__.py required)."""
     path_obj = Path(path)
     found: set[str] = set()
     for root, dirs, files in os.walk(str(path_obj), followlinks=True):
