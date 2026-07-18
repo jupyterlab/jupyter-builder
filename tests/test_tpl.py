@@ -1,6 +1,8 @@
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
+import json
+import os
 import platform
 import re
 import subprocess
@@ -148,8 +150,36 @@ def test_watch_functionality_jupyterlab_builder(jupyterlab_builder_extension_fol
     assert_watch_rebuilds(jupyterlab_builder_extension_folder)
 
 
+def _seed_core_meta_cache(version, builder_range):
+    """Seed the core-meta cache so ``get_core_meta`` resolves offline."""
+    home = os.environ.get("HOME") or str(Path.home())
+    cache_file = (
+        Path(home) / ".cache" / "jupyterlab_builder" / "core" / version / "core.package.json"
+    )
+    if cache_file.exists():
+        return
+    cache_file.parent.mkdir(parents=True, exist_ok=True)
+    cache_file.write_text(
+        json.dumps(
+            {
+                "name": "@jupyterlab/application-top",
+                "version": "4.5.9",
+                "devDependencies": {"@jupyterlab/builder": builder_range},
+            },
+            indent=2,
+        ),
+    )
+
+
 def test_builder_version_mismatch(mismatch_extension_folder):
     extension_folder = mismatch_extension_folder
+
+    # Seed the core-meta cache for 4.5.x so the build resolves offline instead
+    # of downloading from GitHub (which is rate-limited and flaky). The
+    # dummy declares an incompatible @jupyterlab/builder range to trigger the
+    # version mismatch error this test asserts on.
+    _seed_core_meta_cache("4.5.x", "^4.5.9")
+
     with pytest.raises(subprocess.CalledProcessError) as excinfo:
         run(
             ["jupyter-builder", "build", str(extension_folder), "--core-version", "4.5.x"],
