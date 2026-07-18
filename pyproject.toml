@@ -136,6 +136,7 @@ relative_files = true
 # not match and the subprocess would record the file anyway.
 omit = [
     "*/jupyter_builder/jupyterlab_semver.py",
+    "*/jupyter_builder/_version.py",
 ]
 
 [tool.coverage.report]
@@ -143,6 +144,7 @@ omit = [
 # report itself, covering data recorded by processes the run-omit missed.
 omit = [
     "*/jupyter_builder/jupyterlab_semver.py",
+    "*/jupyter_builder/_version.py",
 ]
 
 [tool.coverage.paths]
