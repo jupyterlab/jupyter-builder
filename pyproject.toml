@@ -47,7 +47,8 @@ test = [
     "pytest-check-links>=0.7",
     "pytest-cov",
     "copier>=9.3,<10",
-    "jinja2-time"
+    "jinja2-time",
+    "deptry"
 ]
 # Check ruff version is aligned with the one in .pre-commit-config.yaml
 dev = ["build", "mypy", "pre-commit", "hatch", "ruff==0.15.20"]
@@ -58,6 +59,28 @@ jlpm = "jupyter_builder.jlpm:main"
 
 [tool.check-wheel-contents]
 ignore = ["W002", "W004"]
+
+[tool.deptry]
+# Default exclude list skips "tests"; un-skip it so test-only deps (pytest,
+# copier, ...) are checked too, since that's most of what [project.optional-dependencies.test] declares.
+exclude = ["venv", "\\.venv", "\\.direnv", "\\.git", "setup\\.py", "scripts"]
+
+[tool.deptry.per_rule_ignores]
+# CLI tools / pytest plugins that are invoked via subprocess or auto-discovered
+# entry points rather than imported directly, so deptry can't see their usage.
+DEP002 = [
+    "build",
+    "coverage",
+    "copier",
+    "deptry",
+    "hatch",
+    "jinja2-time",
+    "mypy",
+    "pre-commit",
+    "pytest-check-links",
+    "pytest-cov",
+    "ruff",
+]
 
 [tool.hatch.version]
 source = "nodejs"
