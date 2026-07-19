@@ -47,10 +47,11 @@ test = [
     "pytest-check-links>=0.7",
     "pytest-cov",
     "copier>=9.3,<10",
-    "jinja2-time"
+    "jinja2-time",
+    "deptry"
 ]
 # Check ruff version is aligned with the one in .pre-commit-config.yaml
-dev = ["build", "mypy", "pre-commit", "hatch", "ruff==0.15.20", "deptry"]
+dev = ["build", "mypy", "pre-commit", "hatch", "ruff==0.15.20"]
 
 [project.scripts]
 jupyter-builder = "jupyter_builder.main:main"
