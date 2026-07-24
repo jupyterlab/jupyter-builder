@@ -26,7 +26,9 @@ class DebugLogFileMixin(Configurable):
     def debug_logging(self) -> Iterator[None]:
         """Context manager that routes all log output to a debug file."""
         log_path = self.debug_log_path
-        if Path(log_path).is_dir():
+        # Path("") normalizes to "." (a directory), so guard against the empty
+        # default here or the temp-file fallback below can never trigger.
+        if log_path and Path(log_path).is_dir():
             log_path = str(Path(log_path) / "jupyterlab-debug.log")
         if not log_path:
             handle, log_path = tempfile.mkstemp(prefix="jupyterlab-debug-", suffix=".log")
@@ -53,6 +55,9 @@ class DebugLogFileMixin(Configurable):
             msg = traceback.format_exception(ex.__class__, ex, exc_traceback)
             for line in msg:
                 self.log.debug(line)
+            log.removeHandler(_debug_handler)
+            _debug_handler.flush()
+            _debug_handler.close()
             if isinstance(ex, SystemExit):
                 warnings.warn(
                     f"An error occurred. See the log file for details: {log_path}",
@@ -67,6 +72,7 @@ class DebugLogFileMixin(Configurable):
             log.removeHandler(_debug_handler)
             _debug_handler.flush()
             _debug_handler.close()
-            with contextlib.suppress(FileNotFoundError):
+            # Best-effort cleanup: on Windows the unlink fails with a
+            # PermissionError if another process still has the file open.
+            with contextlib.suppress(OSError):
                 Path(log_path).unlink()
-        log.removeHandler(_debug_handler)

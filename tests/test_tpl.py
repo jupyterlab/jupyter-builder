@@ -12,45 +12,25 @@ from subprocess import Popen, run
 
 import pytest
 
+pytestmark = pytest.mark.slow
 
-def helper(dest):
-    run(
-        [
-            "copier",
-            "copy",
-            "--trust",
-            "-l",
-            "-d",
-            "author_name=tester",
-            "-d",
-            "repository=dummy",
-            "https://github.com/jupyterlab/extension-template",
-            dest,
-        ],
-        cwd=dest,
-        check=True,
-    )
-    log = Path(dest) / "yarn.lock"
-    log.touch()
+# Ceilings for the watch tests; polling returns as soon as the condition holds.
+WATCH_INITIAL_BUILD_TIMEOUT = 300
+WATCH_REBUILD_TIMEOUT = 180
+
+
+def wait_for(condition, timeout, interval=2):
+    """Poll `condition` until it is truthy or `timeout` seconds have elapsed."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if condition():
+            return True
+        time.sleep(interval)
+    return bool(condition())
 
 
 # ---------------------- BUILD TESTS --------------------------------------
-def test_files_build(tmp_path):
-    extension_folder = tmp_path / "ext"
-    extension_folder.mkdir()
-    helper(str(extension_folder))
-
-    env = os.environ.copy()
-    env.update({"YARN_ENABLE_IMMUTABLE_INSTALLS": "false"})
-    run(
-        ["jlpm", "install"],
-        cwd=extension_folder,
-        check=True,
-        env=env,
-    )
-
-    run(["jlpm", "run", "build:lib:prod"], cwd=extension_folder, check=True)
-
+def test_files_build(extension_folder):
     run(["jupyter-builder", "build", str(extension_folder)], cwd=extension_folder, check=True)
 
     folder_path = extension_folder / "myextension/labextension"
@@ -62,22 +42,7 @@ def test_files_build(tmp_path):
         assert filepath.exists(), f"File {filename} does not exist in {folder_path}!"
 
 
-def test_files_build_development(tmp_path):
-    extension_folder = tmp_path / "ext"
-    extension_folder.mkdir()
-    helper(str(extension_folder))
-
-    env = os.environ.copy()
-    env.update({"YARN_ENABLE_IMMUTABLE_INSTALLS": "false"})
-    run(
-        ["jlpm", "install"],
-        cwd=extension_folder,
-        check=True,
-        env=env,
-    )
-
-    run(["jlpm", "run", "build:lib:prod"], cwd=extension_folder, check=True)
-
+def test_files_build_development(extension_folder):
     run(
         ["jupyter-builder", "build", "--development", "true", str(extension_folder)],
         cwd=extension_folder,
@@ -93,30 +58,8 @@ def test_files_build_development(tmp_path):
         assert filepath.exists(), f"File {filename} does not exist in {folder_path}!"
 
 
-def test_files_build_jupyterlab_builder(tmp_path):
-    extension_folder = tmp_path / "ext"
-    extension_folder.mkdir()
-    helper(str(extension_folder))
-
-    # The template declares @jupyter/builder by default, which is the preferred
-    # builder marker. To exercise the @jupyterlab/builder path we swap it in for
-    # @jupyter/builder before installing.
-    prepare = (
-        "const fs=require('fs');"
-        " const p=require('./package.json');"
-        " p.resolutions = p.resolutions || {};"
-        " p.resolutions.webpack='5.106.0';"
-        " p.devDependencies = p.devDependencies || {};"
-        " delete p.devDependencies['@jupyter/builder'];"
-        " p.devDependencies['@jupyterlab/builder'] = '^4.0.0';"
-        " fs.writeFileSync('package.json', JSON.stringify(p,null,2));"
-    )
-    run(["node", "-e", prepare], cwd=extension_folder, check=True)
-    env = os.environ.copy()
-    env.update({"YARN_ENABLE_IMMUTABLE_INSTALLS": "false"})
-    run(["jlpm", "install"], cwd=extension_folder, check=True, env=env)
-    run(["jlpm", "run", "build:lib:prod"], cwd=extension_folder, check=True)
-
+def test_files_build_jupyterlab_builder(jupyterlab_builder_extension_folder):
+    extension_folder = jupyterlab_builder_extension_folder
     run(["jupyter-builder", "build", str(extension_folder)], cwd=extension_folder, check=True)
 
     folder_path = extension_folder / "myextension/labextension"
@@ -134,22 +77,8 @@ def list_files_in_static(directory):
     return {f.name for f in Path(directory).glob("*")}
 
 
-def test_watch_functionality(tmp_path):
-    extension_folder = tmp_path / "ext"
-    extension_folder.mkdir()
-    helper(str(extension_folder))
-
-    env = os.environ.copy()
-    env.update({"YARN_ENABLE_IMMUTABLE_INSTALLS": "false"})
-    run(
-        ["jlpm", "install"],
-        cwd=extension_folder,
-        check=True,
-        env=env,
-    )
-
-    run(["jlpm", "run", "build:lib:prod"], cwd=extension_folder, check=True)
-
+def assert_watch_rebuilds(extension_folder):
+    """Start `jupyter-builder watch` and check that a source change rebuilds."""
     # Path to the TypeScript file to change
     index_ts_path = extension_folder / "src/index.ts"
 
@@ -170,16 +99,30 @@ def test_watch_functionality(tmp_path):
         **kwargs,
     )
 
-    # This sleep time makes sure that the comment is added only after the watch process is running.
-    time.sleep(100)
-
     try:
+        # Wait until the watch process is running and its initial build has
+        # landed in the static directory, so that the comment below is only
+        # added after watching has started.
+        wait_for(
+            lambda: (
+                watch_process.poll() is not None
+                or list_files_in_static(static_dir) != initial_files
+            ),
+            timeout=WATCH_INITIAL_BUILD_TIMEOUT,
+        )
+        assert watch_process.poll() is None, "Watch process exited before the initial build!"
+        files_after_initial_build = list_files_in_static(static_dir)
+
         # Add a comment to the TypeScript file to trigger watch
         with index_ts_path.open("a") as f:
             f.write("// Test comment to trigger watch\n")
 
-        # Wait for watch process to detect change and rebuild
-        time.sleep(100)  # Adjust this time if needed
+        # Wait for the watch process to detect the change and rebuild. On
+        # timeout, fall through: the assertion below decides the outcome.
+        wait_for(
+            lambda: list_files_in_static(static_dir) != files_after_initial_build,
+            timeout=WATCH_REBUILD_TIMEOUT,
+        )
 
         # List filenames in static directory after change
         final_files = list_files_in_static(static_dir)
@@ -192,69 +135,19 @@ def test_watch_functionality(tmp_path):
 
     finally:
         watch_process.terminate()
-        # Give some time to terminate the process cleanly
-        time.sleep(5)
-        if watch_process.poll() is None:
+        try:
+            watch_process.wait(timeout=30)
+        except subprocess.TimeoutExpired:
             watch_process.kill()
+            watch_process.wait()
 
 
-def test_watch_functionality_jupyterlab_builder(tmp_path):
-    extension_folder = tmp_path / "ext"
-    extension_folder.mkdir()
-    helper(str(extension_folder))
+def test_watch_functionality(extension_folder):
+    assert_watch_rebuilds(extension_folder)
 
-    # The template declares @jupyter/builder by default, which is the preferred
-    # builder marker. To exercise the @jupyterlab/builder path we swap it in for
-    # @jupyter/builder before installing.
-    prepare = (
-        "const fs=require('fs');"
-        " const p=require('./package.json');"
-        " p.resolutions = p.resolutions || {};"
-        " p.resolutions.webpack='5.106.0';"
-        " p.devDependencies = p.devDependencies || {};"
-        " delete p.devDependencies['@jupyter/builder'];"
-        " p.devDependencies['@jupyterlab/builder'] = '^4.0.0';"
-        " fs.writeFileSync('package.json', JSON.stringify(p,null,2));"
-    )
-    run(["node", "-e", prepare], cwd=extension_folder, check=True)
-    env = os.environ.copy()
-    env.update({"YARN_ENABLE_IMMUTABLE_INSTALLS": "false"})
-    run(["jlpm", "install"], cwd=extension_folder, check=True, env=env)
-    run(["jlpm", "run", "build:lib:prod"], cwd=extension_folder, check=True)
 
-    index_ts_path = extension_folder / "src/index.ts"
-    static_dir = extension_folder / "myextension/labextension/static"
-    assert index_ts_path.exists(), f"File {index_ts_path} does not exist!"
-
-    initial_files = list_files_in_static(static_dir)
-
-    is_windows = platform.system() == "Windows"
-    kwargs = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if is_windows else {}
-
-    watch_process = Popen(
-        ["jupyter-builder", "watch", str(extension_folder)],
-        cwd=extension_folder,
-        **kwargs,
-    )
-
-    time.sleep(100)
-
-    try:
-        with index_ts_path.open("a") as f:
-            f.write("// Test comment to trigger watch\n")
-
-        time.sleep(100)
-
-        final_files = list_files_in_static(static_dir)
-        assert initial_files != final_files, (
-            "No changes detected in the static directory."
-            " Watch process may not have triggered correctly!"
-        )
-    finally:
-        watch_process.terminate()
-        time.sleep(5)
-        if watch_process.poll() is None:
-            watch_process.kill()
+def test_watch_functionality_jupyterlab_builder(jupyterlab_builder_extension_folder):
+    assert_watch_rebuilds(jupyterlab_builder_extension_folder)
 
 
 def _seed_core_meta_cache(version, builder_range):
@@ -278,37 +171,14 @@ def _seed_core_meta_cache(version, builder_range):
     )
 
 
-def test_builder_version_mismatch(tmp_path):
-    extension_folder = tmp_path / "ext"
-    extension_folder.mkdir()
-    helper(str(extension_folder))
+def test_builder_version_mismatch(mismatch_extension_folder):
+    extension_folder = mismatch_extension_folder
 
     # Seed the core-meta cache for 4.5.x so the build resolves offline instead
     # of downloading from GitHub (which is rate-limited and flaky). The
     # dummy declares an incompatible @jupyterlab/builder range to trigger the
     # version mismatch error this test asserts on.
     _seed_core_meta_cache("4.5.x", "^4.5.9")
-
-    package_json_path = extension_folder / "package.json"
-
-    # The template ships `@jupyter/builder` by default, but the version
-    # incompatibility check can only be verified on `@jupyterlab/builder` for
-    # now. So we remove `@jupyter/builder` and pin `@jupyterlab/builder` to an
-    # incompatible range, leaving it as the only builder marker. We keep the
-    # test this way for now; it will be changed later.
-    package_data = json.loads(package_json_path.read_text())
-    package_data["devDependencies"].pop("@jupyter/builder", None)
-    package_data["devDependencies"]["@jupyterlab/builder"] = "4.0.0"
-    package_json_path.write_text(json.dumps(package_data, indent=2))
-
-    env = os.environ.copy()
-    env.update({"YARN_ENABLE_IMMUTABLE_INSTALLS": "false"})
-    run(
-        ["jlpm", "install"],
-        cwd=extension_folder,
-        check=True,
-        env=env,
-    )
 
     with pytest.raises(subprocess.CalledProcessError) as excinfo:
         run(
