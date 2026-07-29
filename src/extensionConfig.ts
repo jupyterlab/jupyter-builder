@@ -11,7 +11,18 @@ import * as glob from 'glob';
 import Ajv from 'ajv';
 
 const baseConfig = require('./webpack.config.base');
-const { ModuleFederationPlugin } = rspack.container;
+
+// Deliberately the V1 (webpack-compatible) plugin rather than
+// `rspack.container.ModuleFederationPlugin`, which uses the Module Federation
+// 2.0 runtime. MF2 resolves a shared package that is consumed with
+// `import: false` and `singleton: false` - which is how core packages absent
+// from JupyterLab's `singletonPackages` are consumed, e.g.
+// `@jupyterlab/docregistry` - by failing hard when no version in the share
+// scope satisfies `requiredVersion`, since there is no bundled fallback to fall
+// back to. V1 keeps webpack's behaviour of warning and using whatever version
+// the host provides, which is what makes an extension built against one
+// JupyterLab minor loadable in the next.
+const { ModuleFederationPluginV1: ModuleFederationPlugin } = rspack.container;
 
 type SharedConfig = {
   requiredVersion?: string;
