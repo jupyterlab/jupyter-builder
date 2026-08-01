@@ -51,7 +51,7 @@ test = [
     "deptry"
 ]
 # Check ruff version is aligned with the one in .pre-commit-config.yaml
-dev = ["build", "mypy", "pre-commit", "hatch", "ruff==0.15.20"]
+dev = ["build", "mypy", "pre-commit", "hatch", "ruff==0.16.0"]
 
 [project.scripts]
 jupyter-builder = "jupyter_builder.main:main"
