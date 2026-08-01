@@ -59,7 +59,7 @@ jobs:
 
     steps:
     - name: Install Python
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: '3.10'
         architecture: 'x64'
@@ -119,7 +119,7 @@ jobs:
       - uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
         with:
           dependency_type: minimum
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.10"
       - run: pip install -e ".[test,dev]"
@@ -176,7 +176,7 @@ jobs:
       - test
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       # Each test job uploads its .coverage.* data files as a coverage-*
