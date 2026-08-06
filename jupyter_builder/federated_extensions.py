@@ -297,7 +297,12 @@ def watch_labextension(  # noqa: PLR0913
         )
         if not Path(full_dest).is_symlink():
             shutil.rmtree(full_dest)
-            Path(full_dest).symlink_to(output_dir)
+            # Windows types a symlink when it is created and never morphs it to
+            # the target afterwards. It infers the kind from the target when one
+            # exists, but the output directory has not been built yet on a first
+            # watch, so without this flag a file symlink is created and the
+            # build output stays unreachable through it.
+            Path(full_dest).symlink_to(output_dir, target_is_directory=True)
 
     builder, marker_pkg = _ensure_builder(ext_path, core_package_file)
     _check_node_version(builder, ext_path, logger=logger)
