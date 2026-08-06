@@ -42,6 +42,47 @@ def test_files_build(extension_folder):
         assert filepath.exists(), f"File {filename} does not exist in {folder_path}!"
 
 
+def test_build_records_remote_entry(extension_folder):
+    """`_build.load` must name the generated remoteEntry file.
+
+    Regression test for https://github.com/jupyterlab/jupyter-builder/issues/163:
+    the glob locating `remoteEntry.<hash>.js` is handed a native path, and on
+    Windows its backslashes are consumed as glob escape characters, so nothing
+    matches and `load` is written as a bare `static`, which JupyterLab then
+    fails to fetch.
+    """
+    run(["jupyter-builder", "build", str(extension_folder)], cwd=extension_folder, check=True)
+
+    output_dir = extension_folder / "myextension/labextension"
+    build_data = json.loads((output_dir / "package.json").read_text())["jupyterlab"]["_build"]
+    load = build_data["load"]
+
+    # `load` is turned into a URL by JupyterLab, so it must be `/`-separated
+    # regardless of the platform the extension was built on.
+    assert re.fullmatch(r"static/remoteEntry\.[0-9a-f]+\.js", load), (
+        f"Unexpected _build.load entry: {load!r}"
+    )
+    assert (output_dir / load).exists(), f"{load} is missing from {output_dir}!"
+
+
+def test_build_copies_schemas(extension_folder):
+    """A declared `schemaDir` must be copied to `<outputDir>/schemas/<name>`.
+
+    Second occurrence of the glob bug from
+    https://github.com/jupyterlab/jupyter-builder/issues/163: on Windows the
+    schema glob matches nothing, so the build succeeds while silently emitting
+    only `package.json.orig` and the extension's settings never register.
+    """
+    run(["jupyter-builder", "build", str(extension_folder)], cwd=extension_folder, check=True)
+
+    schemas_dir = extension_folder / "myextension/labextension/schemas/myextension"
+    assert schemas_dir.is_dir(), f"{schemas_dir} was not created!"
+    assert (schemas_dir / "plugin.json").exists(), (
+        f"plugin.json was not copied; {schemas_dir} holds "
+        f"{sorted(path.name for path in schemas_dir.iterdir())}"
+    )
+
+
 def test_files_build_development(extension_folder):
     run(
         ["jupyter-builder", "build", "--development", "true", str(extension_folder)],
