@@ -42,7 +42,7 @@ def test_files_build(extension_folder):
         assert filepath.exists(), f"File {filename} does not exist in {folder_path}!"
 
 
-def test_build_records_remote_entry(extension_folder):
+def test_build_records_remote_entry(glob_hostile_extension_folder):
     """`_build.load` must name the generated remoteEntry file.
 
     Regression test for https://github.com/jupyterlab/jupyter-builder/issues/163:
@@ -50,7 +50,12 @@ def test_build_records_remote_entry(extension_folder):
     Windows its backslashes are consumed as glob escape characters, so nothing
     matches and `load` is written as a bare `static`, which JupyterLab then
     fails to fetch.
+
+    Built from a directory whose name contains glob syntax so that the same
+    empty match happens on POSIX too; otherwise this test could only ever fail
+    on the two Windows CI legs.
     """
+    extension_folder = glob_hostile_extension_folder
     run(["jupyter-builder", "build", str(extension_folder)], cwd=extension_folder, check=True)
 
     output_dir = extension_folder / "myextension/labextension"
@@ -65,14 +70,18 @@ def test_build_records_remote_entry(extension_folder):
     assert (output_dir / load).exists(), f"{load} is missing from {output_dir}!"
 
 
-def test_build_copies_schemas(extension_folder):
+def test_build_copies_schemas(glob_hostile_extension_folder):
     """A declared `schemaDir` must be copied to `<outputDir>/schemas/<name>`.
 
     Second occurrence of the glob bug from
     https://github.com/jupyterlab/jupyter-builder/issues/163: on Windows the
     schema glob matches nothing, so the build succeeds while silently emitting
     only `package.json.orig` and the extension's settings never register.
+
+    Built from a glob-hostile directory for the same reason as
+    `test_build_records_remote_entry`.
     """
+    extension_folder = glob_hostile_extension_folder
     run(["jupyter-builder", "build", str(extension_folder)], cwd=extension_folder, check=True)
 
     schemas_dir = extension_folder / "myextension/labextension/schemas/myextension"
@@ -80,6 +89,53 @@ def test_build_copies_schemas(extension_folder):
     assert (schemas_dir / "plugin.json").exists(), (
         f"plugin.json was not copied; {schemas_dir} holds "
         f"{sorted(path.name for path in schemas_dir.iterdir())}"
+    )
+
+
+def test_build_fails_when_no_remote_entry_is_produced(extension_folder):
+    """The build must fail loudly rather than record `_build.load` as `"static"`.
+
+    `path.posix.join("static", "")` evaluates to `"static"`, which is exactly
+    the unusable value reported in
+    https://github.com/jupyterlab/jupyter-builder/issues/163. Fixing the glob
+    removes the known cause, but any future cause -- a renamed module
+    federation entry, an emptied output directory -- would silently emit the
+    same broken extension, so the builder reports a compilation error instead.
+
+    Redirects rspack's output away from `static/` through the `webpackConfig`
+    opt-in, which leaves the compilation itself successful but produces no
+    `remoteEntry.*.js` for the cleanup plugin to record.
+    """
+    elsewhere = (extension_folder / "elsewhere").as_posix()
+    (extension_folder / "webpack.config.js").write_text(
+        f"module.exports = {{ output: {{ path: {json.dumps(elsewhere)} }} }};\n",
+    )
+    package_json_path = extension_folder / "package.json"
+    package_data = json.loads(package_json_path.read_text())
+    package_data["jupyterlab"]["webpackConfig"] = "webpack.config.js"
+    package_json_path.write_text(json.dumps(package_data, indent=2))
+
+    result = run(
+        ["jupyter-builder", "build", str(extension_folder)],
+        cwd=extension_folder,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    output = result.stdout + result.stderr
+
+    assert result.returncode != 0, (
+        f"Build succeeded despite producing no remoteEntry file!\nOutput:\n{output}"
+    )
+    assert "remoteEntry" in output, (
+        f"Build failed without reporting the missing entry point!\nOutput:\n{output}"
+    )
+
+    build_data = json.loads(
+        (extension_folder / "myextension/labextension/package.json").read_text(),
+    )["jupyterlab"]
+    assert build_data.get("_build", {}).get("load") != "static", (
+        "The unusable `_build.load` value from issue 163 was written anyway!"
     )
 
 
