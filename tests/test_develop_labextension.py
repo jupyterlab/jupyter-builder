@@ -3,33 +3,37 @@
 
 import json
 from pathlib import Path
-from unittest import mock
 
 import pytest
 
-from jupyter_builder import federated_extensions
 from jupyter_builder.federated_extensions import develop_labextension, watch_labextension
+
+# `Path.symlink_to` creates a *file* symlink on Windows unless
+# `target_is_directory=True` is passed, even when the target is a directory.
+# A file symlink to a directory cannot be traversed, so the labextension is
+# installed but unusable.
+# The flag is ignored on POSIX, so these tests can only fail on the Windows CI legs.
 
 
 def _make_extension(tmp_path):
     """Render the minimum an extension needs to be symlinked into a labextensions dir."""
     source = tmp_path / "myextension"
     (source / "static").mkdir(parents=True)
+    (source / "static" / "style.js").write_text("")
     (source / "package.json").write_text(
-        json.dumps({"name": "myextension", "jupyterlab": {"outputDir": "static"}}),
+        json.dumps(
+            {
+                "name": "myextension",
+                "version": "0.1.0",
+                "jupyterlab": {"outputDir": "static"},
+            },
+        ),
     )
     return source
 
 
-def test_develop_labextension_symlink_resolves_as_a_directory(tmp_path):
-    """The installed symlink must be traversable as a directory.
-
-    `Path.symlink_to` creates a *file* symlink on Windows unless
-    `target_is_directory=True` is passed, even when the target is a directory,
-    so the labextension directory cannot be traversed and the extension never
-    loads. The flag is ignored on POSIX, which is why only the Windows CI legs
-    can fail this assertion; the tests below fail on every platform.
-    """
+def test_develop_labextension_symlinks_a_directory_as_a_directory(tmp_path):
+    """The installed symlink must be traversable as a directory."""
     source = _make_extension(tmp_path)
 
     full_dest = Path(
@@ -43,80 +47,57 @@ def test_develop_labextension_symlink_resolves_as_a_directory(tmp_path):
     assert (full_dest / "package.json").exists(), f"Cannot traverse into {full_dest}!"
 
 
-def test_develop_labextension_marks_a_directory_symlink_as_a_directory(tmp_path):
-    """`target_is_directory=True` must be passed when linking a directory.
+def test_develop_labextension_symlinks_a_file_as_a_file(tmp_path):
+    """A single-file extension must be linked as a file, not as a directory.
 
-    Asserted on the call rather than on the result because the flag has no
-    observable effect on POSIX, so the behavioural test above would leave this
-    regression invisible outside the two Windows CI legs.
-    """
-    source = _make_extension(tmp_path)
-
-    with mock.patch.object(Path, "symlink_to", autospec=True) as symlink_to:
-        develop_labextension(source, symlink=True, labextensions_dir=str(tmp_path / "labext"))
-
-    assert symlink_to.call_count == 1
-    assert symlink_to.call_args.kwargs.get("target_is_directory") is True, (
-        f"symlink_to was called as {symlink_to.call_args}, which creates a file symlink on Windows."
-    )
-
-
-def test_develop_labextension_marks_a_file_symlink_as_a_file(tmp_path):
-    """A single-file extension must not be linked as a directory.
-
-    `develop_labextension` accepts a file as well as a directory, so the flag
-    has to follow the target rather than being hardcoded to True.
+    `develop_labextension` accepts a file as well as a directory, so the kind of
+    link has to follow the target rather than being hardcoded to a directory.
     """
     source = tmp_path / "extension.js"
-    source.write_text("")
+    source.write_text("console.log('extension');\n")
 
-    with mock.patch.object(Path, "symlink_to", autospec=True) as symlink_to:
-        develop_labextension(source, symlink=True, labextensions_dir=str(tmp_path / "labext"))
-
-    assert symlink_to.call_count == 1
-    assert symlink_to.call_args.kwargs.get("target_is_directory") is False, (
-        f"symlink_to was called as {symlink_to.call_args} for a file target."
+    full_dest = Path(
+        develop_labextension(source, symlink=True, labextensions_dir=str(tmp_path / "labext")),
     )
 
+    assert full_dest.is_symlink(), f"{full_dest} was not symlinked!"
+    assert full_dest.is_file(), (
+        f"{full_dest} does not resolve as a file; it was created as a directory symlink."
+    )
+    assert full_dest.read_text() == "console.log('extension');\n"
 
-def test_watch_labextension_marks_the_output_symlink_as_a_directory(tmp_path):
-    """`watch_labextension` links the output directory, so it must say so too.
 
-    The link is created before any build happens, so the output directory need
-    not exist yet and the flag cannot be inferred from the target.
+def test_watch_labextension_symlinks_the_output_dir_as_a_directory(tmp_path):
+    """`watch_labextension` replaces an installed extension with a link to its output dir.
+
+    The link is created before any build runs, so the output directory need not
+    exist yet and the kind of link cannot be inferred from the target.
     """
     source = _make_extension(tmp_path)
+
+    # An already-installed copy of the extension, so that `watch_labextension`
+    # discovers it and swaps it for a symlink instead of installing it afresh.
     labext = tmp_path / "labext"
     installed = labext / "myextension"
-    # Not a symlink, so `watch_labextension` replaces it with one.
     installed.mkdir(parents=True)
+    (installed / "package.json").write_text(
+        json.dumps({"name": "myextension", "version": "0.1.0"}),
+    )
 
     core_package_file = tmp_path / "core.package.json"
     core_package_file.write_text("{}")
 
-    with (
-        mock.patch.object(
-            federated_extensions,
-            "get_federated_extensions",
-            return_value={"myextension": {"ext_dir": str(labext)}},
-        ),
-        mock.patch.object(Path, "symlink_to", autospec=True) as symlink_to,
-        # Stop the run immediately after the code under test, so that none of
-        # the node tooling needs to be available.
-        mock.patch.object(
-            federated_extensions,
-            "_ensure_builder",
-            side_effect=RuntimeError("stop after symlinking"),
-        ),
-        pytest.raises(RuntimeError, match="stop after symlinking"),
-    ):
+    # The extension declares no builder, so the run stops right after the
+    # symlink is created and none of the node toolchain has to be present.
+    with pytest.raises(ValueError, match="require a devDependency"):
         watch_labextension(
             source,
             labextensions_path=[str(labext)],
             core_package_file=str(core_package_file),
         )
 
-    assert symlink_to.call_count == 1
-    assert symlink_to.call_args.kwargs.get("target_is_directory") is True, (
-        f"symlink_to was called as {symlink_to.call_args}, which creates a file symlink on Windows."
+    assert installed.is_symlink(), f"{installed} was not replaced by a symlink!"
+    assert installed.is_dir(), (
+        f"{installed} does not resolve as a directory; it was created as a file symlink."
     )
+    assert (installed / "style.js").exists(), f"Cannot traverse into {installed}!"
