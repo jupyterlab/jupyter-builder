@@ -57,7 +57,8 @@ repos:
           ["traitlets", "jupyter-core", "types-requests"]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.20
+    # keep aligned with pyproject.toml
+    rev: v0.16.5
     hooks:
       - id: ruff
         types_or: [python, jupyter]
