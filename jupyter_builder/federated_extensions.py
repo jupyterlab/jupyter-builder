@@ -33,7 +33,7 @@ else:
 from .commands import _test_overlap
 from .core_path import get_core_meta
 from .jlpm import _which_node_js
-from .jupyterlab_semver import clean, satisfies
+from .jupyterlab_semver import clean, make_range, make_semver
 
 DEPRECATED_ARGUMENT = object()
 
@@ -358,6 +358,29 @@ def _read_rspack_node_range(builder: str, ext_path: str) -> str:
     return _FALLBACK_NODE_RANGE
 
 
+def _satisfies_allowing_prerelease(current: str, node_range: str) -> bool:
+    """Return whether ``current`` satisfies ``node_range``, counting prereleases.
+
+    A prerelease has to clear the comparators both as itself and as its release,
+    so it can neither reach under a lower bound nor slip beneath an upper one:
+    ``22.12.0-alpha.1`` sorts before the ``22.12.0`` it needs to be, and
+    ``21.0.0-alpha.1`` is only ``<21.0.0`` because 21 is excluded to begin with.
+    """
+    try:
+        range_ = make_range(node_range, loose=True)  # type: ignore[no-untyped-call]
+        version = make_semver(current, loose=True)  # type: ignore[no-untyped-call]
+    except Exception:  # noqa: BLE001
+        return False
+    candidates = [version]
+    if version.prerelease:
+        release = f"{version.major}.{version.minor}.{version.patch}"
+        candidates.append(make_semver(release, loose=True))  # type: ignore[no-untyped-call]
+    return any(
+        all(comparator.test(candidate) for candidate in candidates for comparator in comparator_set)
+        for comparator_set in range_.set
+    )
+
+
 def _check_node_version(
     builder: str,
     ext_path: str,
@@ -371,11 +394,11 @@ def _check_node_version(
     except (OSError, subprocess.CalledProcessError):
         return
     current = clean(raw, loose=True)  # type: ignore[no-untyped-call]
-    if current is None or satisfies(current, node_range, loose=True):  # type: ignore[no-untyped-call]
+    if current is None or _satisfies_allowing_prerelease(current, node_range):
         return
     msg = (
         f"Building this extension requires Node.js {node_range} (found {raw}). "
-        "Please upgrade Node.js."
+        "Please install a compatible Node.js version."
     )
     if logger:
         logger.error(msg)

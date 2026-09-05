@@ -4,20 +4,26 @@
     pull_request:
       paths:
         - 'jupyter_builder/yarn.js'
+        - 'THIRD_PARTY_LICENSES/**'
+        - 'scripts/generate_yarn_licenses.py'
+        - 'pyproject.toml'
         - '.github/workflows/verify-yarn-bundle.yml'
     push:
       branches: [main]
     workflow_dispatch:
 
+  env:
+    NODE_VERSION: '24.11.1'
+
   jobs:
     rebuild-and-compare:
+      name: Rebuild yarn.js and check its license report
       runs-on: ubuntu-latest
 
       env:
         # For reproducibility
         BERRY_TAG: '@yarnpkg/cli/3.5.0'
         ESBUILD_WASM_VERSION: '0.15.18'
-        NODE_VERSION: '24.11.1'
         YARN_NODE_LINKER: 'pnp'
 
       steps:
@@ -26,6 +32,10 @@
         - uses: actions/setup-node@v7
           with:
             node-version: ${{ env.NODE_VERSION }}
+
+        - uses: actions/setup-python@v7
+          with:
+            python-version: '3.10'
 
         - name: Clone Berry at ${{ env.BERRY_TAG }}
           run: |
@@ -50,6 +60,19 @@
               packages/yarnpkg-builder/package.json > builder.tmp.json
             mv builder.tmp.json packages/yarnpkg-builder/package.json
 
+        # The license report names the packages esbuild put in the bundle, so it comes
+        # from this build rather than from a second one. The patch only asks esbuild for
+        # the file list it already computes; the bundle it emits is unchanged, which is
+        # what lets the same build serve the hash comparison below.
+        - name: Make the builder emit an esbuild metafile
+          run: |
+            python -c "
+            import sys
+            sys.path.insert(0, 'scripts')
+            from generate_yarn_licenses import patch_builder_metafile
+            patch_builder_metafile('berry')
+            "
+
         - name: yarn install (PnP, full link)
           working-directory: berry
           env:
@@ -60,8 +83,11 @@
 
         - name: Build the bundle
           working-directory: berry
+          env:
+            BUNDLE_METAFILE: ${{ github.workspace }}/metafile.json
           run: |
             node scripts/run-yarn.js workspace @yarnpkg/cli run build:cli --no-git-hash
+            test -f "$BUNDLE_METAFILE" || { echo "::error::no metafile was written"; exit 1; }
 
         # Smoke test outside the Berry repo so Berry's yarnPath dev-launcher
         # doesn't hijack `node yarn.js`.
@@ -94,3 +120,37 @@
           with:
             name: rebuilt-yarn.js
             path: berry/packages/yarnpkg-cli/bundles/yarn.js
+
+        # Read the version out of the bundle rather than hardcoding it, so that
+        # re-vendoring a different Yarn regenerates against that version. Run from
+        # outside the repo so no repo-local Yarn config can interfere.
+        - name: Read the bundled Yarn version
+          run: |
+            version=$(cd /tmp && node "$GITHUB_WORKSPACE/jupyter_builder/yarn.js" --version)
+            echo "Bundled Yarn: $version"
+            echo "YARN_VERSION=$version" >> "$GITHUB_ENV"
+
+        # Runs after the hash comparison, because the metafile describes the bundle that
+        # was just built. It only describes the vendored one once the two are known to
+        # be identical.
+        - name: Regenerate the license report
+          run: |
+            python scripts/generate_yarn_licenses.py "$YARN_VERSION" \
+              --berry-checkout berry --metafile metafile.json
+
+        - name: Fail if the committed report is stale
+          run: |
+            if ! git diff --exit-code -- THIRD_PARTY_LICENSES pyproject.toml; then
+              echo "::error::The committed license report does not match the vendored yarn.js."
+              echo "Run 'python scripts/generate_yarn_licenses.py $YARN_VERSION' and commit the result."
+              exit 1
+            fi
+
+        - name: Upload the regenerated report (for diffing on failure)
+          if: failure()
+          uses: actions/upload-artifact@v7
+          with:
+            name: regenerated-license-report
+            path: |
+              THIRD_PARTY_LICENSES/
+              pyproject.toml

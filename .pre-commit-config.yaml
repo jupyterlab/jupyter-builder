@@ -39,7 +39,9 @@ repos:
     hooks:
       - id: codespell
         args: ["-L", "sur,nd"]
-        exclude: "jupyter_builder/yarn.js|jupyter_builder/jupyterlab_semver.py"
+        # THIRD_PARTY_LICENSES holds verbatim upstream license text, including
+        # copyright holders' names; it must not be "corrected".
+        exclude: "jupyter_builder/yarn.js|jupyter_builder/jupyterlab_semver.py|^THIRD_PARTY_LICENSES/"
 
   - repo: https://github.com/pre-commit/pygrep-hooks
     rev: "v1.10.0"
