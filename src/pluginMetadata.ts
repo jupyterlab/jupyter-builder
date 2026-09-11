@@ -15,11 +15,17 @@ import { NormalModuleReplacementPlugin, rspack } from '@rspack/core';
  * packages read browser globals when they are imported, which is why they are
  * replaced rather than bundled: reading the literals must not depend on the
  * extension being loadable outside a browser.
+ *
+ * `callResult` is what a call on the stand-in returns. The module is read twice,
+ * once with each value, so that a plugin list which depends on a call into
+ * another package gives two different answers and is left out. See
+ * `collectPlugins`.
  */
-const STUB_SOURCE = `
+function stubSource(callResult: string): string {
+  return `
 function makeStub() {
   const target = function () {
-    return makeStub();
+    return ${callResult};
   };
   return new Proxy(target, {
     get(_target, property) {
@@ -38,7 +44,7 @@ function makeStub() {
       }
     },
     apply() {
-      return makeStub();
+      return ${callResult};
     },
     construct() {
       return makeStub();
@@ -47,6 +53,19 @@ function makeStub() {
 }
 module.exports = makeStub();
 `;
+}
+
+/**
+ * The stand-in whose calls return another stand-in, so a condition on the
+ * result of a call into another package is true.
+ */
+const STUB_CONDITION_TRUE = stubSource('makeStub()');
+
+/**
+ * The stand-in whose calls return the empty string, so the same condition is
+ * false.
+ */
+const STUB_CONDITION_FALSE = stubSource("''");
 
 /**
  * File extensions the extension may import which are not JavaScript.
@@ -113,10 +132,12 @@ export interface IRecordedPlugin {
  *
  * #### Notes
  * A module is left out of the result when its plugins cannot be read, so that
- * JupyterLab keeps loading it as it would without this metadata. Reading is
- * best-effort by design: it evaluates the module with every import replaced by
- * a stand-in, and an extension is free to do something at import time which
- * that does not survive.
+ * JupyterLab keeps loading it as it would without this metadata. Reading a
+ * module means evaluating it with every import replaced by a stand-in, so a
+ * module which decides what to export from something it imports could be read
+ * differently than a browser runs it. Each module is therefore read twice, with
+ * stand-ins which make a condition on a call into another package true the
+ * first time and false the second, and is only recorded when the two agree.
  */
 export async function collectPlugins(
   modules: Record<string, string>
@@ -126,10 +147,54 @@ export async function collectPlugins(
     return {};
   }
 
+  let whenTrue: Record<string, string[]>;
+  let whenFalse: Record<string, string[]>;
+  try {
+    whenTrue = await readModules(modules, names, STUB_CONDITION_TRUE);
+    whenFalse = await readModules(modules, names, STUB_CONDITION_FALSE);
+  } catch (error) {
+    console.warn(
+      `Could not read the plugins of this extension, so JupyterLab will ` +
+        `load it to discover them: ${error}`
+    );
+    return {};
+  }
+
+  const collected: Record<string, IRecordedPlugin[]> = {};
+  for (const name of names) {
+    const ids = whenTrue[name];
+    const other = whenFalse[name];
+    if (!ids || !other) {
+      continue;
+    }
+    if (ids.length !== other.length || ids.some((id, i) => id !== other[i])) {
+      console.warn(
+        `The plugins ${name} provides depend on what the extension imports, ` +
+          `so they were not recorded and JupyterLab will load the module to ` +
+          `discover them. Export a fixed list of plugins to have them recorded.`
+      );
+      continue;
+    }
+    collected[name] = ids.map(id => ({ id }));
+  }
+  return collected;
+}
+
+/**
+ * Read every module once, with the given stand-in for their imports.
+ *
+ * @returns The plugin ids by module name, leaving out a module which could not
+ * be read.
+ */
+async function readModules(
+  modules: Record<string, string>,
+  names: string[],
+  stub: string
+): Promise<Record<string, string[]>> {
   const workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jupyter-builder-'));
   try {
     const stubPath = path.join(workDir, 'stub.js');
-    fs.writeFileSync(stubPath, STUB_SOURCE);
+    fs.writeFileSync(stubPath, stub);
 
     const entry: Record<string, string> = {};
     names.forEach((name, index) => {
@@ -138,20 +203,14 @@ export async function collectPlugins(
 
     await runCompilation(entry, workDir, stubPath);
 
-    const collected: Record<string, IRecordedPlugin[]> = {};
+    const read: Record<string, string[]> = {};
     names.forEach((name, index) => {
-      const plugins = readPlugins(path.join(workDir, `module${index}.js`));
-      if (plugins) {
-        collected[name] = plugins;
+      const ids = readPluginIds(path.join(workDir, `module${index}.js`));
+      if (ids) {
+        read[name] = ids;
       }
     });
-    return collected;
-  } catch (error) {
-    console.warn(
-      `Could not read the plugins of this extension, so JupyterLab will ` +
-        `load it to discover them: ${error}`
-    );
-    return {};
+    return read;
   } finally {
     fs.removeSync(workDir);
   }
@@ -213,11 +272,11 @@ function runCompilation(
 }
 
 /**
- * Evaluate one bundled module and read the plugins it provides.
+ * Evaluate one bundled module and read the ids of the plugins it provides.
  *
- * @returns The plugins, or `null` when they cannot all be read.
+ * @returns The ids, or `null` when they cannot all be read.
  */
-function readPlugins(bundlePath: string): IRecordedPlugin[] | null {
+function readPluginIds(bundlePath: string): string[] | null {
   let plugins: unknown[];
   try {
     plugins = getPlugins(require(bundlePath) as IExtensionModule);
@@ -232,5 +291,5 @@ function readPlugins(bundlePath: string): IRecordedPlugin[] | null {
     // while one of its plugins is enabled.
     return null;
   }
-  return (ids as string[]).map(id => ({ id }));
+  return ids as string[];
 }
