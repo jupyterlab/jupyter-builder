@@ -51,6 +51,8 @@ def _http_get(url: str, *, headers: dict[str, str] | None = None, timeout: int =
     request_headers = {"User-Agent": "jupyter-builder"}
     if headers:
         request_headers.update(headers)
+    if url.startswith("https://api.github.com/") and os.environ.get("GITHUB_TOKEN"):
+        request_headers["Authorization"] = f"Bearer {os.environ['GITHUB_TOKEN']}"
     req = urllib.request.Request(url, headers=request_headers)  # noqa: S310
     with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
         return bytes(resp.read())
