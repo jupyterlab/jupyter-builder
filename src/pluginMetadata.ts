@@ -50,9 +50,13 @@ interface IModule {
    */
   namespaces: Map<string, string>;
   /**
-   * What each imported name refers to, by local name.
+   * What each imported name refers to, by the name it is used under.
    */
-  imports: Map<string, { file: string; name: BindingName }>;
+  imports: Map<BindingName, { file: string; name: BindingName }>;
+  /**
+   * The files `export * from './x'` brings the names of into this one.
+   */
+  stars: string[];
   /**
    * The members assigned onto each TypeScript namespace in the file.
    */
@@ -255,7 +259,7 @@ function collectWrites(
     return false;
   }
   let understood = true;
-  walk(module.program, node => {
+  const visit = (node: acorn.AnyNode) => {
     let written: acorn.AnyNode[] | null = null;
     if (
       node.type === 'CallExpression' &&
@@ -283,8 +287,76 @@ function collectWrites(
         understood = false;
       }
     }
-  });
+  };
+  walk(module.program, visit, node => shadows(node, name));
   return understood;
+}
+
+/**
+ * Whether a scope binds `name` itself, so that what it does with that name says
+ * nothing about the array the module exports.
+ *
+ * #### Notes
+ * Only a declaration which covers the whole scope counts, so a `const` in a
+ * block nested deeper leaves the scope around it alone. Reading a use as a
+ * write it is not makes the module abstain, which is safe; taking a real write
+ * for a use of some other name would drop a plugin from the record.
+ */
+function shadows(node: acorn.AnyNode, name: string): boolean {
+  if (
+    node.type === 'FunctionDeclaration' ||
+    node.type === 'FunctionExpression' ||
+    node.type === 'ArrowFunctionExpression'
+  ) {
+    return (
+      node.params.some(param => binds(param, name)) ||
+      (node.body.type === 'BlockStatement' && declares(node.body.body, name))
+    );
+  }
+  return node.type === 'BlockStatement' && declares(node.body, name);
+}
+
+/**
+ * Whether the statements of a scope declare `name`.
+ */
+function declares(body: acorn.Statement[], name: string): boolean {
+  return body.some(statement => {
+    if (statement.type === 'VariableDeclaration') {
+      return statement.declarations.some(each => binds(each.id, name));
+    }
+    return (
+      (statement.type === 'FunctionDeclaration' ||
+        statement.type === 'ClassDeclaration') &&
+      statement.id?.name === name
+    );
+  });
+}
+
+/**
+ * Whether a binding pattern introduces `name`.
+ */
+function binds(pattern: acorn.Pattern, name: string): boolean {
+  switch (pattern.type) {
+    case 'Identifier':
+      return pattern.name === name;
+    case 'ObjectPattern':
+      return pattern.properties.some(property =>
+        binds(
+          property.type === 'RestElement' ? property.argument : property.value,
+          name
+        )
+      );
+    case 'ArrayPattern':
+      return pattern.elements.some(
+        element => element !== null && binds(element, name)
+      );
+    case 'RestElement':
+      return binds(pattern.argument, name);
+    case 'AssignmentPattern':
+      return binds(pattern.left, name);
+    default:
+      return false;
+  }
 }
 
 /**
@@ -367,13 +439,20 @@ function follow(graph: Map<string, IModule>, start: IResolved): IResolved {
 }
 
 /**
- * Look one name up, in the file it is written in or the file it comes from.
+ * Look one name up, in the file it is written in or any file it comes from.
  */
 function resolve(
   graph: Map<string, IModule>,
   file: string,
-  name: BindingName
+  name: BindingName,
+  seen = new Set<string>()
 ): IResolved | null {
+  const key = `${file}#${String(name)}`;
+  if (seen.has(key)) {
+    return null;
+  }
+  seen.add(key);
+
   const module = graph.get(file);
   if (!module) {
     return null;
@@ -382,15 +461,26 @@ function resolve(
   if (bound) {
     return { file, node: bound };
   }
+  // The file it comes from may pass it on again, as a barrel file does.
+  const imported = module.imports.get(name);
+  if (imported) {
+    const found = resolve(graph, imported.file, imported.name, seen);
+    if (found) {
+      return found;
+    }
+  }
+  // `export * from './x'` puts the names of another file in this one. It leaves
+  // out the default export, which is why a symbol stops here.
   if (typeof name !== 'string') {
     return null;
   }
-  const imported = module.imports.get(name);
-  if (!imported) {
-    return null;
+  for (const star of module.stars) {
+    const found = resolve(graph, star, name, seen);
+    if (found) {
+      return found;
+    }
   }
-  const node = graph.get(imported.file)?.bindings.get(imported.name);
-  return node ? { file: imported.file, node } : null;
+  return null;
 }
 
 /**
@@ -461,6 +551,12 @@ function foldMember(
   property: string,
   seen: Set<string>
 ): string | null {
+  const key = `${file}#${object}.${property}`;
+  if (seen.has(key)) {
+    return null;
+  }
+  seen.add(key);
+
   const module = graph.get(file);
   if (!module) {
     return null;
@@ -498,9 +594,12 @@ function foldMember(
     }
   }
 
-  // an object literal held in a name, such as `const C = { NAME: '...' }`
   const held = resolve(graph, file, object);
-  if (held && held.node.type === 'ObjectExpression') {
+  if (!held) {
+    return null;
+  }
+  // an object literal held in a name, such as `const C = { NAME: '...' }`
+  if (held.node.type === 'ObjectExpression') {
     for (const each of held.node.properties) {
       if (
         each.type === 'Property' &&
@@ -510,6 +609,11 @@ function foldMember(
         return foldString(graph, held.file, each.value, seen);
       }
     }
+    return null;
+  }
+  // a name which stands for another, such as `const PACKAGE = _PACKAGE`
+  if (held.node.type === 'Identifier') {
+    return foldMember(graph, held.file, held.node.name, property, seen);
   }
   return null;
 }
@@ -521,6 +625,9 @@ function loadModule(graph: Map<string, IModule>, file: string): IModule {
   const existing = graph.get(file);
   if (existing) {
     return existing;
+  }
+  if (path.extname(file) === '.json') {
+    return loadJSON(graph, file);
   }
 
   const program = acorn.parse(fs.readFileSync(file, 'utf8'), {
@@ -536,7 +643,8 @@ function loadModule(graph: Map<string, IModule>, file: string): IModule {
     bindings: new Map(),
     namespaces: new Map(),
     imports: new Map(),
-    namespaceMembers: new Map()
+    namespaceMembers: new Map(),
+    stars: []
   };
   graph.set(file, module);
 
@@ -556,6 +664,54 @@ function loadModule(graph: Map<string, IModule>, file: string): IModule {
       const target = resolveFile(file, source);
       if (target) {
         loadModule(graph, target);
+      }
+    } else if (node.type === 'VariableDeclaration') {
+      for (const declarator of node.declarations) {
+        const target = requireTarget(file, declarator.init);
+        if (target) {
+          loadModule(graph, target);
+        }
+      }
+    }
+  }
+  return module;
+}
+
+/**
+ * Read a JSON file the extension imports, such as its own `package.json`.
+ *
+ * #### Notes
+ * The text is parsed as a parenthesised expression, so that the object and its
+ * members are the same nodes as an object written in a source file and the
+ * folding reads them without a case of their own.
+ */
+function loadJSON(graph: Map<string, IModule>, file: string): IModule {
+  const program = acorn.parse(`(${fs.readFileSync(file, 'utf8')})`, {
+    ecmaVersion: 'latest'
+  });
+  const module: IModule = {
+    program,
+    bindings: new Map(),
+    namespaces: new Map(),
+    imports: new Map(),
+    namespaceMembers: new Map(),
+    stars: []
+  };
+  graph.set(file, module);
+
+  const statement = program.body[0];
+  if (statement?.type !== 'ExpressionStatement') {
+    return module;
+  }
+  module.bindings.set(DEFAULT, statement.expression);
+  if (statement.expression.type === 'ObjectExpression') {
+    for (const property of statement.expression.properties) {
+      if (property.type !== 'Property') {
+        continue;
+      }
+      const name = propertyName(property);
+      if (name !== null) {
+        module.bindings.set(name, property.value);
       }
     }
   }
@@ -591,12 +747,24 @@ function indexTopLevel(module: IModule, file: string): void {
         }
       }
     } else if (node.type === 'VariableDeclaration') {
-      bindDeclarations(module, node);
-    } else if (
-      node.type === 'ExportNamedDeclaration' &&
-      node.declaration?.type === 'VariableDeclaration'
-    ) {
-      bindDeclarations(module, node.declaration);
+      bindDeclarations(module, node, file);
+    } else if (node.type === 'ExportNamedDeclaration') {
+      if (node.declaration?.type === 'VariableDeclaration') {
+        bindDeclarations(module, node.declaration, file);
+      }
+      indexReExports(module, node, file);
+    } else if (node.type === 'ExportAllDeclaration') {
+      const target =
+        typeof node.source.value === 'string'
+          ? resolveFile(file, node.source.value)
+          : null;
+      if (target) {
+        if (node.exported?.type === 'Identifier') {
+          module.namespaces.set(node.exported.name, target);
+        } else {
+          module.stars.push(target);
+        }
+      }
     } else if (node.type === 'ExportDefaultDeclaration') {
       module.bindings.set(DEFAULT, node.declaration);
     }
@@ -608,13 +776,105 @@ function indexTopLevel(module: IModule, file: string): void {
  */
 function bindDeclarations(
   module: IModule,
-  node: acorn.VariableDeclaration
+  node: acorn.VariableDeclaration,
+  file: string
 ): void {
   for (const declarator of node.declarations) {
-    if (declarator.id.type === 'Identifier' && declarator.init) {
+    if (!declarator.init) {
+      continue;
+    }
+    // `const x = require('./y')`, which a CommonJS build writes for an import
+    const required = requireTarget(file, declarator.init);
+    if (required) {
+      bindRequire(module, declarator.id, required);
+    } else if (declarator.id.type === 'Identifier') {
       module.bindings.set(declarator.id.name, declarator.init);
     }
   }
+}
+
+/**
+ * Bind the names a `require` of one of the extension's own files introduces.
+ */
+function bindRequire(module: IModule, id: acorn.Pattern, target: string): void {
+  if (id.type === 'Identifier') {
+    // The whole module, read the same way as `import * as x from './y'`.
+    module.namespaces.set(id.name, target);
+    return;
+  }
+  if (id.type !== 'ObjectPattern') {
+    return;
+  }
+  for (const property of id.properties) {
+    if (property.type !== 'Property' || property.value.type !== 'Identifier') {
+      continue;
+    }
+    const name = propertyName(property);
+    if (name !== null) {
+      module.imports.set(property.value.name, { file: target, name });
+    }
+  }
+}
+
+/**
+ * Index what `export { x } from './y'` and `export { x as default }` bind.
+ */
+function indexReExports(
+  module: IModule,
+  node: acorn.ExportNamedDeclaration,
+  file: string
+): void {
+  const target =
+    node.source && typeof node.source.value === 'string'
+      ? resolveFile(file, node.source.value)
+      : null;
+  for (const specifier of node.specifiers) {
+    if (
+      specifier.local.type !== 'Identifier' ||
+      specifier.exported.type !== 'Identifier'
+    ) {
+      continue;
+    }
+    const exported =
+      specifier.exported.name === 'default' ? DEFAULT : specifier.exported.name;
+    if (target) {
+      module.imports.set(exported, {
+        file: target,
+        name:
+          specifier.local.name === 'default' ? DEFAULT : specifier.local.name
+      });
+    } else if (specifier.exported.name !== specifier.local.name) {
+      // A rename, such as `export { plugin as default }`. A name exported under
+      // itself needs nothing, as the declaration it renames is already bound.
+      module.bindings.set(exported, specifier.local);
+    }
+  }
+}
+
+/**
+ * The file a `require('./x')` call refers to.
+ *
+ * #### Notes
+ * A CommonJS build wraps the call in a helper for a default or namespace
+ * import, so a call taking one argument is looked through.
+ */
+function requireTarget(
+  file: string,
+  node: acorn.AnyNode | null | undefined
+): string | null {
+  if (!node || node.type !== 'CallExpression' || node.arguments.length !== 1) {
+    return null;
+  }
+  const argument = node.arguments[0];
+  if (
+    node.callee.type === 'Identifier' &&
+    node.callee.name === 'require' &&
+    argument.type === 'Literal' &&
+    typeof argument.value === 'string'
+  ) {
+    return resolveFile(file, argument.value);
+  }
+  return requireTarget(file, argument);
 }
 
 /**
@@ -697,9 +957,12 @@ function indexCommonJS(module: IModule): void {
 }
 
 /**
- * The name of a property written without brackets.
+ * The name of a property written without brackets, whether it is read or
+ * destructured.
  */
-function propertyName(node: acorn.Property): string | null {
+function propertyName(
+  node: acorn.Property | acorn.AssignmentProperty
+): string | null {
   if (node.key.type === 'Identifier') {
     return node.key.name;
   }
@@ -712,8 +975,8 @@ function propertyName(node: acorn.Property): string | null {
 /**
  * Resolve one of the extension's own imports to a file.
  *
- * @returns The path, or `null` for anything which is not a JavaScript file of
- * this extension, such as a package or a stylesheet.
+ * @returns The path, or `null` for anything which is not a JavaScript or JSON
+ * file of this extension, such as a package or a stylesheet.
  */
 function resolveFile(fromFile: string, request: string): string | null {
   if (!request.startsWith('.') && !path.isAbsolute(request)) {
@@ -722,7 +985,7 @@ function resolveFile(fromFile: string, request: string): string | null {
   const base = path.resolve(path.dirname(fromFile), request);
   for (const candidate of [base, `${base}.js`, path.join(base, 'index.js')]) {
     if (
-      candidate.endsWith('.js') &&
+      (candidate.endsWith('.js') || candidate.endsWith('.json')) &&
       fs.existsSync(candidate) &&
       fs.statSync(candidate).isFile()
     ) {
@@ -733,9 +996,16 @@ function resolveFile(fromFile: string, request: string): string | null {
 }
 
 /**
- * Visit every node of a tree.
+ * Visit every node of a tree, apart from the subtrees `skip` answers for.
  */
-function walk(node: acorn.AnyNode, visit: (node: acorn.AnyNode) => void): void {
+function walk(
+  node: acorn.AnyNode,
+  visit: (node: acorn.AnyNode) => void,
+  skip?: (node: acorn.AnyNode) => boolean
+): void {
+  if (skip?.(node)) {
+    return;
+  }
   visit(node);
   for (const value of Object.values(
     node as unknown as Record<string, unknown>
@@ -743,11 +1013,11 @@ function walk(node: acorn.AnyNode, visit: (node: acorn.AnyNode) => void): void {
     if (Array.isArray(value)) {
       for (const child of value) {
         if (isNode(child)) {
-          walk(child, visit);
+          walk(child, visit, skip);
         }
       }
     } else if (isNode(value)) {
-      walk(value, visit);
+      walk(value, visit, skip);
     }
   }
 }
