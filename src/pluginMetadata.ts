@@ -156,65 +156,166 @@ function readPluginIds(entryFile: string): string[] | null {
  * Every expression which can end up in the default export, whichever branch of
  * the module runs.
  *
- * @returns The expressions, or `null` when the shape of the export is not one
- * this understands.
+ * @returns The expressions, or `null` when a value which could be a plugin
+ * cannot be resolved.
+ *
+ * #### Notes
+ * More than the export can end up in it: an array held in a name can be written
+ * to anywhere in the file. Every write is read, and any value it cannot resolve
+ * makes it give up rather than record a list which is missing a plugin. A value
+ * it can resolve and which is not a plugin, such as the index and count
+ * `splice` is given, is left out instead. The result is therefore a superset of
+ * what the module provides, which is the safe direction: JupyterLab skips a
+ * module only when every plugin recorded for it is disabled, so an entry too
+ * many can only make it skip less often.
  */
 function pluginExpressions(
   graph: Map<string, IModule>,
   exported: IResolved
 ): IResolved[] | null {
-  const { file, node } = follow(graph, exported);
+  const { file } = follow(graph, exported);
   const module = graph.get(file);
   if (!module) {
     return null;
   }
 
-  if (node.type === 'ObjectExpression') {
-    return [{ file, node }];
-  }
-  if (node.type !== 'ArrayExpression') {
+  const plugins: IResolved[] = [];
+  if (!collectExported(graph, exported, plugins)) {
     return null;
   }
 
-  const plugins: IResolved[] = [];
-  for (const element of node.elements) {
-    if (!element || element.type === 'SpreadElement') {
-      return null;
-    }
-    plugins.push({ file, node: element });
-  }
-
-  // An array held in a name can be added to anywhere in the file, and reading
-  // rather than running the module means both sides of a condition are found.
   const name = arrayName(graph, exported);
   if (name === null) {
     return plugins;
   }
+  return collectWrites(graph, file, name, plugins) ? plugins : null;
+}
+
+/**
+ * Collect from a value the module exports, which has to be a plugin or a list
+ * of them.
+ */
+function collectExported(
+  graph: Map<string, IModule>,
+  value: IResolved,
+  plugins: IResolved[]
+): boolean {
+  const { file, node } = follow(graph, value);
+  if (node.type === 'ObjectExpression') {
+    plugins.push({ file, node });
+    return true;
+  }
+  if (node.type === 'ArrayExpression') {
+    return node.elements.every(element => {
+      if (!element) {
+        return false;
+      }
+      const inner =
+        element.type === 'SpreadElement' ? element.argument : element;
+      return collectExported(graph, { file, node: inner }, plugins);
+    });
+  }
+  // `[...].concat(more)`, which is a list of plugins written another way
+  if (
+    node.type === 'CallExpression' &&
+    node.callee.type === 'MemberExpression' &&
+    !node.callee.computed &&
+    node.callee.property.type === 'Identifier' &&
+    node.callee.property.name === 'concat'
+  ) {
+    return (
+      collectExported(graph, { file, node: node.callee.object }, plugins) &&
+      node.arguments.every(argument =>
+        collectExported(
+          graph,
+          {
+            file,
+            node:
+              argument.type === 'SpreadElement' ? argument.argument : argument
+          },
+          plugins
+        )
+      )
+    );
+  }
+  return false;
+}
+
+/**
+ * Collect from every value written into the array held in `name`.
+ */
+function collectWrites(
+  graph: Map<string, IModule>,
+  file: string,
+  name: string,
+  plugins: IResolved[]
+): boolean {
+  const module = graph.get(file);
+  if (!module) {
+    return false;
+  }
   let understood = true;
-  walk(module.program, each => {
-    if (each.type !== 'CallExpression') {
-      return;
-    }
-    const callee = each.callee;
+  walk(module.program, node => {
+    let written: acorn.AnyNode[] | null = null;
     if (
-      callee.type !== 'MemberExpression' ||
-      callee.computed ||
-      callee.object.type !== 'Identifier' ||
-      callee.object.name !== name ||
-      callee.property.type !== 'Identifier' ||
-      (callee.property.name !== 'push' && callee.property.name !== 'unshift')
+      node.type === 'CallExpression' &&
+      node.callee.type === 'MemberExpression' &&
+      node.callee.object.type === 'Identifier' &&
+      node.callee.object.name === name
     ) {
+      // Any method, not only the ones which add: a method which removes leaves
+      // the result a superset, and one this does not know about is read the
+      // same way as the rest.
+      written = [...node.arguments];
+    } else if (
+      node.type === 'AssignmentExpression' &&
+      node.left.type === 'MemberExpression' &&
+      node.left.object.type === 'Identifier' &&
+      node.left.object.name === name
+    ) {
+      written = [node.right];
+    }
+    if (!written) {
       return;
     }
-    for (const argument of each.arguments) {
-      if (argument.type === 'SpreadElement') {
+    for (const value of written) {
+      if (!collectWritten(graph, { file, node: value }, plugins)) {
         understood = false;
-      } else {
-        plugins.push({ file, node: argument });
       }
     }
   });
-  return understood ? plugins : null;
+  return understood;
+}
+
+/**
+ * Collect from a value written into the list, which may be anything.
+ */
+function collectWritten(
+  graph: Map<string, IModule>,
+  value: IResolved,
+  plugins: IResolved[]
+): boolean {
+  const { file, node } = follow(graph, value);
+  if (node.type === 'ObjectExpression') {
+    plugins.push({ file, node });
+    return true;
+  }
+  if (node.type === 'ArrayExpression') {
+    return node.elements.every(element => {
+      if (!element) {
+        return true;
+      }
+      const inner =
+        element.type === 'SpreadElement' ? element.argument : element;
+      return collectWritten(graph, { file, node: inner }, plugins);
+    });
+  }
+  // A value which is plainly not a plugin, such as the index and count `splice`
+  // is given, or the `0` of `plugins.length = 0`.
+  if (node.type === 'Literal' || node.type === 'TemplateLiteral') {
+    return true;
+  }
+  return false;
 }
 
 /**
