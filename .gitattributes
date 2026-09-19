@@ -1,0 +1,6 @@
+# The vendored Yarn CLI is a prebuilt upstream artifact, not source. Its exact
+# bytes are what YARN_SHA256 in jupyter_builder/_yarn_info.py records and what
+# ships in the wheel, so Git must never rewrite its line endings on checkout --
+# core.autocrlf is on by default on Windows, which would otherwise make the
+# bundle, and its hash, differ per platform.
+jupyter_builder/yarn.js binary
