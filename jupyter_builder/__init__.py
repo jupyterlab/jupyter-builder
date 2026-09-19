@@ -14,5 +14,6 @@ except ImportError:
     warnings.warn("Importing 'jupyter_builder' outside a proper installation.", stacklevel=1)
     __version__ = "dev"
 
-from ._yarn_info import YARN_SHA256 as YARN_SHA256
-from ._yarn_info import YARN_VERSION as YARN_VERSION
+from ._yarn_info import YARN_PACKAGE_MANAGER, YARN_SHA256, YARN_VERSION
+
+__all__ = ["YARN_PACKAGE_MANAGER", "YARN_SHA256", "YARN_VERSION", "__version__"]
