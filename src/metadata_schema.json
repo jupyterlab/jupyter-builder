@@ -97,6 +97,10 @@
       "$ref": "#/definitions/relativePath",
       "default": null
     },
+    "moduleFederationVersion": {
+      "title": "Module Federation runtime version",
+      "description": "The Module Federation runtime version to build with. Defaults to 1."
+    },
     "sharedPackages": {
       "description": "Modules that should be shared in the share scope. When provided, property names are used to match requested modules in this compilation.",
       "ref": "#/definitions/sharedObject"

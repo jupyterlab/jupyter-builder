@@ -215,9 +215,14 @@ def build_labextension(  # noqa: PLR0913, PLR0917
     core_version: str | None = None,
     core_package_file: str | None = None,
     core_path: str | None = None,
+    module_federation_version: str | int | None = None,
 ) -> None:
     """Build a labextension in the given path."""
     ext_path = str(Path(path).resolve())
+
+    module_federation_version = _normalize_module_federation_version(
+        module_federation_version,
+    )
 
     if core_path is not None:
         if logger:
@@ -247,8 +252,10 @@ def build_labextension(  # noqa: PLR0913, PLR0917
     else:
         core_flag = ["--core-package-file", core_package_file]
 
+    mf_flag = _module_federation_flag(module_federation_version, marker_pkg)
+
     node = _which_node_js()
-    arguments = [node, builder, *core_flag, ext_path]
+    arguments = [node, builder, *core_flag, *mf_flag, ext_path]
     if static_url is not None:
         arguments.extend(["--static-url", static_url])
     if development:
@@ -267,9 +274,15 @@ def watch_labextension(  # noqa: PLR0913, PLR0917
     source_map: bool = False,
     core_version: str | None = None,
     core_package_file: str | None = None,
+    module_federation_version: str | int | None = None,
 ) -> None:
     """Watch a labextension in a given path."""
     ext_path = str(Path(path).resolve())
+
+    module_federation_version = _normalize_module_federation_version(
+        module_federation_version,
+    )
+
     core_package_file = core_package_file or get_core_meta(
         core_version,
         ext_path=ext_path,
@@ -312,8 +325,10 @@ def watch_labextension(  # noqa: PLR0913, PLR0917
     else:
         core_flag = ["--core-package-file", core_package_file]
 
+    mf_flag = _module_federation_flag(module_federation_version, marker_pkg)
+
     node = _which_node_js()
-    arguments = [node, builder, *core_flag, "--watch", ext_path]
+    arguments = [node, builder, *core_flag, *mf_flag, "--watch", ext_path]
     if development:
         arguments.append("--development")
     if source_map:
@@ -330,6 +345,49 @@ def watch_labextension(  # noqa: PLR0913, PLR0917
 # Marker packages an extension may declare to identify its builder, in order
 # of preference.
 _BUILDER_MARKER_CANDIDATES = ("@jupyter/builder", "@jupyterlab/builder")
+
+# Module Federation runtime versions the builder can build against. Version 1
+# is the default and is applied by the builder itself, not here, so that an
+# extension's `jupyterlab.moduleFederationVersion` still applies when no
+# version is requested on the command line.
+_MODULE_FEDERATION_VERSIONS = ("1", "2")
+
+
+def _normalize_module_federation_version(value: str | int | None) -> str | None:
+    """Validate a requested Module Federation runtime version.
+
+    Returns the version as a string, or ``None`` when none was requested.
+    """
+    if value is None or value == "":
+        return None
+    normalized = str(value)
+    if normalized not in _MODULE_FEDERATION_VERSIONS:
+        msg = (
+            f"Invalid module_federation_version {value!r}: expected 1 or 2. "
+            "Version 1 (the default) is the webpack-compatible Module Federation "
+            "runtime; version 2 is experimental"
+        )
+        raise ValueError(msg)
+    return normalized
+
+
+def _module_federation_flag(version: str | None, marker_pkg: str) -> list[str]:
+    """Return the builder flag selecting the Module Federation runtime version.
+
+    Empty when no version was requested, which leaves the choice to the
+    extension's `jupyterlab.moduleFederationVersion` and then the builder
+    default of 1.
+    """
+    if version is None:
+        return []
+    if marker_pkg != "@jupyter/builder":
+        msg = (
+            f"module_federation_version is only supported by @jupyter/builder, but "
+            f"this extension builds with {marker_pkg}, which has no such option."
+        )
+        raise ValueError(msg)
+    return ["--module-federation-version", version]
+
 
 # Minimum Node.js range required by `@rspack/core` when its own `engines.node`
 # field cannot be read. `@rspack/core` is a pure ES module that older Node.js

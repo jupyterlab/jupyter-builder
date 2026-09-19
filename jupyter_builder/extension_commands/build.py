@@ -48,6 +48,16 @@ class BuildLabExtensionApp(BaseExtensionApp):
         ),
     )
 
+    module_federation_version = Unicode(
+        "",
+        config=True,
+        help=(
+            "Module Federation runtime version to build with, either '1' or '2' "
+            "(default: '1'). Takes precedence over the extension's "
+            "jupyterlab.moduleFederationVersion."
+        ),
+    )
+
     aliases = {  # noqa: RUF012
         "static-url": "BuildLabExtensionApp.static_url",
         "development": "BuildLabExtensionApp.development",
@@ -55,6 +65,7 @@ class BuildLabExtensionApp(BaseExtensionApp):
         "core-package-file": "BuildLabExtensionApp.core_package_file",
         "core-path": "BuildLabExtensionApp.core_path",
         "core-version": "BuildLabExtensionApp.core_version",
+        "module-federation-version": "BuildLabExtensionApp.module_federation_version",
     }
 
     def run_task(self) -> None:
@@ -69,6 +80,7 @@ class BuildLabExtensionApp(BaseExtensionApp):
             core_version=self.core_version or None,
             core_package_file=self.core_package_file or None,
             core_path=self.core_path or None,
+            module_federation_version=self.module_federation_version or None,
         )
 
 

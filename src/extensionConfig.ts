@@ -12,7 +12,10 @@ import Ajv from 'ajv';
 
 const baseConfig = require('./webpack.config.base');
 
-// Deliberately the V1 (webpack-compatible) plugin rather than
+// Both Module Federation plugins, selected per build by
+// `moduleFederationVersion` (see `resolveModuleFederationVersion`).
+//
+// V1 - the webpack-compatible plugin - is deliberately the default rather than
 // `rspack.container.ModuleFederationPlugin`, which uses the Module Federation
 // 2.0 runtime. MF2 resolves a shared package that is consumed with
 // `import: false` and `singleton: false` - which is how core packages absent
@@ -22,7 +25,46 @@ const baseConfig = require('./webpack.config.base');
 // back to. V1 keeps webpack's behaviour of warning and using whatever version
 // the host provides, which is what makes an extension built against one
 // JupyterLab minor loadable in the next.
-const { ModuleFederationPluginV1: ModuleFederationPlugin } = rspack.container;
+//
+// Version 2 opts into the MF2 runtime, and with it the MF2 feature set. It is
+// only safe for extensions that do not consume non-singleton shared packages
+// lacking a bundled fallback, so it stays opt-in until the upstream gap is
+// closed: https://github.com/module-federation/core/issues/4651
+const {
+  ModuleFederationPluginV1,
+  ModuleFederationPlugin: ModuleFederationPluginV2
+} = rspack.container;
+
+/**
+ * The Module Federation runtime version an extension is built against.
+ */
+export type ModuleFederationVersion = 1 | 2;
+
+/**
+ * The Module Federation runtime version used when neither the CLI nor the
+ * extension's `package.json` requests one.
+ */
+export const DEFAULT_MODULE_FEDERATION_VERSION: ModuleFederationVersion = 1;
+
+/**
+ * Resolve the Module Federation runtime version to build with.
+ */
+export function resolveModuleFederationVersion(
+  fromOptions?: ModuleFederationVersion,
+  fromPackageData?: unknown
+): ModuleFederationVersion {
+  const requested = fromOptions ?? fromPackageData;
+  if (requested === undefined || requested === null) {
+    return DEFAULT_MODULE_FEDERATION_VERSION;
+  }
+  if (requested === 1 || requested === 2) {
+    return requested;
+  }
+  console.error(
+    `Invalid moduleFederationVersion ${JSON.stringify(requested)}: expected 1 or 2.`
+  );
+  return process.exit(1);
+}
 
 type SharedConfig = {
   requiredVersion?: string;
@@ -38,6 +80,7 @@ export interface IOptions {
   staticUrl?: string;
   mode?: 'development' | 'production';
   devtool?: string;
+  moduleFederationVersion?: ModuleFederationVersion;
 }
 
 function generateConfig({
@@ -45,7 +88,11 @@ function generateConfig({
   corePackageFile = 'package.json',
   staticUrl = '',
   mode = 'production',
-  devtool = mode === 'development' ? 'source-map' : undefined
+  devtool = mode === 'development' ? 'source-map' : undefined,
+  // No default here: `undefined` means "not requested", which lets the
+  // extension's `package.json` have its say before the default is applied in
+  // `resolveModuleFederationVersion` below.
+  moduleFederationVersion: requestedModuleFederationVersion
 }: IOptions = {}): rspack.Configuration[] {
   const data = require(path.join(packagePath, 'package.json'));
 
@@ -56,6 +103,12 @@ function generateConfig({
     console.error(validate.errors);
     process.exit(1);
   }
+
+  // The CLI flag wins over the extension's `package.json`.
+  const moduleFederationVersion = resolveModuleFederationVersion(
+    requestedModuleFederationVersion,
+    data.jupyterlab['moduleFederationVersion']
+  );
 
   const outputPath = path.join(packagePath, data.jupyterlab['outputDir']);
   const staticPath = path.join(outputPath, 'static');
@@ -273,6 +326,12 @@ function generateConfig({
       webpackConfig = require(webpackConfigPath);
     }
   }
+
+  // Version 1 unless the build explicitly opted into the MF2 runtime;
+  const ModuleFederationPlugin =
+    moduleFederationVersion === 2
+      ? ModuleFederationPluginV2
+      : ModuleFederationPluginV1;
 
   const plugins: NonNullable<rspack.Configuration['plugins']> = [
     new ModuleFederationPlugin({
