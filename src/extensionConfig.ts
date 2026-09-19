@@ -261,16 +261,17 @@ function generateConfig({
     }
   }
 
-  // Allow custom webpack config
-  let webpackConfigPath = data.jupyterlab['webpackConfig'];
-  let webpackConfig = {};
+  // Allow a custom Rspack config, and fall back to webpackConfig
+  let rspackConfigPath =
+    data.jupyterlab['rspackConfig'] || data.jupyterlab['webpackConfig'];
+  let rspackConfig = {};
 
-  // Use the custom webpack config only if the path to the config
+  // Use the custom Rspack config only if the path to the config
   // is specified in package.json (opt-in)
-  if (webpackConfigPath) {
-    webpackConfigPath = path.join(packagePath, webpackConfigPath);
-    if (fs.existsSync(webpackConfigPath)) {
-      webpackConfig = require(webpackConfigPath);
+  if (rspackConfigPath) {
+    rspackConfigPath = path.join(packagePath, rspackConfigPath);
+    if (fs.existsSync(rspackConfigPath)) {
+      rspackConfig = require(rspackConfigPath);
     }
   }
 
@@ -329,7 +330,7 @@ function generateConfig({
         },
         plugins
       },
-      webpackConfig,
+      rspackConfig,
       {
         module: {
           rules
