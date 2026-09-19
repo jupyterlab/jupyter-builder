@@ -13,13 +13,16 @@ defaults:
   run:
     shell: bash -eux {0}
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Base Setup
       uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
@@ -47,7 +50,7 @@ jobs:
         python -m build
 
     - name: Upload extension packages
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: extension-artifacts
         path: dist/jupyter_builder*
@@ -59,11 +62,11 @@ jobs:
 
     steps:
     - name: Install Python
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: '3.10'
         architecture: 'x64'
-    - uses: actions/download-artifact@v7
+    - uses: actions/download-artifact@v8
       with:
         name: extension-artifacts
     - name: Install and Test
@@ -86,20 +89,22 @@ jobs:
             python-version: "pypy-3.11"
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Base Setup
         uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
       -
         run: pip install -e ".[test,dev]"
       - name: Run the tests
         run: pytest --cov
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: jupyterlab/maintainer-tools/.github/actions/upload-coverage@v1
 
   test_lint:
     name: Test Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
       -
         run: pip install -e ".[test,dev]"
@@ -107,17 +112,19 @@ jobs:
         run: |
           python -m pre_commit run --all
           # pipx run interrogate -v .
+      - name: Check dependencies with deptry
+        run: deptry .
 
   test_minimum_versions:
     name: Test Minimum Versions
     timeout-minutes: 20
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
         with:
           dependency_type: minimum
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.10"
       - run: pip install -e ".[test,dev]"
@@ -129,7 +136,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
         with:
           dependency_type: pre
@@ -143,7 +150,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
       - uses: jupyterlab/maintainer-tools/.github/actions/make-sdist@v1
 
@@ -164,19 +171,36 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
       - uses: jupyterlab/maintainer-tools/.github/actions/check-links@v1
 
-  # coverage:
-  #   runs-on: ubuntu-latest
-  #   needs:
-  #     - test
-  #   steps:
-  #     - uses: actions/checkout@v6
-  #     - uses: jupyterlab/maintainer-tools/.github/actions/report-coverage@v1
-  #       with:
-  #         fail_under: 80
+  coverage:
+    runs-on: ubuntu-latest
+    needs:
+      - test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      # Each test job uploads its .coverage.* data files as a coverage-*
+      # artifact; pull them all into the workspace root for combining.
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: coverage-*
+          merge-multiple: true
+      - name: Combine coverage and fail if below threshold
+        run: |
+          set -eux
+          pip install "coverage[toml]>=7.10.6"
+          coverage combine
+          {
+            echo '```'
+            coverage report
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          coverage report --fail-under=80
 
   tests_check: # This job does nothing and is only used for the branch protection
     if: always()
@@ -189,6 +213,7 @@ jobs:
       - test_prereleases
       - check_links
       - test_sdist
+      - coverage
     runs-on: ubuntu-latest
     steps:
       - name: Decide whether the needed jobs succeeded or failed

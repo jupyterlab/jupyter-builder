@@ -152,9 +152,14 @@ export namespace Build {
 
       // Handle schemas.
       if (schemaDir) {
-        const schemas = glob.sync(
-          path.join(path.join(packageDir, schemaDir), '*')
-        );
+        // The schema directory is passed as `cwd` rather than joined into the
+        // pattern so that its separators (on Windows) and any glob syntax it
+        // contains are treated as a literal path. See the matching note in
+        // `extensionConfig.ts`.
+        const schemas = glob.sync('*', {
+          cwd: path.join(packageDir, schemaDir),
+          absolute: true
+        });
         const destination = path.join(schemaOutput, 'schemas', name);
 
         // Remove the existing directory if necessary.

@@ -34,7 +34,9 @@ class WatchLabExtensionApp(BaseExtensionApp):
         "",
         config=True,
         help=(
-            "Version of JupyterLab core to use when watching (ignored if core-package-file is set)"
+            "Version of JupyterLab core to use when watching, e.g. 'X.Y.Z' or 'vX.Y.Z' "
+            "(ignored if core-package-file is set). Watching fails if the version cannot "
+            "be resolved."
         ),
     )
 

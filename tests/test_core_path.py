@@ -3,14 +3,21 @@
 
 import io
 import json
+import re
 import tarfile
 import urllib.error
 from pathlib import Path
+from unittest import mock
 
 import pytest
 
-from jupyter_builder import core_path
-from jupyter_builder.federated_extensions import _ensure_builder
+from jupyter_builder import core_path, federated_extensions
+from jupyter_builder.federated_extensions import (
+    _check_node_version,
+    _ensure_builder,
+    _read_rspack_node_range,
+    _satisfies_allowing_prerelease,
+)
 
 
 def _make_core_package_tarball(content: bytes) -> bytes:
@@ -20,6 +27,19 @@ def _make_core_package_tarball(content: bytes) -> bytes:
         info.size = len(content)
         tar.addfile(info, io.BytesIO(content))
     return buf.getvalue()
+
+
+@pytest.fixture(autouse=True)
+def _no_jupyterlab_installed(monkeypatch):
+    """Default to "jupyterlab is not installed" so tests are isolated from the dev environment.
+
+    Tests that exercise the fallback-version compatibility check override this.
+    """
+
+    def _raise_not_found(_package):
+        raise core_path.PackageNotFoundError(_package)
+
+    monkeypatch.setattr(core_path, "installed_version", _raise_not_found)
 
 
 def test_get_core_meta_prefers_installed_core_meta(tmp_path):
@@ -126,9 +146,173 @@ def test_get_core_meta_falls_back_to_github_when_npm_fails(tmp_path, monkeypatch
     ext_path.mkdir()
     monkeypatch.setenv("HOME", str(tmp_path))
 
+    # JupyterLab releases are published as git tags like "v4.5.7", so a numeric
+    # version requested from GitHub must be looked up with the "v" prefix.
     github_url = (
         "https://raw.githubusercontent.com/"
-        "jupyterlab/jupyterlab/4.6.0-alpha.4/"
+        "jupyterlab/jupyterlab/v4.5.7/"
+        "jupyterlab/staging/package.json"
+    )
+    calls = []
+
+    def fake_urlopen(req_or_url, **_kwargs):
+        url = getattr(req_or_url, "full_url", req_or_url)
+        calls.append(url)
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.5.7":
+            msg = "Not Found"
+            raise urllib.error.URLError(msg)
+        if url == github_url:
+            return io.BytesIO(b'{"dependencies": {}}')
+        msg = f"Unexpected URL {url}"
+        raise AssertionError(msg)
+
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", fake_urlopen)
+
+    location = core_path.get_core_meta(version="4.5.7", ext_path=ext_path)
+
+    assert calls == [
+        f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.5.7",
+        github_url,
+    ]
+    assert location == str(
+        tmp_path / ".cache" / "jupyterlab_builder" / "core" / "4.5.7" / "core.package.json",
+    )
+
+
+def test_get_core_meta_accepts_v_prefixed_version(tmp_path, monkeypatch):
+    """A 'v'-prefixed version is normalized so it resolves identically to the bare form."""
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    github_url = (
+        "https://raw.githubusercontent.com/"
+        "jupyterlab/jupyterlab/v4.5.7/"
+        "jupyterlab/staging/package.json"
+    )
+    calls = []
+
+    def fake_urlopen(req_or_url, **_kwargs):
+        url = getattr(req_or_url, "full_url", req_or_url)
+        calls.append(url)
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.5.7":
+            msg = "Not Found"
+            raise urllib.error.URLError(msg)
+        if url == github_url:
+            return io.BytesIO(b'{"dependencies": {}}')
+        msg = f"Unexpected URL {url}"
+        raise AssertionError(msg)
+
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", fake_urlopen)
+
+    location = core_path.get_core_meta(version="v4.5.7", ext_path=ext_path)
+
+    # Both the npm lookup and the cache directory use the normalized "4.5.7".
+    assert calls == [
+        f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.5.7",
+        github_url,
+    ]
+    assert location == str(
+        tmp_path / ".cache" / "jupyterlab_builder" / "core" / "4.5.7" / "core.package.json",
+    )
+
+
+@pytest.mark.parametrize(
+    ("version", "expected_ref"),
+    [
+        ("4.5.7", "v4.5.7"),
+        ("4.6.0-alpha.4", "v4.6.0a4"),
+        ("4.6.0-beta.1", "v4.6.0b1"),
+        ("4.6.0-rc.2", "v4.6.0rc2"),
+        ("main", "main"),
+        ("some-branch", "some-branch"),
+    ],
+)
+def test_github_ref_maps_versions_to_git_tags(version, expected_ref):
+    assert core_path._github_ref(version) == expected_ref
+
+
+@pytest.mark.parametrize("version", ["4.5.7", "v4.5.7"])
+def test_normalize_version_accepts_both_forms(version):
+    assert core_path._normalize_version(version) == "4.5.7"
+
+
+@pytest.mark.parametrize(
+    ("version", "expected"),
+    [
+        # Partial specifiers are ranges over the omitted components.
+        ("4", "4.x.x"),
+        ("4.5", "4.5.x"),
+        # Partially wildcarded ranges are completed the same way.
+        ("4.x", "4.x.x"),
+        ("4.X", "4.x.x"),
+        ("4.*", "4.x.x"),
+        ("4.5.*", "4.5.x"),
+        ("4.5.X", "4.5.x"),
+        # Nothing is constrained after a wildcard component.
+        ("4.x.7", "4.x.x"),
+        # A bare wildcard means "any version".
+        ("*", "latest"),
+        ("x", "latest"),
+        # Concrete versions and non-numeric specifiers are left alone.
+        ("4.5.7", "4.5.7"),
+        ("4.5.x", "4.5.x"),
+        ("4.6.0-alpha.4", "4.6.0-alpha.4"),
+        ("latest", "latest"),
+        ("main", "main"),
+        ("some-branch", "some-branch"),
+    ],
+)
+def test_expand_partial_version(version, expected):
+    assert core_path._expand_partial_version(version) == expected
+
+
+@pytest.mark.parametrize(
+    ("spec", "expected"),
+    [
+        # A caret admits every later patch, so it becomes a patch wildcard; a tilde
+        # and an explicit lower bound stay pinned to the patch they name.
+        ("^4.5.7", "4.5.x"),
+        ("~4.5.7", "4.5.7"),
+        (">=v4.5.7", "4.5.7"),
+        ("4.5.7", "4.5.7"),
+        # A caret with no patch component is already a range of its own.
+        ("^4.5", "4.5"),
+        ("^4", "4"),
+        ("^4.5.x", "4.5.x"),
+        # A caret over a prerelease also allows every 4.6 patch.
+        ("^4.6.0-alpha.4", "4.6.x"),
+        # A union targets the newest JupyterLab the extension supports.
+        ("^4.3.6 || ^3.6.8", "4.3.x"),
+        ("^3 || ^4", "4"),
+        ("^4.5 || ^4.4.2", "4.5"),
+        # Alternatives are ranked by lower bound, so the tilde alternative wins here
+        # even though the caret alternative resolves to a wildcard.
+        ("^4.5.7 || ~4.6.0", "4.6.0"),
+        # Prereleases lose to the stable release of the same version.
+        ("~4.6.0-alpha.4 || ~4.6.0", "4.6.0"),
+        # Numeric, not lexical, ordering across alternatives.
+        ("~4.9.0 || ~4.10.0", "4.10.0"),
+        ("4.5.x", "4.5.x"),
+        # Specifiers that name no version at all.
+        ("latest", None),
+        ("main", None),
+        ("*", None),
+    ],
+)
+def test_range_lower_bound(spec, expected):
+    assert core_path._range_lower_bound(spec) == expected
+
+
+def test_get_core_meta_falls_back_to_github_for_prerelease(tmp_path, monkeypatch):
+    """An npm-style prerelease that npm lacks is fetched from the matching git tag."""
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    github_url = (
+        "https://raw.githubusercontent.com/"
+        "jupyterlab/jupyterlab/v4.6.0a4/"
         "jupyterlab/staging/package.json"
     )
     calls = []
@@ -155,6 +339,78 @@ def test_get_core_meta_falls_back_to_github_when_npm_fails(tmp_path, monkeypatch
     assert location == str(
         tmp_path / ".cache" / "jupyterlab_builder" / "core" / "4.6.0-alpha.4" / "core.package.json",
     )
+
+
+def test_get_core_meta_wildcard_resolves_from_github_when_npm_has_no_match(tmp_path, monkeypatch):
+    """A wildcard that npm cannot satisfy is resolved against GitHub release tags."""
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    tags_page1 = f"{core_path._GITHUB_TAGS_API_URL}?per_page=100&page=1"
+    tags_page2 = f"{core_path._GITHUB_TAGS_API_URL}?per_page=100&page=2"
+    # 4.5.10 must win over 4.5.2 — confirms numeric (not lexical) ordering.
+    github_url = (
+        "https://raw.githubusercontent.com/"
+        "jupyterlab/jupyterlab/v4.5.10/"
+        "jupyterlab/staging/package.json"
+    )
+    calls = []
+
+    def fake_urlopen(req_or_url, **_kwargs):
+        url = getattr(req_or_url, "full_url", req_or_url)
+        calls.append(url)
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta":
+            # npm publishes no 4.5.x, so the npm wildcard lookup finds no match.
+            return io.BytesIO(json.dumps({"versions": {"4.6.0": {}}}).encode())
+        if url == tags_page1:
+            return io.BytesIO(
+                json.dumps(
+                    [
+                        {"name": "v4.6.0"},
+                        {"name": "v4.5.2"},
+                        {"name": "v4.5.10"},
+                        {"name": "v4.5.1"},
+                    ],
+                ).encode(),
+            )
+        if url == tags_page2:
+            # Older tags with no 4.5.x match — resolution stops here.
+            return io.BytesIO(json.dumps([{"name": "v4.4.9"}]).encode())
+        if url == github_url:
+            return io.BytesIO(b'{"dependencies": {}}')
+        msg = f"Unexpected URL {url}"
+        raise AssertionError(msg)
+
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", fake_urlopen)
+
+    location = core_path.get_core_meta(version="4.5.x", ext_path=ext_path)
+
+    assert calls == [
+        f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta",
+        tags_page1,
+        tags_page2,
+        github_url,
+    ]
+    assert location == str(
+        tmp_path / ".cache" / "jupyterlab_builder" / "core" / "4.5.10" / "core.package.json",
+    )
+
+
+def test_get_core_meta_raises_when_requested_version_is_unresolvable(tmp_path, monkeypatch):
+    """An explicitly requested version that exists nowhere must fail loudly."""
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    def fake_urlopen(*_args, **_kwargs):
+        msg = "Not Found"
+        raise urllib.error.URLError(msg)
+
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", fake_urlopen)
+
+    with pytest.raises(RuntimeError, match="Could not resolve @jupyterlab/core-meta"):
+        core_path.get_core_meta(version="9.9.9", ext_path=ext_path)
 
 
 def test_get_core_meta_wildcard_version_resolves_from_npm_and_downloads_core_meta(
@@ -247,6 +503,87 @@ def test_resolve_wildcard_npm_version_matches_prerelease_versions(monkeypatch):
     assert resolved == "4.6.0-alpha.5"
 
 
+def test_semver_key_orders_prerelease_series():
+    """Pre-releases rank alpha < beta < rc < stable, by series before iteration."""
+    versions = [
+        "4.6.0",
+        "4.6.0-rc.1",
+        "4.6.0-alpha.4",
+        "4.6.0-beta.1",
+        "4.6.0-rc.0",
+        "4.6.0-beta.2",
+        "4.6.0-alpha.10",
+        "4.6.0-alpha",
+    ]
+
+    assert sorted(versions, key=core_path._semver_key) == [
+        # A pre-release that is a prefix of another ranks lower.
+        "4.6.0-alpha",
+        # Numeric identifiers compare as numbers, not lexically: alpha.4 < alpha.10.
+        "4.6.0-alpha.4",
+        "4.6.0-alpha.10",
+        "4.6.0-beta.1",
+        "4.6.0-beta.2",
+        "4.6.0-rc.0",
+        "4.6.0-rc.1",
+        # The stable release outranks every pre-release of the same version.
+        "4.6.0",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("lower", "higher"),
+    [
+        ("4.6.0-alpha.5", "4.6.0-beta.0"),
+        ("4.6.0-beta.1", "4.6.0-rc.0"),
+        ("4.6.0-alpha.9", "4.6.0-rc.0"),
+        ("4.6.0-rc.2", "4.6.0"),
+        ("4.6.0", "4.6.1-alpha.0"),
+        # A numeric identifier ranks below an alphanumeric one.
+        ("4.6.0-1", "4.6.0-alpha"),
+    ],
+)
+def test_semver_key_ranks_prerelease_transitions(lower, higher):
+    assert core_path._semver_key(lower) < core_path._semver_key(higher)
+
+
+def test_resolve_wildcard_npm_version_advances_across_prerelease_series(monkeypatch):
+    """A wildcard picks the newest series, not the highest number within an older one."""
+
+    def fake_urlopen(req_or_url, **_kwargs):
+        url = getattr(req_or_url, "full_url", req_or_url)
+        assert url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta"
+        return io.BytesIO(
+            json.dumps(
+                {
+                    "versions": {
+                        "4.7.0-alpha.9": {},
+                        "4.7.0-beta.1": {},
+                        "4.7.0-rc.0": {},
+                    },
+                },
+            ).encode(),
+        )
+
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", fake_urlopen)
+
+    # No stable 4.7.0 yet, so the pre-release ordering is what decides the answer.
+    assert core_path._resolve_wildcard_npm_version("4.7.x") == "4.7.0-rc.0"
+
+
+@pytest.mark.parametrize(
+    ("spec", "expected"),
+    [
+        ("~4.6.0-alpha.9 || ~4.6.0-beta.1", "4.6.0-beta.1"),
+        ("~4.6.0-beta.1 || ~4.6.0-rc.0", "4.6.0-rc.0"),
+        ("~4.6.0-rc.0 || ~4.6.0-alpha.9", "4.6.0-rc.0"),
+    ],
+)
+def test_range_lower_bound_ranks_prerelease_alternatives(spec, expected):
+    """Union alternatives are ranked with the same pre-release precedence."""
+    assert core_path._range_lower_bound(spec) == expected
+
+
 def test_resolve_wildcard_npm_version_raises_when_no_matches(monkeypatch):
     monkeypatch.setattr(
         core_path.urllib.request,
@@ -298,6 +635,316 @@ def test_get_core_meta_latest_uses_npm_latest_and_caches_by_resolved_version(tmp
     )
 
 
+def test_get_core_meta_defaults_to_latest_when_not_installed(tmp_path, monkeypatch):
+    """With no explicit version and no installed core-meta, the npm "latest" dist-tag is used."""
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    (ext_path / "node_modules").mkdir()
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    tarball_content = b'{"devDependencies": {}}'
+    tarball_bytes = _make_core_package_tarball(tarball_content)
+    tarball_url = f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/-/core-meta-4.5.7.tgz"
+    registry_meta = json.dumps({"dist": {"tarball": tarball_url}}).encode()
+
+    calls = []
+
+    def fake_urlopen(req_or_url, **_kwargs):
+        url = getattr(req_or_url, "full_url", req_or_url)
+        calls.append(url)
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/latest":
+            return io.BytesIO(json.dumps({"version": "4.5.7"}).encode())
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.5.7":
+            return io.BytesIO(registry_meta)
+        if url == tarball_url:
+            return io.BytesIO(tarball_bytes)
+        msg = f"Unexpected URL {url}"
+        raise AssertionError(msg)
+
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", fake_urlopen)
+
+    location = core_path.get_core_meta(ext_path=ext_path)
+
+    assert calls == [
+        f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/latest",
+        f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.5.7",
+        tarball_url,
+    ]
+    assert location == str(
+        tmp_path / ".cache" / "jupyterlab_builder" / "core" / "4.5.7" / "core.package.json",
+    )
+
+
+def test_get_core_meta_latest_falls_back_to_github_when_npm_unreachable(tmp_path, monkeypatch):
+    """If npm is unreachable, "latest" is resolved to the newest GitHub release tag."""
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    (ext_path / "node_modules").mkdir()
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    github_url = (
+        "https://raw.githubusercontent.com/"
+        "jupyterlab/jupyterlab/v4.5.7/"
+        "jupyterlab/staging/package.json"
+    )
+    latest_release = json.dumps({"tag_name": "v4.5.7"}).encode()
+
+    calls = []
+
+    def fake_urlopen(req_or_url, **_kwargs):
+        url = getattr(req_or_url, "full_url", req_or_url)
+        calls.append(url)
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/latest":
+            msg = "Not Found"
+            raise urllib.error.URLError(msg)
+        if url == core_path._GITHUB_LATEST_RELEASE_API_URL:
+            return io.BytesIO(latest_release)
+        if url == github_url:
+            return io.BytesIO(b'{"dependencies": {}}')
+        msg = f"Unexpected URL {url}"
+        raise AssertionError(msg)
+
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", fake_urlopen)
+
+    location = core_path.get_core_meta(ext_path=ext_path)
+
+    assert calls == [
+        f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/latest",
+        core_path._GITHUB_LATEST_RELEASE_API_URL,
+        github_url,
+    ]
+    assert location == str(
+        tmp_path / ".cache" / "jupyterlab_builder" / "core" / "4.5.7" / "core.package.json",
+    )
+
+
+def test_get_core_meta_fallback_raises_on_installed_jupyterlab_mismatch(tmp_path, monkeypatch):
+    """A fallback-resolved version whose major.minor disagrees with jupyterlab is rejected."""
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    (ext_path / "node_modules").mkdir()
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(core_path, "installed_version", lambda _package: "4.6.2")
+
+    def fake_urlopen(req_or_url, **_kwargs):
+        url = getattr(req_or_url, "full_url", req_or_url)
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/latest":
+            return io.BytesIO(json.dumps({"version": "4.5.7"}).encode())
+        msg = f"Unexpected URL {url}"
+        raise AssertionError(msg)
+
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", fake_urlopen)
+
+    with pytest.raises(RuntimeError, match=re.escape("building against 4.5.7 metadata")):
+        core_path.get_core_meta(ext_path=ext_path)
+
+
+def test_get_core_meta_fallback_allows_matching_installed_jupyterlab(tmp_path, monkeypatch):
+    """A fallback-resolved version is accepted when its major.minor matches jupyterlab."""
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    (ext_path / "node_modules").mkdir()
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(core_path, "installed_version", lambda _package: "4.5.0")
+
+    tarball_content = b'{"devDependencies": {}}'
+    tarball_bytes = _make_core_package_tarball(tarball_content)
+    tarball_url = f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/-/core-meta-4.5.7.tgz"
+    registry_meta = json.dumps({"dist": {"tarball": tarball_url}}).encode()
+
+    def fake_urlopen(req_or_url, **_kwargs):
+        url = getattr(req_or_url, "full_url", req_or_url)
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/latest":
+            return io.BytesIO(json.dumps({"version": "4.5.7"}).encode())
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.5.7":
+            return io.BytesIO(registry_meta)
+        if url == tarball_url:
+            return io.BytesIO(tarball_bytes)
+        msg = f"Unexpected URL {url}"
+        raise AssertionError(msg)
+
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", fake_urlopen)
+
+    location = core_path.get_core_meta(ext_path=ext_path)
+
+    assert location == str(
+        tmp_path / ".cache" / "jupyterlab_builder" / "core" / "4.5.7" / "core.package.json",
+    )
+
+
+def test_get_core_meta_explicit_version_skips_installed_jupyterlab_check(tmp_path, monkeypatch):
+    """An explicitly requested version is trusted even if it disagrees with jupyterlab."""
+    ext_path = tmp_path / "ext"
+    core_meta_dir = tmp_path / "core-meta"
+    core_meta_dir.mkdir()
+    (core_meta_dir / "core.package.json").write_text('{"devDependencies": {}}')
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(core_path, "installed_version", lambda _package: "4.6.2")
+
+    cache_file = tmp_path / ".cache" / "jupyterlab_builder" / "core" / "4.5.7" / "core.package.json"
+    cache_file.parent.mkdir(parents=True)
+    cache_file.write_text('{"devDependencies": {}}')
+
+    location = core_path.get_core_meta(version="4.5.7", ext_path=ext_path)
+
+    assert location == str(cache_file)
+
+
+def test_get_core_meta_resolves_to_legacy_builder_marker_version(tmp_path, monkeypatch):
+    """With no installed core-meta, a legacy @jupyterlab/builder pin is used over "latest"."""
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    (ext_path / "node_modules").mkdir()
+    # A tilde allows only patches of 4.5.7, so it stays pinned to the version it names.
+    (ext_path / "package.json").write_text(
+        json.dumps({"devDependencies": {"@jupyterlab/builder": "~4.5.7"}}),
+    )
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    tarball_content = b'{"devDependencies": {}}'
+    tarball_bytes = _make_core_package_tarball(tarball_content)
+    tarball_url = f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/-/core-meta-4.5.7.tgz"
+    registry_meta = json.dumps({"dist": {"tarball": tarball_url}}).encode()
+
+    calls = []
+
+    def fake_urlopen(req_or_url, **_kwargs):
+        url = getattr(req_or_url, "full_url", req_or_url)
+        calls.append(url)
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.5.7":
+            return io.BytesIO(registry_meta)
+        if url == tarball_url:
+            return io.BytesIO(tarball_bytes)
+        msg = f"Unexpected URL {url}"
+        raise AssertionError(msg)
+
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", fake_urlopen)
+    logger = mock.Mock()
+
+    location = core_path.get_core_meta(ext_path=ext_path, logger=logger)
+
+    # The "latest" dist-tag is never hit — the marker's own version is requested directly.
+    assert calls == [
+        f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.5.7",
+        tarball_url,
+    ]
+    assert location == str(
+        tmp_path / ".cache" / "jupyterlab_builder" / "core" / "4.5.7" / "core.package.json",
+    )
+    logger.warning.assert_called_once()
+    warning_message = logger.warning.call_args[0][0] % logger.warning.call_args[0][1:]
+    assert "@jupyterlab/builder" in warning_message
+    assert "core-meta 4.5.7" in warning_message
+
+
+def test_get_core_meta_legacy_builder_marker_skips_installed_jupyterlab_check(
+    tmp_path,
+    monkeypatch,
+):
+    """A legacy-marker-resolved version is trusted like an explicit version, not a guess."""
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    (ext_path / "node_modules").mkdir()
+    (ext_path / "package.json").write_text(
+        json.dumps({"devDependencies": {"@jupyterlab/builder": "~4.5.7"}}),
+    )
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(core_path, "installed_version", lambda _package: "4.6.2")
+
+    tarball_content = b'{"devDependencies": {}}'
+    tarball_bytes = _make_core_package_tarball(tarball_content)
+    tarball_url = f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/-/core-meta-4.5.7.tgz"
+    registry_meta = json.dumps({"dist": {"tarball": tarball_url}}).encode()
+
+    def fake_urlopen(req_or_url, **_kwargs):
+        url = getattr(req_or_url, "full_url", req_or_url)
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.5.7":
+            return io.BytesIO(registry_meta)
+        if url == tarball_url:
+            return io.BytesIO(tarball_bytes)
+        msg = f"Unexpected URL {url}"
+        raise AssertionError(msg)
+
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", fake_urlopen)
+
+    location = core_path.get_core_meta(ext_path=ext_path)
+
+    assert location == str(
+        tmp_path / ".cache" / "jupyterlab_builder" / "core" / "4.5.7" / "core.package.json",
+    )
+
+
+def test_get_core_meta_ignores_legacy_builder_marker_workspace_spec(tmp_path, monkeypatch):
+    """A path/workspace version spec isn't a real version, so it falls through to "latest"."""
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    (ext_path / "node_modules").mkdir()
+    (ext_path / "package.json").write_text(
+        json.dumps({"devDependencies": {"@jupyterlab/builder": "file:../builder"}}),
+    )
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    tarball_content = b'{"devDependencies": {}}'
+    tarball_bytes = _make_core_package_tarball(tarball_content)
+    tarball_url = f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/-/core-meta-4.5.7.tgz"
+    registry_meta = json.dumps({"dist": {"tarball": tarball_url}}).encode()
+
+    def fake_urlopen(req_or_url, **_kwargs):
+        url = getattr(req_or_url, "full_url", req_or_url)
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/latest":
+            return io.BytesIO(json.dumps({"version": "4.5.7"}).encode())
+        if url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta/4.5.7":
+            return io.BytesIO(registry_meta)
+        if url == tarball_url:
+            return io.BytesIO(tarball_bytes)
+        msg = f"Unexpected URL {url}"
+        raise AssertionError(msg)
+
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", fake_urlopen)
+
+    location = core_path.get_core_meta(ext_path=ext_path)
+
+    assert location == str(
+        tmp_path / ".cache" / "jupyterlab_builder" / "core" / "4.5.7" / "core.package.json",
+    )
+
+
+@pytest.mark.parametrize(
+    ("version_spec", "expected"),
+    [
+        ("4.5.7", "4.5.7"),
+        ("^4.5.7", "4.5.x"),
+        ("~4.5.7", "4.5.7"),
+        (">=4.5.7", "4.5.7"),
+        # A union resolves to its highest alternative, whichever side it is on.
+        ("^4.3.6 || ^3.6.8", "4.3.x"),
+        ("^3.6.8 || ^4.3.6", "4.3.x"),
+        ("^3.6.8 || ^4.3.6 || ^5.0.0", "5.0.x"),
+        # Compound and hyphen ranges reduce to their lower bound.
+        (">=4.3.6 <5.0.0", "4.3.6"),
+        ("4.1.0 - 4.5.0", "4.1.0"),
+        ("file:../builder", None),
+        ("workspace:*", None),
+        ("*", None),
+    ],
+)
+def test_legacy_builder_marker_version_parses_spec(tmp_path, version_spec, expected):
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    (ext_path / "package.json").write_text(
+        json.dumps({"devDependencies": {"@jupyterlab/builder": version_spec}}),
+    )
+
+    assert core_path._legacy_builder_marker_version(ext_path) == expected
+
+
+def test_legacy_builder_marker_version_none_without_package_json(tmp_path):
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+
+    assert core_path._legacy_builder_marker_version(ext_path) is None
+
+
 def test_ensure_builder_with_jupyter_builder(tmp_path):
     ext_path = tmp_path / "ext"
     core_path_dir = tmp_path / "core-meta"
@@ -338,3 +985,85 @@ def test_ensure_builder_with_jupyterlab_builder(tmp_path):
 
     assert builder_path == str(builder_dir / "lib" / "build-labextension.js")
     assert marker_pkg == "@jupyterlab/builder"
+
+
+def _write_rspack(ext_path: Path, node_range: str) -> None:
+    rspack_dir = ext_path / "node_modules" / "@rspack" / "core"
+    rspack_dir.mkdir(parents=True)
+    (rspack_dir / "package.json").write_text(json.dumps({"engines": {"node": node_range}}))
+
+
+def test_read_rspack_node_range_reads_engines(tmp_path):
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    _write_rspack(ext_path, "^20.19.0 || >=22.12.0")
+
+    builder = str(ext_path / "node_modules" / "@jupyter" / "builder" / "lib" / "x.js")
+    assert _read_rspack_node_range(builder, str(ext_path)) == "^20.19.0 || >=22.12.0"
+
+
+def test_read_rspack_node_range_falls_back_when_missing(tmp_path):
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+
+    assert _read_rspack_node_range(str(ext_path), str(ext_path)) == "^20.19.0 || >=22.12.0"
+
+
+def test_check_node_version_raises_on_old_node(tmp_path, monkeypatch):
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    _write_rspack(ext_path, "^20.19.0 || >=22.12.0")
+
+    monkeypatch.setattr(federated_extensions, "_which_node_js", lambda: "node")
+    monkeypatch.setattr(
+        federated_extensions.subprocess,
+        "check_output",
+        lambda *_args, **_kwargs: b"v18.20.8\n",
+    )
+
+    with pytest.raises(RuntimeError, match=r"requires Node\.js .* \(found v18\.20\.8\)"):
+        _check_node_version(str(ext_path), str(ext_path))
+
+
+@pytest.mark.parametrize(
+    ("version", "expected"),
+    [
+        # A prerelease of a version newer than the range is new enough to build.
+        ("26.8.0-alpha.0.0.0", True),
+        ("22.13.0-nightly1", True),
+        ("20.19.1-alpha.1", True),
+        # A prerelease of the oldest supported version predates it, so it is not.
+        ("22.12.0-alpha.1", False),
+        ("20.19.0-alpha.1", False),
+        # Prereleases must not widen the range itself, including under an
+        # upper bound: 21.0.0-alpha.1 is <21.0.0, but 21.0.0 is excluded.
+        ("21.0.0-alpha.1", False),
+        ("21.7.3-alpha.1", False),
+        ("18.20.8-alpha.1", False),
+        # Stable versions keep behaving as before.
+        ("26.8.0", True),
+        ("22.12.0", True),
+        ("20.19.0", True),
+        ("21.7.3", False),
+        ("18.20.8", False),
+        # Unparsable versions are rejected.
+        ("not-a-version", False),
+    ],
+)
+def test_satisfies_allowing_prerelease(version, expected):
+    assert _satisfies_allowing_prerelease(version, "^20.19.0 || >=22.12.0") is expected
+
+
+def test_check_node_version_passes_on_supported_node(tmp_path, monkeypatch):
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    _write_rspack(ext_path, "^20.19.0 || >=22.12.0")
+
+    monkeypatch.setattr(federated_extensions, "_which_node_js", lambda: "node")
+    monkeypatch.setattr(
+        federated_extensions.subprocess,
+        "check_output",
+        lambda *_args, **_kwargs: b"v22.12.0\n",
+    )
+
+    _check_node_version(str(ext_path), str(ext_path))

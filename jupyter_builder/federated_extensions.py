@@ -32,6 +32,8 @@ else:
 
 from .commands import _test_overlap
 from .core_path import get_core_meta
+from .jlpm import _which_node_js
+from .jupyterlab_semver import clean, make_range, make_semver
 
 DEPRECATED_ARGUMENT = object()
 
@@ -47,7 +49,7 @@ class ArgumentConflict(ValueError):  # noqa: N818
 # ------------------------------------------------------------------------------
 
 
-def develop_labextension(  # noqa: PLR0913, C901, PLR0912
+def develop_labextension(  # noqa: PLR0913, PLR0917, C901, PLR0912
     path: str | os.PathLike[str],
     symlink: bool = True,
     overwrite: bool = False,
@@ -160,7 +162,7 @@ def develop_labextension(  # noqa: PLR0913, C901, PLR0912
     return full_dest
 
 
-def develop_labextension_py(  # noqa: PLR0913
+def develop_labextension_py(  # noqa: PLR0913, PLR0917
     module: str,
     user: bool = False,
     sys_prefix: bool = False,
@@ -204,7 +206,7 @@ def develop_labextension_py(  # noqa: PLR0913
     return full_dests
 
 
-def build_labextension(  # noqa: PLR0913
+def build_labextension(  # noqa: PLR0913, PLR0917
     path: str | os.PathLike[str],
     logger: logging.Logger | None = None,
     development: bool = False,
@@ -238,13 +240,15 @@ def build_labextension(  # noqa: PLR0913
         logger.info("Building extension in %s", path)
 
     builder, marker_pkg = _ensure_builder(ext_path, core_package_file)
+    _check_node_version(builder, ext_path, logger=logger)
 
     if marker_pkg == "@jupyterlab/builder":
         core_flag = ["--core-path", _resolve_core_path_for_jupyterlab_builder(core_package_file)]
     else:
         core_flag = ["--core-package-file", core_package_file]
 
-    arguments = ["node", builder, *core_flag, ext_path]
+    node = _which_node_js()
+    arguments = [node, builder, *core_flag, ext_path]
     if static_url is not None:
         arguments.extend(["--static-url", static_url])
     if development:
@@ -255,7 +259,7 @@ def build_labextension(  # noqa: PLR0913
     subprocess.check_call(arguments, cwd=ext_path)  # noqa: S603
 
 
-def watch_labextension(  # noqa: PLR0913
+def watch_labextension(  # noqa: PLR0913, PLR0917
     path: str | os.PathLike[str],
     labextensions_path: list[str],
     logger: logging.Logger | None = None,
@@ -293,16 +297,23 @@ def watch_labextension(  # noqa: PLR0913
         )
         if not Path(full_dest).is_symlink():
             shutil.rmtree(full_dest)
-            Path(full_dest).symlink_to(output_dir)
+            # Windows types a symlink when it is created and never morphs it to
+            # the target afterwards. It infers the kind from the target when one
+            # exists, but the output directory has not been built yet on a first
+            # watch, so without this flag a file symlink is created and the
+            # build output stays unreachable through it.
+            Path(full_dest).symlink_to(output_dir, target_is_directory=True)
 
     builder, marker_pkg = _ensure_builder(ext_path, core_package_file)
+    _check_node_version(builder, ext_path, logger=logger)
 
     if marker_pkg == "@jupyterlab/builder":
         core_flag = ["--core-path", _resolve_core_path_for_jupyterlab_builder(core_package_file)]
     else:
         core_flag = ["--core-package-file", core_package_file]
 
-    arguments = ["node", builder, *core_flag, "--watch", ext_path]
+    node = _which_node_js()
+    arguments = [node, builder, *core_flag, "--watch", ext_path]
     if development:
         arguments.append("--development")
     if source_map:
@@ -319,6 +330,79 @@ def watch_labextension(  # noqa: PLR0913
 # Marker packages an extension may declare to identify its builder, in order
 # of preference.
 _BUILDER_MARKER_CANDIDATES = ("@jupyter/builder", "@jupyterlab/builder")
+
+# Minimum Node.js range required by `@rspack/core` when its own `engines.node`
+# field cannot be read. `@rspack/core` is a pure ES module that older Node.js
+# versions cannot `require()`.
+_FALLBACK_NODE_RANGE = "^20.19.0 || >=22.12.0"
+
+
+def _read_rspack_node_range(builder: str, ext_path: str) -> str:
+    """Return the ``engines.node`` range declared by ``@rspack/core``."""
+    for root in (Path(builder).parent, Path(ext_path)):
+        target = root
+        while True:
+            pkg = target / "node_modules" / "@rspack" / "core" / "package.json"
+            if pkg.exists():
+                try:
+                    with pkg.open() as fid:
+                        node_range = json.load(fid).get("engines", {}).get("node")
+                except (OSError, ValueError):
+                    node_range = None
+                if node_range:
+                    return str(node_range)
+                break
+            if target.parent == target:
+                break
+            target = target.parent
+    return _FALLBACK_NODE_RANGE
+
+
+def _satisfies_allowing_prerelease(current: str, node_range: str) -> bool:
+    """Return whether ``current`` satisfies ``node_range``, counting prereleases.
+
+    A prerelease has to clear the comparators both as itself and as its release,
+    so it can neither reach under a lower bound nor slip beneath an upper one:
+    ``22.12.0-alpha.1`` sorts before the ``22.12.0`` it needs to be, and
+    ``21.0.0-alpha.1`` is only ``<21.0.0`` because 21 is excluded to begin with.
+    """
+    try:
+        range_ = make_range(node_range, loose=True)  # type: ignore[no-untyped-call]
+        version = make_semver(current, loose=True)  # type: ignore[no-untyped-call]
+    except Exception:  # noqa: BLE001
+        return False
+    candidates = [version]
+    if version.prerelease:
+        release = f"{version.major}.{version.minor}.{version.patch}"
+        candidates.append(make_semver(release, loose=True))  # type: ignore[no-untyped-call]
+    return any(
+        all(comparator.test(candidate) for candidate in candidates for comparator in comparator_set)
+        for comparator_set in range_.set
+    )
+
+
+def _check_node_version(
+    builder: str,
+    ext_path: str,
+    logger: logging.Logger | None = None,
+) -> None:
+    """Fail early with a clear message when Node.js is too old to load the builder."""
+    node = _which_node_js()
+    node_range = _read_rspack_node_range(builder, ext_path)
+    try:
+        raw = subprocess.check_output([node, "--version"]).decode("utf8").strip()  # noqa: S603
+    except (OSError, subprocess.CalledProcessError):
+        return
+    current = clean(raw, loose=True)  # type: ignore[no-untyped-call]
+    if current is None or _satisfies_allowing_prerelease(current, node_range):
+        return
+    msg = (
+        f"Building this extension requires Node.js {node_range} (found {raw}). "
+        "Please install a compatible Node.js version."
+    )
+    if logger:
+        logger.error(msg)
+    raise RuntimeError(msg)
 
 
 def _resolve_core_path_for_jupyterlab_builder(core_package_file: str) -> str:
@@ -506,6 +590,50 @@ def _get_labextension_dir(
     return labext
 
 
+# Directory names that are valid Python identifiers but never contain
+# importable extension source we care about.
+_SKIP_DIRS = frozenset({"__pycache__", "node_modules", "venv", "env"})
+
+
+def _valid_package_dirs(dirs: list[str]) -> list[str]:
+    """Filter out dirs that can never be Python package components."""
+    return [d for d in dirs if d.isidentifier() and d not in _SKIP_DIRS]
+
+
+def _find_packages(path: str) -> list[str]:
+    """Find importable regular packages (dirs with ``__init__.py``) under *path*.
+
+    Recursion only continues into directories that are themselves regular packages.
+    Also prunes non-identifier names and common non-source directories.
+    """
+    path_obj = Path(path)
+    packages: list[str] = []
+    for root, dirs, files in os.walk(str(path_obj), followlinks=True):
+        # Only keep descending into subdirectories that are themselves
+        # packages; prune everything else.
+        dirs[:] = [
+            d for d in _valid_package_dirs(dirs) if (Path(root) / d / "__init__.py").is_file()
+        ]
+        rel = Path(root).relative_to(path_obj)
+        if rel.parts and "__init__.py" in files:
+            packages.append(".".join(rel.parts))
+    return packages
+
+
+def _find_namespace_packages(path: str) -> list[str]:
+    """Find namespace packages (dirs with .py files, no __init__.py required)."""
+    path_obj = Path(path)
+    found: set[str] = set()
+    for root, dirs, files in os.walk(str(path_obj), followlinks=True):
+        dirs[:] = _valid_package_dirs(dirs)
+        if any(f.endswith(".py") for f in files):
+            rel = Path(root).relative_to(path_obj)
+            if rel.parts:
+                for i in range(len(rel.parts)):
+                    found.add(".".join(rel.parts[: i + 1]))
+    return list(found)
+
+
 def _get_labextension_metadata(module: str) -> tuple[Any, list[dict[str, str]]]:  # noqa: C901
     """Get the list of labextension paths associated with a Python module.
 
@@ -559,7 +687,7 @@ def _get_labextension_metadata(module: str) -> tuple[Any, list[dict[str, str]]]:
         except subprocess.CalledProcessError:
             msg = (
                 f"The Python package `{module}` is not a valid package, "
-                "it is missing the `setup.py` file."
+                "it does not specify a `name` in `pyproject.toml` nor has a legacy `setup.py` file."
             )
             raise FileNotFoundError(msg) from None
 
@@ -570,14 +698,12 @@ def _get_labextension_metadata(module: str) -> tuple[Any, list[dict[str, str]]]:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", mod_path])  # noqa: S603
         sys.path.insert(0, mod_path)
 
-    from setuptools import find_namespace_packages, find_packages  # noqa: PLC0415
-
     package_candidates = [
         package.replace("-", "_"),  # Module with the same name as package
     ]
-    package_candidates.extend(find_packages(mod_path))  # Packages in the module path
+    package_candidates.extend(_find_packages(mod_path))  # Packages in the module path
     package_candidates.extend(
-        find_namespace_packages(mod_path),
+        _find_namespace_packages(mod_path),
     )  # Namespace packages in the module path
 
     for package in package_candidates:

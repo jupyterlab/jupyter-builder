@@ -1,6 +1,6 @@
 {
   "name": "@jupyter/builder",
-  "version": "1.0.0",
+  "version": "1.2.3",
   "description": "Jupyter build tools.",
   "keywords": [
     "jupyter",
@@ -11,6 +11,7 @@
     "url": "https://github.com/jupyterlab/jupyter-builder/issues"
   },
   "license": "BSD-3-Clause",
+  "packageManager": "yarn@3.5.0",
   "author": {
     "name": "Jupyter Development Team",
     "email": "jupyter@googlegroups.com"
@@ -44,29 +45,26 @@
     "watch": "tsc -w --sourceMap"
   },
   "dependencies": {
-    "@jupyterlab/core-meta": "4.6.0-beta.0",
+    "@jupyterlab/core-meta": "^4.6.3",
     "@module-federation/runtime-tools": "^2.0.0",
-    "@rspack/core": "^2.0.2",
+    "@rspack/core": "^2.2.1",
     "ajv": "^8.12.0",
     "commander": "^9.4.1",
-    "css-loader": "^6.7.1",
+    "css-loader": "^7.1.4",
     "duplicate-package-checker-webpack-plugin": "^3.0.0",
     "fs-extra": "^10.1.0",
-    "glob": "~7.1.6",
+    "glob": "^13.0.6",
     "license-webpack-plugin": "^4.0.2",
     "mini-svg-data-uri": "^1.4.4",
     "path-browserify": "^1.0.0",
     "process": "^0.11.10",
-    "source-map-loader": "~1.0.2",
-    "style-loader": "~3.3.1",
+    "style-loader": "^4.0.0",
     "supports-color": "^7.2.0",
-    "webpack-merge": "^5.8.0",
-    "worker-loader": "^3.0.2"
+    "webpack-merge": "^5.8.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/fs-extra": "^9.0.1",
-    "@types/glob": "^7.1.1",
     "@types/node": "^20.14.8",
     "@types/supports-color": "^5.3.0",
     "@types/watchpack": "^2.4.4",
@@ -76,7 +74,6 @@
     "npm-run-all": "^4.1.5",
     "prettier": "^3.8.1",
     "rimraf": "~5.0.5",
-    "source-map-loader": "^1.0.2",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.0.0"
   },

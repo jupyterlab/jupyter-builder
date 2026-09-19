@@ -91,11 +91,18 @@
       "$ref": "#/definitions/relativePath",
       "default": "static"
     },
-    "webpackConfig": {
+    "rspackConfig": {
       "title": "Custom Rspack config",
-      "description": "The relative path to a custom Rspack config",
+      "description": "The relative path to a custom Rspack config. Requires JupyterLab 4.6 and later. Use webpackConfig for older versions.",
       "$ref": "#/definitions/relativePath",
       "default": null
+    },
+    "webpackConfig": {
+      "title": "Custom Rspack config (deprecated)",
+      "description": "The relative path to a custom Rspack config. Deprecated alias for rspackConfig. Prefer rspackConfig instead for JupyterLab 4.6 and later.",
+      "$ref": "#/definitions/relativePath",
+      "default": null,
+      "deprecated": true
     },
     "sharedPackages": {
       "description": "Modules that should be shared in the share scope. When provided, property names are used to match requested modules in this compilation.",

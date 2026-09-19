@@ -16,7 +16,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Base Setup
       uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
@@ -36,7 +36,7 @@ jobs:
       run: npm pack
 
     - name: Checkout ${{ matrix.name }}
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         repository: ${{ matrix.repo }}
         path: downstream
@@ -54,7 +54,13 @@ jobs:
 
     - name: Install deps
       working-directory: downstream
-      run: jlpm install
+      run: YARN_ENABLE_IMMUTABLE_INSTALLS=false jlpm install
+
+    - name: Test `jlpm workspaces foreach` command
+      working-directory: downstream
+      continue-on-error: true
+      run: |
+        jlpm workspaces foreach --parallel exec sh -c 'echo Hello from $PWD'
 
     - name: Build ${{ matrix.name }}
       working-directory: downstream
@@ -67,7 +73,7 @@ jobs:
         python -m build --wheel
 
     - name: Upload wheel
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ matrix.name }}-wheel
         path: downstream/dist/*.whl

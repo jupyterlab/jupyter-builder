@@ -9,8 +9,8 @@ build-backend = "hatchling.build"
 name = "jupyter_builder"
 description = "JupyterLab build tools"
 readme = "README.md"
-license = "BSD-3-Clause AND MIT AND ISC"
-license-files = ["LICENSE", "THIRD_PARTY_LICENSES/*.txt"]
+license = "Apache-2.0 AND BSD-2-Clause AND BSD-3-Clause AND ISC AND MIT"
+license-files = ["LICENSE", "THIRD_PARTY_LICENSES/*.txt", "THIRD_PARTY_LICENSES/*.json"]
 requires-python = ">=3.10"
 authors = [
     { name = "Jupyter Development Team", email = "jupyter@googlegroups.com" },
@@ -21,7 +21,6 @@ classifiers = [
     "Framework :: Jupyter :: JupyterLab",
     "Framework :: Jupyter :: JupyterLab :: 4",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: BSD License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
@@ -42,15 +41,16 @@ Pypi = "https://pypi.org/project/jupyter-builder"
 
 [project.optional-dependencies]
 test = [
-    "coverage",
+    "coverage[toml]>=7.10.6",
     "pytest>=7.0",
     "pytest-check-links>=0.7",
-    "pytest-cov",
+    "pytest-cov>=7",
     "copier>=9.3,<10",
-    "jinja2-time"
+    "jinja2-time",
+    "deptry"
 ]
 # Check ruff version is aligned with the one in .pre-commit-config.yaml
-dev = ["build", "mypy", "pre-commit", "hatch", "ruff==0.15.11"]
+dev = ["build", "mypy", "pre-commit", "hatch", "ruff==0.16.5"]
 
 [project.scripts]
 jupyter-builder = "jupyter_builder.main:main"
@@ -58,6 +58,28 @@ jlpm = "jupyter_builder.jlpm:main"
 
 [tool.check-wheel-contents]
 ignore = ["W002", "W004"]
+
+[tool.deptry]
+# Default exclude list skips "tests"; un-skip it so test-only deps (pytest,
+# copier, ...) are checked too, since that's most of what [project.optional-dependencies.test] declares.
+exclude = ["venv", "\\.venv", "\\.direnv", "\\.git", "setup\\.py", "scripts"]
+
+[tool.deptry.per_rule_ignores]
+# CLI tools / pytest plugins that are invoked via subprocess or auto-discovered
+# entry points rather than imported directly, so deptry can't see their usage.
+DEP002 = [
+    "build",
+    "coverage",
+    "copier",
+    "deptry",
+    "hatch",
+    "jinja2-time",
+    "mypy",
+    "pre-commit",
+    "pytest-check-links",
+    "pytest-cov",
+    "ruff",
+]
 
 [tool.hatch.version]
 source = "nodejs"
@@ -100,7 +122,6 @@ disable_error_code = ["attr-defined"]
 [tool.pytest.ini_options]
 filterwarnings = [
     "error",
-    "module:pkg_resources is deprecated:DeprecationWarning",
     "module:This template was designed for Copier:copier.errors.OldTemplateWarning",
     "ignore::ImportWarning",
 ]
@@ -117,6 +138,44 @@ addopts = [
     "--junitxml=junit.xml",
 ]
 xfail_strict = true
+markers = [
+    "slow: tests that render the extension template and run yarn installs (deselect with -m 'not slow')",
+]
+
+[tool.coverage.run]
+source_pkgs = ["jupyter_builder"]
+# Start coverage automatically inside Python subprocesses
+patch = ["subprocess"]
+parallel = true
+# The watch tests stop `jupyter-builder watch` with SIGTERM, which would skip
+# the normal at-exit save of its coverage data. No effect on Windows.
+sigterm = true
+# Store measured file paths relative to the repo root so the data files from
+# the different CI matrix jobs (Linux/macOS/Windows) can be combined.
+relative_files = true
+# Files excluded from coverage. The `*/` prefix is required: the CLIs run with
+# cwd inside a temporary extension folder, where a repo-relative pattern would
+# not match and the subprocess would record the file anyway.
+omit = [
+    "*/jupyter_builder/jupyterlab_semver.py",
+    "*/jupyter_builder/_version.py",
+]
+
+[tool.coverage.report]
+# Run-time `omit` only stops NEW data from being recorded; this filters the
+# report itself, covering data recorded by processes the run-omit missed.
+omit = [
+    "*/jupyter_builder/jupyterlab_semver.py",
+    "*/jupyter_builder/_version.py",
+]
+
+[tool.coverage.paths]
+# Fold path variants recorded by the subprocesses (absolute paths, per-OS
+# checkout locations) back into the repo-relative layout when combining.
+source = [
+    "jupyter_builder/",
+    "*/jupyter_builder/",
+]
 
 [tool.repo-review]
 ignore = ["PC111", "PC180", "PY004", "PY007", "RTD100"]
@@ -128,6 +187,9 @@ line-length = 100
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = ["FBT001", "FBT002", "FBT003"]
+
+[tool.ruff.lint.flake8-copyright]
+notice-rgx = "(?i)Copyright \\(c\\) Jupyter Development Team\\."
 
 [tool.ruff.lint.per-file-ignores]
 # S101 Use of `assert` detected
@@ -154,3 +216,5 @@ ignore = ["FBT001", "FBT002", "FBT003"]
 # rather than refactoring to Python idioms or adding annotations/docstrings.
 "jupyter_builder/jupyterlab_semver.py" = ["ALL"]
 "scripts/*" = ["INP001"]
+# T201 this generator is a CLI tool; its progress output *is* its interface
+"scripts/generate_yarn_licenses.py" = ["T201"]
