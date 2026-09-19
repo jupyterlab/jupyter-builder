@@ -49,7 +49,7 @@ class ArgumentConflict(ValueError):  # noqa: N818
 # ------------------------------------------------------------------------------
 
 
-def develop_labextension(  # noqa: PLR0913, C901, PLR0912
+def develop_labextension(  # noqa: PLR0913, PLR0917, C901, PLR0912
     path: str | os.PathLike[str],
     symlink: bool = True,
     overwrite: bool = False,
@@ -162,7 +162,7 @@ def develop_labextension(  # noqa: PLR0913, C901, PLR0912
     return full_dest
 
 
-def develop_labextension_py(  # noqa: PLR0913
+def develop_labextension_py(  # noqa: PLR0913, PLR0917
     module: str,
     user: bool = False,
     sys_prefix: bool = False,
@@ -206,7 +206,7 @@ def develop_labextension_py(  # noqa: PLR0913
     return full_dests
 
 
-def build_labextension(  # noqa: PLR0913
+def build_labextension(  # noqa: PLR0913, PLR0917
     path: str | os.PathLike[str],
     logger: logging.Logger | None = None,
     development: bool = False,
@@ -259,7 +259,7 @@ def build_labextension(  # noqa: PLR0913
     subprocess.check_call(arguments, cwd=ext_path)  # noqa: S603
 
 
-def watch_labextension(  # noqa: PLR0913
+def watch_labextension(  # noqa: PLR0913, PLR0917
     path: str | os.PathLike[str],
     labextensions_path: list[str],
     logger: logging.Logger | None = None,
