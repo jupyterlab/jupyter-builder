@@ -200,6 +200,7 @@ __metadata:
     "@types/node": ^20.14.8
     "@types/supports-color": ^5.3.0
     "@types/watchpack": ^2.4.4
+    acorn: ^8.16.0
     ajv: ^8.12.0
     commander: ^9.4.1
     css-loader: ^7.1.4
@@ -714,6 +715,15 @@ __metadata:
   bin:
     acorn: bin/acorn
   checksum: bbfa466cd0dbd18b4460a85e9d0fc2f35db999380892403c573261beda91f23836db2aa71fd3ae65e94424ad14ff8e2b7bd37c7a2624278fd89137cd6e448c41
+  languageName: node
+  linkType: hard
+
+"acorn@npm:^8.16.0":
+  version: 8.18.0
+  resolution: "acorn@npm:8.18.0"
+  bin:
+    acorn: bin/acorn
+  checksum: 97d3e1696acb3e85b15c82a4193a9ecffe5df55ae408ed804e07955f3e3e53d0bbfdb9e5c9885c938371b78481f7667e36d12814764863d190de2117ed4757d7
   languageName: node
   linkType: hard
 
