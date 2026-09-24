@@ -120,7 +120,9 @@ def test_build_fails_when_no_remote_entry_is_produced(extension_folder):
         cwd=extension_folder,
         check=False,
         capture_output=True,
-        text=True,
+        # Node emits UTF-8; keep the Python CLI's output in the same encoding.
+        encoding="utf-8",
+        env={**os.environ, "PYTHONIOENCODING": "utf-8"},
     )
     output = result.stdout + result.stderr
 
@@ -156,7 +158,8 @@ def test_custom_config_is_honoured_under_either_key(extension_folder, config_key
         cwd=extension_folder,
         check=False,
         capture_output=True,
-        text=True,
+        encoding="utf-8",
+        env={**os.environ, "PYTHONIOENCODING": "utf-8"},
     )
     output = result.stdout + result.stderr
 
@@ -192,7 +195,8 @@ def test_rspack_config_takes_precedence_over_webpack_config(extension_folder):
         cwd=extension_folder,
         check=False,
         capture_output=True,
-        text=True,
+        encoding="utf-8",
+        env={**os.environ, "PYTHONIOENCODING": "utf-8"},
     )
     output = result.stdout + result.stderr
 
@@ -345,7 +349,8 @@ def test_builder_version_mismatch(mismatch_extension_folder):
             cwd=extension_folder,
             check=True,
             capture_output=True,
-            text=True,
+            encoding="utf-8",
+            env={**os.environ, "PYTHONIOENCODING": "utf-8"},
         )
     # Check if the expected error message is in the output
     output = excinfo.value.stderr
