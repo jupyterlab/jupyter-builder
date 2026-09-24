@@ -201,6 +201,23 @@ def test_rspack_config_takes_precedence_over_webpack_config(extension_folder):
     )
 
 
+def test_build_succeeds_without_dependencies_field(extension_folder):
+    """Regression test for https://github.com/jupyterlab/jupyter-builder/issues/182.
+
+    An extension whose package.json does not declare runtime `dependencies`
+    (e.g., pure theme or minimal extensions) must build without TypeError.
+    """
+    package_json_path = extension_folder / "package.json"
+    package_data = json.loads(package_json_path.read_text())
+    package_data.pop("dependencies", None)
+    package_json_path.write_text(json.dumps(package_data, indent=2))
+
+    run(["jupyter-builder", "build", str(extension_folder)], cwd=extension_folder, check=True)
+
+    folder_path = extension_folder / "myextension/labextension"
+    assert (folder_path / "package.json").exists()
+
+
 def test_files_build_development(extension_folder):
     run(
         ["jupyter-builder", "build", "--development", "true", str(extension_folder)],
