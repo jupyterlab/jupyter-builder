@@ -9,8 +9,8 @@ build-backend = "hatchling.build"
 name = "jupyter_builder"
 description = "JupyterLab build tools"
 readme = "README.md"
-license = "BSD-3-Clause AND MIT AND ISC"
-license-files = ["LICENSE", "THIRD_PARTY_LICENSES/*.txt"]
+license = "Apache-2.0 AND BSD-2-Clause AND BSD-3-Clause AND ISC AND MIT"
+license-files = ["LICENSE", "THIRD_PARTY_LICENSES/*.txt", "THIRD_PARTY_LICENSES/*.json"]
 requires-python = ">=3.10"
 authors = [
     { name = "Jupyter Development Team", email = "jupyter@googlegroups.com" },
@@ -21,7 +21,6 @@ classifiers = [
     "Framework :: Jupyter :: JupyterLab",
     "Framework :: Jupyter :: JupyterLab :: 4",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: BSD License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
@@ -51,7 +50,7 @@ test = [
     "deptry"
 ]
 # Check ruff version is aligned with the one in .pre-commit-config.yaml
-dev = ["build", "mypy", "pre-commit", "hatch", "ruff==0.16.0"]
+dev = ["build", "mypy", "pre-commit", "hatch", "ruff==0.16.5"]
 
 [project.scripts]
 jupyter-builder = "jupyter_builder.main:main"
@@ -189,6 +188,9 @@ line-length = 100
 select = ["ALL"]
 ignore = ["FBT001", "FBT002", "FBT003"]
 
+[tool.ruff.lint.flake8-copyright]
+notice-rgx = "(?i)Copyright \\(c\\) Jupyter Development Team\\."
+
 [tool.ruff.lint.per-file-ignores]
 # S101 Use of `assert` detected
 # ANN* / D1xx adding full annotations and docstrings to test helpers is a large refactor
@@ -214,3 +216,5 @@ ignore = ["FBT001", "FBT002", "FBT003"]
 # rather than refactoring to Python idioms or adding annotations/docstrings.
 "jupyter_builder/jupyterlab_semver.py" = ["ALL"]
 "scripts/*" = ["INP001"]
+# T201 this generator is a CLI tool; its progress output *is* its interface
+"scripts/generate_yarn_licenses.py" = ["T201"]

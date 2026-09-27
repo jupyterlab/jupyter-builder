@@ -139,6 +139,68 @@ def test_build_fails_when_no_remote_entry_is_produced(extension_folder):
     )
 
 
+@pytest.mark.parametrize("config_key", ["rspackConfig", "webpackConfig"])
+def test_custom_config_is_honoured_under_either_key(extension_folder, config_key):
+    """Both webpackConfig and rspackConfig must access rspack identically."""
+    elsewhere = (extension_folder / "elsewhere").as_posix()
+    (extension_folder / "custom.config.js").write_text(
+        f"module.exports = {{ output: {{ path: {json.dumps(elsewhere)} }} }};\n",
+    )
+    package_json_path = extension_folder / "package.json"
+    package_data = json.loads(package_json_path.read_text())
+    package_data["jupyterlab"][config_key] = "custom.config.js"
+    package_json_path.write_text(json.dumps(package_data, indent=2))
+
+    result = run(
+        ["jupyter-builder", "build", str(extension_folder)],
+        cwd=extension_folder,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    output = result.stdout + result.stderr
+
+    assert result.returncode != 0, (
+        f"Custom config under {config_key!r} was ignored!\nOutput:\n{output}"
+    )
+    assert "remoteEntry" in output, (
+        f"Custom config under {config_key!r} never reached rspack!\nOutput:\n{output}"
+    )
+    assert "deprecated" not in output, (
+        f"webpackConfig must not warn at build time!\nOutput:\n{output}"
+    )
+
+
+def test_rspack_config_takes_precedence_over_webpack_config(extension_folder):
+    """When both keys are set, ensure we only read rspackConfig."""
+    elsewhere = (extension_folder / "elsewhere").as_posix()
+    (extension_folder / "rspack.config.js").write_text(
+        f"module.exports = {{ output: {{ path: {json.dumps(elsewhere)} }} }};\n",
+    )
+    # Throws if read, so picking the wrong key is unmistakable.
+    (extension_folder / "webpack.config.js").write_text(
+        "throw new Error('the webpackConfig key was read');\n",
+    )
+    package_json_path = extension_folder / "package.json"
+    package_data = json.loads(package_json_path.read_text())
+    package_data["jupyterlab"]["rspackConfig"] = "rspack.config.js"
+    package_data["jupyterlab"]["webpackConfig"] = "webpack.config.js"
+    package_json_path.write_text(json.dumps(package_data, indent=2))
+
+    result = run(
+        ["jupyter-builder", "build", str(extension_folder)],
+        cwd=extension_folder,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    output = result.stdout + result.stderr
+
+    assert "the webpackConfig key was read" not in output, (
+        f"webpackConfig was read even though rspackConfig was set!\nOutput:\n{output}"
+    )
+
+
 def test_files_build_development(extension_folder):
     run(
         ["jupyter-builder", "build", "--development", "true", str(extension_folder)],

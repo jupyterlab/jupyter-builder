@@ -16,6 +16,7 @@ from jupyter_builder.federated_extensions import (
     _check_node_version,
     _ensure_builder,
     _read_rspack_node_range,
+    _satisfies_allowing_prerelease,
 )
 
 
@@ -266,6 +267,43 @@ def test_expand_partial_version(version, expected):
     assert core_path._expand_partial_version(version) == expected
 
 
+@pytest.mark.parametrize(
+    ("spec", "expected"),
+    [
+        # A caret admits every later patch, so it becomes a patch wildcard; a tilde
+        # and an explicit lower bound stay pinned to the patch they name.
+        ("^4.5.7", "4.5.x"),
+        ("~4.5.7", "4.5.7"),
+        (">=v4.5.7", "4.5.7"),
+        ("4.5.7", "4.5.7"),
+        # A caret with no patch component is already a range of its own.
+        ("^4.5", "4.5"),
+        ("^4", "4"),
+        ("^4.5.x", "4.5.x"),
+        # A caret over a prerelease also allows every 4.6 patch.
+        ("^4.6.0-alpha.4", "4.6.x"),
+        # A union targets the newest JupyterLab the extension supports.
+        ("^4.3.6 || ^3.6.8", "4.3.x"),
+        ("^3 || ^4", "4"),
+        ("^4.5 || ^4.4.2", "4.5"),
+        # Alternatives are ranked by lower bound, so the tilde alternative wins here
+        # even though the caret alternative resolves to a wildcard.
+        ("^4.5.7 || ~4.6.0", "4.6.0"),
+        # Prereleases lose to the stable release of the same version.
+        ("~4.6.0-alpha.4 || ~4.6.0", "4.6.0"),
+        # Numeric, not lexical, ordering across alternatives.
+        ("~4.9.0 || ~4.10.0", "4.10.0"),
+        ("4.5.x", "4.5.x"),
+        # Specifiers that name no version at all.
+        ("latest", None),
+        ("main", None),
+        ("*", None),
+    ],
+)
+def test_range_lower_bound(spec, expected):
+    assert core_path._range_lower_bound(spec) == expected
+
+
 def test_get_core_meta_falls_back_to_github_for_prerelease(tmp_path, monkeypatch):
     """An npm-style prerelease that npm lacks is fetched from the matching git tag."""
     ext_path = tmp_path / "ext"
@@ -463,6 +501,87 @@ def test_resolve_wildcard_npm_version_matches_prerelease_versions(monkeypatch):
     resolved = core_path._resolve_wildcard_npm_version("4.6.x")
 
     assert resolved == "4.6.0-alpha.5"
+
+
+def test_semver_key_orders_prerelease_series():
+    """Pre-releases rank alpha < beta < rc < stable, by series before iteration."""
+    versions = [
+        "4.6.0",
+        "4.6.0-rc.1",
+        "4.6.0-alpha.4",
+        "4.6.0-beta.1",
+        "4.6.0-rc.0",
+        "4.6.0-beta.2",
+        "4.6.0-alpha.10",
+        "4.6.0-alpha",
+    ]
+
+    assert sorted(versions, key=core_path._semver_key) == [
+        # A pre-release that is a prefix of another ranks lower.
+        "4.6.0-alpha",
+        # Numeric identifiers compare as numbers, not lexically: alpha.4 < alpha.10.
+        "4.6.0-alpha.4",
+        "4.6.0-alpha.10",
+        "4.6.0-beta.1",
+        "4.6.0-beta.2",
+        "4.6.0-rc.0",
+        "4.6.0-rc.1",
+        # The stable release outranks every pre-release of the same version.
+        "4.6.0",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("lower", "higher"),
+    [
+        ("4.6.0-alpha.5", "4.6.0-beta.0"),
+        ("4.6.0-beta.1", "4.6.0-rc.0"),
+        ("4.6.0-alpha.9", "4.6.0-rc.0"),
+        ("4.6.0-rc.2", "4.6.0"),
+        ("4.6.0", "4.6.1-alpha.0"),
+        # A numeric identifier ranks below an alphanumeric one.
+        ("4.6.0-1", "4.6.0-alpha"),
+    ],
+)
+def test_semver_key_ranks_prerelease_transitions(lower, higher):
+    assert core_path._semver_key(lower) < core_path._semver_key(higher)
+
+
+def test_resolve_wildcard_npm_version_advances_across_prerelease_series(monkeypatch):
+    """A wildcard picks the newest series, not the highest number within an older one."""
+
+    def fake_urlopen(req_or_url, **_kwargs):
+        url = getattr(req_or_url, "full_url", req_or_url)
+        assert url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta"
+        return io.BytesIO(
+            json.dumps(
+                {
+                    "versions": {
+                        "4.7.0-alpha.9": {},
+                        "4.7.0-beta.1": {},
+                        "4.7.0-rc.0": {},
+                    },
+                },
+            ).encode(),
+        )
+
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", fake_urlopen)
+
+    # No stable 4.7.0 yet, so the pre-release ordering is what decides the answer.
+    assert core_path._resolve_wildcard_npm_version("4.7.x") == "4.7.0-rc.0"
+
+
+@pytest.mark.parametrize(
+    ("spec", "expected"),
+    [
+        ("~4.6.0-alpha.9 || ~4.6.0-beta.1", "4.6.0-beta.1"),
+        ("~4.6.0-beta.1 || ~4.6.0-rc.0", "4.6.0-rc.0"),
+        ("~4.6.0-rc.0 || ~4.6.0-alpha.9", "4.6.0-rc.0"),
+    ],
+)
+def test_range_lower_bound_ranks_prerelease_alternatives(spec, expected):
+    """Union alternatives are ranked with the same pre-release precedence."""
+    assert core_path._range_lower_bound(spec) == expected
 
 
 def test_resolve_wildcard_npm_version_raises_when_no_matches(monkeypatch):
@@ -676,8 +795,9 @@ def test_get_core_meta_resolves_to_legacy_builder_marker_version(tmp_path, monke
     ext_path = tmp_path / "ext"
     ext_path.mkdir()
     (ext_path / "node_modules").mkdir()
+    # A tilde allows only patches of 4.5.7, so it stays pinned to the version it names.
     (ext_path / "package.json").write_text(
-        json.dumps({"devDependencies": {"@jupyterlab/builder": "^4.5.7"}}),
+        json.dumps({"devDependencies": {"@jupyterlab/builder": "~4.5.7"}}),
     )
     monkeypatch.setenv("HOME", str(tmp_path))
 
@@ -713,7 +833,8 @@ def test_get_core_meta_resolves_to_legacy_builder_marker_version(tmp_path, monke
     )
     logger.warning.assert_called_once()
     warning_message = logger.warning.call_args[0][0] % logger.warning.call_args[0][1:]
-    assert "@jupyterlab/builder@4.5.7" in warning_message
+    assert "@jupyterlab/builder" in warning_message
+    assert "core-meta 4.5.7" in warning_message
 
 
 def test_get_core_meta_legacy_builder_marker_skips_installed_jupyterlab_check(
@@ -725,7 +846,7 @@ def test_get_core_meta_legacy_builder_marker_skips_installed_jupyterlab_check(
     ext_path.mkdir()
     (ext_path / "node_modules").mkdir()
     (ext_path / "package.json").write_text(
-        json.dumps({"devDependencies": {"@jupyterlab/builder": "^4.5.7"}}),
+        json.dumps({"devDependencies": {"@jupyterlab/builder": "~4.5.7"}}),
     )
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setattr(core_path, "installed_version", lambda _package: "4.6.2")
@@ -792,11 +913,19 @@ def test_get_core_meta_ignores_legacy_builder_marker_workspace_spec(tmp_path, mo
     ("version_spec", "expected"),
     [
         ("4.5.7", "4.5.7"),
-        ("^4.5.7", "4.5.7"),
+        ("^4.5.7", "4.5.x"),
         ("~4.5.7", "4.5.7"),
         (">=4.5.7", "4.5.7"),
+        # A union resolves to its highest alternative, whichever side it is on.
+        ("^4.3.6 || ^3.6.8", "4.3.x"),
+        ("^3.6.8 || ^4.3.6", "4.3.x"),
+        ("^3.6.8 || ^4.3.6 || ^5.0.0", "5.0.x"),
+        # Compound and hyphen ranges reduce to their lower bound.
+        (">=4.3.6 <5.0.0", "4.3.6"),
+        ("4.1.0 - 4.5.0", "4.1.0"),
         ("file:../builder", None),
         ("workspace:*", None),
+        ("*", None),
     ],
 )
 def test_legacy_builder_marker_version_parses_spec(tmp_path, version_spec, expected):
@@ -894,6 +1023,35 @@ def test_check_node_version_raises_on_old_node(tmp_path, monkeypatch):
 
     with pytest.raises(RuntimeError, match=r"requires Node\.js .* \(found v18\.20\.8\)"):
         _check_node_version(str(ext_path), str(ext_path))
+
+
+@pytest.mark.parametrize(
+    ("version", "expected"),
+    [
+        # A prerelease of a version newer than the range is new enough to build.
+        ("26.8.0-alpha.0.0.0", True),
+        ("22.13.0-nightly1", True),
+        ("20.19.1-alpha.1", True),
+        # A prerelease of the oldest supported version predates it, so it is not.
+        ("22.12.0-alpha.1", False),
+        ("20.19.0-alpha.1", False),
+        # Prereleases must not widen the range itself, including under an
+        # upper bound: 21.0.0-alpha.1 is <21.0.0, but 21.0.0 is excluded.
+        ("21.0.0-alpha.1", False),
+        ("21.7.3-alpha.1", False),
+        ("18.20.8-alpha.1", False),
+        # Stable versions keep behaving as before.
+        ("26.8.0", True),
+        ("22.12.0", True),
+        ("20.19.0", True),
+        ("21.7.3", False),
+        ("18.20.8", False),
+        # Unparsable versions are rejected.
+        ("not-a-version", False),
+    ],
+)
+def test_satisfies_allowing_prerelease(version, expected):
+    assert _satisfies_allowing_prerelease(version, "^20.19.0 || >=22.12.0") is expected
 
 
 def test_check_node_version_passes_on_supported_node(tmp_path, monkeypatch):

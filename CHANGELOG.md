@@ -2,6 +2,31 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 1.2.3
+
+([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v1.2.2...1ea4d94719d6c4d384fa5b195383e4f34e56f123))
+
+### Bugs fixed
+
+- Support npm range specifiers in the `@jupyterlab/builder` version pin [#166](https://github.com/jupyterlab/jupyter-builder/pull/166) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+
+### Maintenance and upkeep improvements
+
+- Allow Node.js prereleases in the version check [#176](https://github.com/jupyterlab/jupyter-builder/pull/176) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+- Generate license report for the bundled `yarn.js` and correct license in `pyproject.toml` [#175](https://github.com/jupyterlab/jupyter-builder/pull/175) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+- Remove licence classifier (PEP 639) [#168](https://github.com/jupyterlab/jupyter-builder/pull/168) ([@mwtoews](https://github.com/mwtoews), [@krassowski](https://github.com/krassowski))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-08-06&to=2026-09-04&type=c))
+
+@Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-08-06..2026-09-04&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-08-06..2026-09-04&type=Issues)) | @mwtoews ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Amwtoews+updated%3A2026-08-06..2026-09-04&type=Issues))
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 1.2.2
 
 ([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v1.2.1...96bec6a7aee17b4c2e5c41d3e5edeaa0cc6b406b))
@@ -24,8 +49,6 @@ See [our definition of contributors](https://github-activity.readthedocs.io/en/l
 ([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-07-31&to=2026-08-06&type=c))
 
 @Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-07-31..2026-08-06&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-07-31..2026-08-06&type=Issues))
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 1.2.1
 
