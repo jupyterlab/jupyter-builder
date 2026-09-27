@@ -131,8 +131,8 @@ watch_labextension(
 
 ### Module Federation runtime version
 
-Extensions are built with **Module Federation 1** — the webpack-compatible runtime — by
-default. Module Federation 2 can be opted into per build:
+Extensions are built with the webpack-compatible Module Federation plugin (`1`) by default.
+Rspack's newer built-in Module Federation plugin (`2`) can be chosen per build:
 
 ```bash
 jupyter-builder build --module-federation-version 2 /path/to/extension
@@ -151,19 +151,35 @@ or per extension, in the extension's `package.json`:
 The `--module-federation-version` flag takes precedence over the `package.json` value; if
 neither is set the default of `1` applies.
 
-**Why 2 is opt-in.** JupyterLab shares its core packages with `import: false`, meaning no
-fallback copy is bundled into the extension. For core packages that are *not* listed in
-JupyterLab's `singletonPackages` — `@jupyterlab/docregistry`, for example — the MF2 runtime
-fails hard when no version in the share scope satisfies the extension's `requiredVersion`,
-because there is no bundled fallback to fall back to. MF1 keeps webpack's behaviour of
-warning and using whatever version the host provides, which is what allows an extension
-built against one JupyterLab minor version to load in the next.
+**What 1 and 2 mean.** Both are Rspack's built-in plugins
+([Rspack: Module Federation](https://rspack.rs/guide/advanced/module-federation)):
 
-Until that gap is closed upstream
-([module-federation/core#4651](https://github.com/module-federation/core/issues/4651)),
-version 2 is only safe for extensions that do not consume such packages. Setting it is a
-good way to test whether MF2 works for your extension, but MF1 remains the supported
-default.
+| Value | Rspack plugin                             | Module Federation version                                                                                                                                     |
+| ----- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `1`   | `ModuleFederationPluginV1`                | **v1.0**, compatible with webpack's `ModuleFederationPlugin`. Rspack no longer develops it further.                                                           |
+| `2`   | `rspack.container.ModuleFederationPlugin` | **v1.5**. It has all of v1.0's module export, loading and sharing, runs on the Module Federation runtime and adds runtime plugins for extending that runtime. |
+
+Value `2` is **not** the full Module Federation 2.0 plugin from `@module-federation/enhanced`.
+That plugin builds on v1.5 and adds dynamic TypeScript type hints, a manifest, Chrome DevTools
+support and preloading
+([Module Federation docs](https://module-federation.io/guide/start/index)).
+
+**Why 1 is the default.** JupyterLab shares its core packages with `import: false`, so the
+extension bundles no fallback copy of them. For core packages that are *not* listed in
+JupyterLab's `singletonPackages`, such as `@jupyterlab/docregistry`, the Module Federation
+runtime used by value `2` fails outright when no version in the share scope satisfies the
+extension's `requiredVersion`. With no bundled copy, it has nothing to fall back on. Value
+`1` keeps webpack's behaviour: it warns and uses whatever version the host provides. That is
+what lets an extension built against one JupyterLab minor version load in the next.
+
+The upstream report
+([module-federation/core#4651](https://github.com/module-federation/core/issues/4651)) was
+closed as not planned. JupyterLab worked around it instead in
+[jupyterlab/jupyterlab#19251](https://github.com/jupyterlab/jupyterlab/pull/19251), which
+makes every core library package a singleton. That change first shipped in JupyterLab
+**4.7.0a2** and is not in 4.6.x or 4.5.x. Value `2` is therefore reasonable when building
+against JupyterLab 4.7 or later. For older core versions, or if your extension's own
+`sharedPackages` marks a non-singleton package `bundled: false`, keep the default `1`.
 
 ### Environment variables
 

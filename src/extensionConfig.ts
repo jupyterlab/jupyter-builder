@@ -15,21 +15,28 @@ const baseConfig = require('./webpack.config.base');
 // Both Module Federation plugins, selected per build by
 // `moduleFederationVersion` (see `resolveModuleFederationVersion`).
 //
-// V1 - the webpack-compatible plugin - is deliberately the default rather than
-// `rspack.container.ModuleFederationPlugin`, which uses the Module Federation
-// 2.0 runtime. MF2 resolves a shared package that is consumed with
-// `import: false` and `singleton: false` - which is how core packages absent
-// from JupyterLab's `singletonPackages` are consumed, e.g.
-// `@jupyterlab/docregistry` - by failing hard when no version in the share
-// scope satisfies `requiredVersion`, since there is no bundled fallback to fall
-// back to. V1 keeps webpack's behaviour of warning and using whatever version
-// the host provides, which is what makes an extension built against one
-// JupyterLab minor loadable in the next.
+// Version 1 is `ModuleFederationPluginV1`, Rspack's port of webpack's
+// `ModuleFederationPlugin` (Module Federation 1.0). Version 2 is
+// `rspack.container.ModuleFederationPlugin`, which Rspack documents as
+// implementing the Module Federation 1.5 specification on top of the Module
+// Federation runtime (`@module-federation/runtime-tools`). It is not the full
+// Module Federation 2.0 plugin from `@module-federation/enhanced`.
 //
-// Version 2 opts into the MF2 runtime, and with it the MF2 feature set. It is
-// only safe for extensions that do not consume non-singleton shared packages
-// lacking a bundled fallback, so it stays opt-in until the upstream gap is
-// closed: https://github.com/module-federation/core/issues/4651
+// V1 is deliberately the default. The Module Federation runtime resolves a
+// shared package that is consumed with `import: false` and `singleton: false`
+// - which is how core packages absent from JupyterLab's `singletonPackages`
+// are consumed, e.g. `@jupyterlab/docregistry` - by failing hard when no
+// version in the share scope satisfies `requiredVersion`, since there is no
+// bundled fallback to fall back to. V1 keeps webpack's behaviour of warning
+// and using whatever version the host provides, which is what makes an
+// extension built against one JupyterLab minor loadable in the next.
+//
+// The upstream report was closed as not planned
+// (https://github.com/module-federation/core/issues/4651). JupyterLab 4.7
+// (first in 4.7.0a2) makes every core library package a singleton instead
+// (https://github.com/jupyterlab/jupyterlab/pull/19251), so version 2 is safe
+// against 4.7+ core packages. It stays opt-in while older core versions, which
+// lack that change, remain supported build targets.
 const {
   ModuleFederationPluginV1,
   ModuleFederationPlugin: ModuleFederationPluginV2
@@ -328,7 +335,7 @@ function generateConfig({
     }
   }
 
-  // Version 1 unless the build explicitly opted into the MF2 runtime;
+  // Version 1 unless the build explicitly opted into version 2.
   const ModuleFederationPlugin =
     moduleFederationVersion === 2
       ? ModuleFederationPluginV2
