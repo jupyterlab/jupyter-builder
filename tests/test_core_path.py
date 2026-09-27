@@ -16,6 +16,7 @@ from jupyter_builder.federated_extensions import (
     _check_node_version,
     _ensure_builder,
     _read_rspack_node_range,
+    _resolve_core_path_for_jupyterlab_builder,
     _satisfies_allowing_prerelease,
 )
 
@@ -1067,3 +1068,47 @@ def test_check_node_version_passes_on_supported_node(tmp_path, monkeypatch):
     )
 
     _check_node_version(str(ext_path), str(ext_path))
+
+
+CORE_DATA = {"jupyterlab": {"singletonPackages": ["@jupyterlab/application"]}}
+NPM_MANIFEST = {"name": "@jupyterlab/core-meta", "version": "4.6.2"}
+
+
+def test_resolve_core_path_returns_directory_when_already_named_package_json(tmp_path):
+    core_file = tmp_path / "package.json"
+    core_file.write_text(json.dumps(CORE_DATA))
+
+    core_path = _resolve_core_path_for_jupyterlab_builder(str(core_file))
+
+    assert core_path == str(tmp_path)
+
+
+def test_resolve_core_path_ignores_pre_existing_unrelated_package_json(tmp_path):
+    """Regression for #180: an installed @jupyterlab/core-meta ships both files."""
+    core_meta_dir = tmp_path / "node_modules" / "@jupyterlab" / "core-meta"
+    core_meta_dir.mkdir(parents=True)
+    core_file = core_meta_dir / "core.package.json"
+    core_file.write_text(json.dumps(CORE_DATA))
+    manifest_file = core_meta_dir / "package.json"
+    manifest_file.write_text(json.dumps(NPM_MANIFEST))
+
+    core_path = _resolve_core_path_for_jupyterlab_builder(str(core_file))
+
+    seen = json.loads((Path(core_path) / "package.json").read_text())
+    assert seen.get("jupyterlab") == CORE_DATA["jupyterlab"]
+
+    # node_modules itself must be untouched: the installed manifest survives
+    # exactly as npm published it.
+    assert json.loads(manifest_file.read_text()) == NPM_MANIFEST
+
+
+def test_resolve_core_path_does_not_write_into_node_modules(tmp_path):
+    core_meta_dir = tmp_path / "node_modules" / "@jupyterlab" / "core-meta"
+    core_meta_dir.mkdir(parents=True)
+    core_file = core_meta_dir / "core.package.json"
+    core_file.write_text(json.dumps(CORE_DATA))
+
+    core_path = _resolve_core_path_for_jupyterlab_builder(str(core_file))
+
+    assert "node_modules" not in core_path
+    assert {p.name for p in core_meta_dir.iterdir()} == {"core.package.json"}

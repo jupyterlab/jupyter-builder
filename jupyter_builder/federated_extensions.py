@@ -12,6 +12,7 @@ import platform
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -409,17 +410,26 @@ def _resolve_core_path_for_jupyterlab_builder(core_package_file: str) -> str:
     """Return the core path directory for @jupyterlab/builder.
 
     @jupyterlab/builder's downstream script expects a file named package.json
-    inside the core path directory. If core_package_file is not named
-    package.json, a copy named package.json is created in the same directory.
+    inside the core path directory, containing the data from
+    core_package_file. If core_package_file is already named package.json,
+    its directory is used directly.
+
+    Otherwise its directory cannot be reused as-is: that is the case for an
+    installed `@jupyterlab/core-meta` package, whose directory already ships
+    its own package.json (the npm manifest, with no `jupyterlab` key) rather
+    than the core data. Writing there would either be silently skipped
+    because a file already exists, leaving the builder to read the wrong
+    manifest, or overwrite a file this function doesn't own. So the core
+    data is copied into a package.json in a fresh temporary directory
+    instead, and node_modules is left untouched.
     """
     core_file = Path(core_package_file)
-    core_dir = core_file.parent
 
-    if core_file.name != "package.json":
-        target = core_dir / "package.json"
-        if not target.exists():
-            shutil.copy2(core_file, target)
+    if core_file.name == "package.json":
+        return str(core_file.parent)
 
+    core_dir = Path(tempfile.mkdtemp(prefix="jupyter_builder_core-"))
+    shutil.copy2(core_file, core_dir / "package.json")
     return str(core_dir)
 
 
