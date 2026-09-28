@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import re
+import shutil
 import subprocess
 import tarfile
 import urllib.error
@@ -17,6 +18,9 @@ from importlib.metadata import version as installed_version
 from pathlib import Path
 
 from .constants import JPBLD_NPM_URL, JPBLD_RAW_GITHUB_URL
+
+#: Path to the bundled fallback core.package.json shipped with jupyter-builder
+BUNDLED_CORE_META_PATH = Path(__file__).resolve().parent / "core.package.json"
 
 _MAX_CORE_META_BYTES = 5 * 1024 * 1024  # 5 MB — generous upper bound for core.package.json
 
@@ -44,6 +48,66 @@ def _home_dir() -> Path:
     return Path(home) if home else Path.home()
 
 
+def _is_offline() -> bool:
+    """Return True if offline mode is explicitly requested via JPBLD_OFFLINE."""
+    return os.getenv("JPBLD_OFFLINE", "").strip().lower() in {"1", "true", "yes"}
+
+
+def _get_bundled_core_meta() -> Path | None:
+    """Return the bundled core.package.json path if it exists."""
+    if BUNDLED_CORE_META_PATH.exists():
+        return BUNDLED_CORE_META_PATH
+    return None
+
+
+def _get_bundled_core_meta_version() -> str | None:
+    """Return the version declared in the bundled core.package.json, if available."""
+    bundled = _get_bundled_core_meta()
+    if bundled is None:
+        return None
+    try:
+        with bundled.open() as fid:
+            data = json.load(fid)
+            v = data.get("version")
+            return str(v) if v else None
+    except (OSError, ValueError):
+        return None
+
+
+def _is_compatible_with_bundled(
+    requested_version: str,
+    bundled_version: str,
+    used_fallback: bool,
+) -> bool:
+    """Return whether the bundled core-meta version can satisfy the requested version."""
+    if used_fallback or requested_version in {"latest", "main"}:
+        return True
+    if _normalize_version(requested_version) == _normalize_version(bundled_version):
+        return True
+    if _is_wildcard_version(requested_version):
+        escaped = re.escape(requested_version)
+        wildcard_pattern = re.sub(r"x", r"\\d+", escaped, flags=re.IGNORECASE)
+        pattern = "^" + wildcard_pattern + r"(-.+)?$"
+        return bool(re.match(pattern, bundled_version))
+    return _major_minor(requested_version) == _major_minor(bundled_version)
+
+
+def _prepare_bundled_core_meta(
+    bundled_file: Path,
+    bundled_version: str,
+    cache_root: Path,
+) -> str:
+    """Ensure the bundled core-meta is available in cache_root to avoid write-permission issues."""
+    try:
+        dest = cache_root / bundled_version / "core.package.json"
+        if not dest.exists():
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(bundled_file, dest)
+        return str(dest)
+    except OSError:
+        return str(bundled_file)
+
+
 def _http_get(url: str, *, headers: dict[str, str] | None = None, timeout: int = 10) -> bytes:
     if not url.startswith(("http:", "https:")):
         msg = "URL must start with 'http:' or 'https:'"
@@ -56,6 +120,126 @@ def _http_get(url: str, *, headers: dict[str, str] | None = None, timeout: int =
     req = urllib.request.Request(url, headers=request_headers)  # noqa: S310
     with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
         return bytes(resp.read())
+
+
+def _handle_offline_core_meta(
+    cache_root: Path,
+    requested_version: str,
+    used_fallback_resolution: bool,
+    logger: logging.Logger | None,
+) -> str:
+    bundled_file = _get_bundled_core_meta()
+    bundled_version = _get_bundled_core_meta_version() if bundled_file else None
+    if (
+        bundled_file is not None
+        and bundled_version is not None
+        and _is_compatible_with_bundled(
+            requested_version,
+            bundled_version,
+            used_fallback_resolution,
+        )
+    ):
+        _check_matches_installed_jupyterlab(
+            bundled_version,
+            used_fallback_resolution,
+            logger=logger,
+        )
+        if logger:
+            logger.info(
+                "JPBLD_OFFLINE is set; using bundled @jupyterlab/core-meta (%s).",
+                bundled_version,
+            )
+        return _prepare_bundled_core_meta(bundled_file, bundled_version, cache_root)
+
+    msg = (
+        f"JPBLD_OFFLINE is set, but cannot resolve @jupyterlab/core-meta for requested "
+        f"version {requested_version!r} (bundled version: {bundled_version!r})."
+    )
+    raise RuntimeError(msg)
+
+
+def _fallback_bundled_core_meta(
+    cache_root: Path,
+    requested_version: str,
+    used_fallback_resolution: bool,
+    logger: logging.Logger | None,
+    github_error: urllib.error.URLError,
+) -> str | None:
+    bundled_file = _get_bundled_core_meta()
+    bundled_version = _get_bundled_core_meta_version() if bundled_file else None
+    if (
+        bundled_file is not None
+        and bundled_version is not None
+        and _is_compatible_with_bundled(
+            requested_version,
+            bundled_version,
+            used_fallback_resolution,
+        )
+    ):
+        _check_matches_installed_jupyterlab(
+            bundled_version,
+            used_fallback_resolution=True,
+            logger=logger,
+        )
+        if logger:
+            logger.warning(
+                "\033[33mCould not reach npm or GitHub to download "
+                "@jupyterlab/core-meta (%s). Falling back to bundled "
+                "core.package.json (%s).\n \033[0m",
+                github_error,
+                bundled_version,
+            )
+        return _prepare_bundled_core_meta(bundled_file, bundled_version, cache_root)
+    return None
+
+
+def _download_core_meta(
+    cache_root: Path,
+    requested_version: str,
+    used_fallback_resolution: bool,
+    logger: logging.Logger | None,
+) -> str:
+    """Download core.package.json from npm or GitHub, with bundled fallback as last resort."""
+    try:
+        npm_version = _resolve_npm_version(requested_version)
+        _check_matches_installed_jupyterlab(npm_version, used_fallback_resolution, logger)
+        npm_cache_file = cache_root / npm_version / "core.package.json"
+        if npm_cache_file.exists():
+            return str(npm_cache_file)
+        _download_npm_core_meta(npm_version, npm_cache_file)
+        return str(npm_cache_file)
+    except urllib.error.URLError as npm_error:
+        try:
+            github_version = _resolve_github_version(requested_version)
+            _check_matches_installed_jupyterlab(
+                github_version,
+                used_fallback_resolution,
+                logger,
+            )
+            github_cache_file = cache_root / github_version / "core.package.json"
+            if github_cache_file.exists():
+                return str(github_cache_file)
+            _download_github_core_meta(_github_ref(github_version), github_cache_file)
+            return str(github_cache_file)
+        except urllib.error.URLError as github_error:
+            fallback = _fallback_bundled_core_meta(
+                cache_root,
+                requested_version,
+                used_fallback_resolution,
+                logger,
+                github_error,
+            )
+            if fallback is not None:
+                return fallback
+
+            msg = (
+                f"Could not resolve @jupyterlab/core-meta for requested version "
+                f"{requested_version!r}: not found on the npm registry "
+                f"({npm_error}) or in the jupyterlab/jupyterlab GitHub repository "
+                f"({github_error}). Verify that the version exists "
+                f"(both '4.5.7' and 'v4.5.7' are accepted)."
+            )
+            raise RuntimeError(msg) from github_error
 
 
 def get_core_meta(
@@ -83,34 +267,20 @@ def get_core_meta(
     if cached_file is not None:
         return str(cached_file)
 
-    # Try to retrieve core meta from npm first, then fall back to GitHub. If the
-    # requested version cannot be found in either source, raise an error.
-    try:
-        npm_version = _resolve_npm_version(requested_version)
-        _check_matches_installed_jupyterlab(npm_version, used_fallback_resolution, logger)
-        npm_cache_file = cache_root / npm_version / "core.package.json"
-        if npm_cache_file.exists():
-            return str(npm_cache_file)
-        _download_npm_core_meta(npm_version, npm_cache_file)
-        return str(npm_cache_file)
-    except urllib.error.URLError as npm_error:
-        try:
-            github_version = _resolve_github_version(requested_version)
-            _check_matches_installed_jupyterlab(github_version, used_fallback_resolution, logger)
-            github_cache_file = cache_root / github_version / "core.package.json"
-            if github_cache_file.exists():
-                return str(github_cache_file)
-            _download_github_core_meta(_github_ref(github_version), github_cache_file)
-        except urllib.error.URLError as github_error:
-            msg = (
-                f"Could not resolve @jupyterlab/core-meta for requested version "
-                f"{requested_version!r}: not found on the npm registry "
-                f"({npm_error}) or in the jupyterlab/jupyterlab GitHub repository "
-                f"({github_error}). Verify that the version exists "
-                f"(both '4.5.7' and 'v4.5.7' are accepted)."
-            )
-            raise RuntimeError(msg) from github_error
-        return str(github_cache_file)
+    if _is_offline():
+        return _handle_offline_core_meta(
+            cache_root,
+            requested_version,
+            used_fallback_resolution,
+            logger,
+        )
+
+    return _download_core_meta(
+        cache_root,
+        requested_version,
+        used_fallback_resolution,
+        logger,
+    )
 
 
 def _resolve_version_without_installed_core_meta(
