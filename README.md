@@ -57,13 +57,14 @@ jlpm build
 <details>
 <summary><code>build</code></summary>
 
-| Flag                         | Description                                                            |
-| ---------------------------- | ---------------------------------------------------------------------- |
-| `--development`              | Build in development mode (default: `False`)                           |
-| `--source-map`               | Generate source maps (default: `False`)                                |
-| `--static-url=<url>`         | Set the URL for static assets                                          |
-| `--core-version=<version>`   | JupyterLab core version to build against                               |
-| `--core-package-file=<path>` | Path to a core application `package.json` (overrides `--core-version`) |
+| Flag                                 | Description                                                                                       |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| `--development`                      | Build in development mode (default: `False`)                                                      |
+| `--source-map`                       | Generate source maps (default: `False`)                                                           |
+| `--static-url=<url>`                 | Set the URL for static assets                                                                     |
+| `--core-version=<version>`           | JupyterLab core version to build against                                                          |
+| `--core-package-file=<path>`         | Path to a core application `package.json` (overrides `--core-version`)                            |
+| `--module-federation-version=<1\|2>` | Module Federation runtime version (default: `1`, see [below](#module-federation-runtime-version)) |
 
 </details>
 
@@ -82,12 +83,13 @@ jlpm build
 <details>
 <summary><code>watch</code></summary>
 
-| Flag                         | Description                                                            |
-| ---------------------------- | ---------------------------------------------------------------------- |
-| `--development`              | Build in development mode (default: `True`)                            |
-| `--source-map`               | Generate source maps (default: `False`)                                |
-| `--core-version=<version>`   | JupyterLab core version to build against                               |
-| `--core-package-file=<path>` | Path to a core application `package.json` (overrides `--core-version`) |
+| Flag                                 | Description                                                                                       |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| `--development`                      | Build in development mode (default: `True`)                                                       |
+| `--source-map`                       | Generate source maps (default: `False`)                                                           |
+| `--core-version=<version>`           | JupyterLab core version to build against                                                          |
+| `--core-package-file=<path>`         | Path to a core application `package.json` (overrides `--core-version`)                            |
+| `--module-federation-version=<1\|2>` | Module Federation runtime version (default: `1`, see [below](#module-federation-runtime-version)) |
 
 </details>
 
@@ -107,6 +109,7 @@ build_labextension(
     static_url=None,
     core_version=None,
     core_package_file=None,
+    module_federation_version=None,
 )
 
 develop_labextension_py(
@@ -122,8 +125,61 @@ watch_labextension(
     labextensions_path=[...],
     development=True,
     source_map=False,
+    module_federation_version=None,
 )
 ```
+
+### Module Federation runtime version
+
+Extensions are built with the webpack-compatible Module Federation plugin (`1`) by default.
+Rspack's newer built-in Module Federation plugin (`2`) can be chosen per build:
+
+```bash
+jupyter-builder build --module-federation-version 2 /path/to/extension
+```
+
+or per extension, in the extension's `package.json`:
+
+```json
+{
+  "jupyterlab": {
+    "moduleFederationVersion": 2
+  }
+}
+```
+
+The `--module-federation-version` flag takes precedence over the `package.json` value; if
+neither is set the default of `1` applies.
+
+**What 1 and 2 mean.** Both are Rspack's built-in plugins
+([Rspack: Module Federation](https://rspack.rs/guide/advanced/module-federation)):
+
+| Value | Rspack plugin                             | Module Federation version                                                                                                                                     |
+| ----- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `1`   | `ModuleFederationPluginV1`                | **v1.0**, compatible with webpack's `ModuleFederationPlugin`. Rspack no longer develops it further.                                                           |
+| `2`   | `rspack.container.ModuleFederationPlugin` | **v1.5**. It has all of v1.0's module export, loading and sharing, runs on the Module Federation runtime and adds runtime plugins for extending that runtime. |
+
+Value `2` is **not** the full Module Federation 2.0 plugin from `@module-federation/enhanced`.
+That plugin builds on v1.5 and adds dynamic TypeScript type hints, a manifest, Chrome DevTools
+support and preloading
+([Module Federation docs](https://module-federation.io/guide/start/index)).
+
+**Why 1 is the default.** JupyterLab shares its core packages with `import: false`, so the
+extension bundles no fallback copy of them. For core packages that are *not* listed in
+JupyterLab's `singletonPackages`, such as `@jupyterlab/docregistry`, the Module Federation
+runtime used by value `2` fails outright when no version in the share scope satisfies the
+extension's `requiredVersion`. With no bundled copy, it has nothing to fall back on. Value
+`1` keeps webpack's behaviour: it warns and uses whatever version the host provides. That is
+what lets an extension built against one JupyterLab minor version load in the next.
+
+The upstream report
+([module-federation/core#4651](https://github.com/module-federation/core/issues/4651)) was
+closed as not planned. JupyterLab worked around it instead in
+[jupyterlab/jupyterlab#19251](https://github.com/jupyterlab/jupyterlab/pull/19251), which
+makes every core library package a singleton. That change first shipped in JupyterLab
+**4.7.0a2** and is not in 4.6.x or 4.5.x. Value `2` is therefore reasonable when building
+against JupyterLab 4.7 or later. For older core versions, or if your extension's own
+`sharedPackages` marks a non-singleton package `bundled: false`, keep the default `1`.
 
 ### Environment variables
 
