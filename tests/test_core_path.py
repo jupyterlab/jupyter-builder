@@ -1112,3 +1112,95 @@ def test_resolve_core_path_does_not_write_into_node_modules(tmp_path):
 
     assert "node_modules" not in core_path
     assert {p.name for p in core_meta_dir.iterdir()} == {"core.package.json"}
+
+
+# ------------------------------------------------------------------------------
+# Bundled core-meta & offline fallback tests
+# ------------------------------------------------------------------------------
+
+
+def test_bundled_core_meta_exists_and_valid():
+    """Verify that jupyter_builder ships a valid bundled core.package.json."""
+    assert core_path.BUNDLED_CORE_META_PATH.exists()
+    version = core_path._get_bundled_core_meta_version()
+    assert version is not None
+    assert re.match(r"^\d+\.\d+\.\d+", version)
+
+
+def test_get_core_meta_offline_mode_uses_bundled(tmp_path, monkeypatch):
+    """When JPBLD_OFFLINE is set, get_core_meta returns bundled core.package.json."""
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    (ext_path / "node_modules").mkdir()
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("JPBLD_OFFLINE", "1")
+
+    def forbidden_urlopen(*_args, **_kwargs):
+        msg = "Network calls must not be made in offline mode"
+        raise AssertionError(msg)
+
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", forbidden_urlopen)
+
+    location = core_path.get_core_meta(ext_path=ext_path)
+
+    assert Path(location).exists()
+    with Path(location).open() as fid:
+        data = json.load(fid)
+    bundled_version = core_path._get_bundled_core_meta_version()
+    assert data.get("version") == bundled_version
+
+
+def test_get_core_meta_offline_mode_raises_on_incompatible_version(tmp_path, monkeypatch):
+    """JPBLD_OFFLINE fails loudly when an incompatible version is requested."""
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    (ext_path / "node_modules").mkdir()
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("JPBLD_OFFLINE", "1")
+
+    with pytest.raises(RuntimeError, match="JPBLD_OFFLINE is set, but cannot resolve"):
+        core_path.get_core_meta(version="9.9.9", ext_path=ext_path)
+
+
+def test_get_core_meta_network_failure_falls_back_to_bundled(tmp_path, monkeypatch):
+    """When network calls fail, get_core_meta falls back to bundled core.package.json."""
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    (ext_path / "node_modules").mkdir()
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    def failing_urlopen(*_args, **_kwargs):
+        msg = "Network unreachable (offline)"
+        raise urllib.error.URLError(msg)
+
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", failing_urlopen)
+
+    location = core_path.get_core_meta(ext_path=ext_path)
+
+    assert Path(location).exists()
+    with Path(location).open() as fid:
+        data = json.load(fid)
+    bundled_version = core_path._get_bundled_core_meta_version()
+    assert data.get("version") == bundled_version
+
+
+def test_get_core_meta_network_failure_fallback_raises_on_jupyterlab_mismatch(
+    tmp_path,
+    monkeypatch,
+):
+    """Network fallback is rejected if bundled version mismatches installed jupyterlab."""
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    (ext_path / "node_modules").mkdir()
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(core_path, "installed_version", lambda _package: "9.0.0")
+
+    def failing_urlopen(*_args, **_kwargs):
+        msg = "Network unreachable"
+        raise urllib.error.URLError(msg)
+
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", failing_urlopen)
+
+    expected_msg = r"building against .* metadata but jupyterlab 9\.0\.0 is installed"
+    with pytest.raises(RuntimeError, match=expected_msg):
+        core_path.get_core_meta(ext_path=ext_path)
