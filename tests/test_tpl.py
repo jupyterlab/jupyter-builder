@@ -70,6 +70,22 @@ def test_build_records_remote_entry(glob_hostile_extension_folder):
     assert (output_dir / load).exists(), f"{load} is missing from {output_dir}!"
 
 
+def test_build_records_plugin_ids(extension_folder):
+    """`_build.plugins` must list the plugin ids of each module exposed.
+
+    JupyterLab reads these to decide whether it has to load a module at all. A
+    module whose ids cannot be read is left out of the mapping and JupyterLab
+    loads it as before, so the failure to record is safe; recording the wrong
+    ids is not, which is what this test guards.
+    """
+    run(["jupyter-builder", "build", str(extension_folder)], cwd=extension_folder, check=True)
+
+    output_dir = extension_folder / "myextension/labextension"
+    build_data = json.loads((output_dir / "package.json").read_text())["jupyterlab"]["_build"]
+
+    assert build_data["plugins"] == {"./extension": [{"id": "myextension:plugin"}]}
+
+
 def test_build_copies_schemas(glob_hostile_extension_folder):
     """A declared `schemaDir` must be copied to `<outputDir>/schemas/<name>`.
 
