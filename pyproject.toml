@@ -102,6 +102,7 @@ before-build-npm = [
 before-build-python = [
     "node jupyter_builder/yarn.js clean:lib",
     "node jupyter_builder/yarn.js clean:lintcache",
+    "python scripts/sync_core_meta.py",
 ]
 
 [tool.mypy]
@@ -218,3 +219,4 @@ notice-rgx = "(?i)Copyright \\(c\\) Jupyter Development Team\\."
 "scripts/*" = ["INP001"]
 # T201 this generator is a CLI tool; its progress output *is* its interface
 "scripts/generate_yarn_licenses.py" = ["T201"]
+"scripts/sync_core_meta.py" = ["T201"]
