@@ -42,8 +42,8 @@
     "prettier": "jlpm prettier:base --write --list-different",
     "prettier:base": "prettier \"**/*{.ts,.tsx,.js,.jsx,.css,.json,.md}\"",
     "prettier:check": "jlpm prettier:base --check",
-    "sync:core-meta": "python scripts/sync_core_meta.py",
-    "check:core-meta": "python scripts/sync_core_meta.py --check",
+    "sync:core-meta": "python3 scripts/sync_core_meta.py",
+    "check:core-meta": "python3 scripts/sync_core_meta.py --check",
     "watch": "tsc -w --sourceMap"
   },
   "dependencies": {

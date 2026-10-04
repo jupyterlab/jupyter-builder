@@ -19,6 +19,7 @@ from jupyter_builder.federated_extensions import (
     _resolve_core_path_for_jupyterlab_builder,
     _satisfies_allowing_prerelease,
 )
+from scripts import sync_core_meta
 
 
 def _make_core_package_tarball(content: bytes) -> bytes:
@@ -1204,3 +1205,25 @@ def test_get_core_meta_network_failure_fallback_raises_on_jupyterlab_mismatch(
     expected_msg = r"building against .* metadata but jupyterlab 9\.0\.0 is installed"
     with pytest.raises(RuntimeError, match=expected_msg):
         core_path.get_core_meta(ext_path=ext_path)
+
+
+def test_sync_core_meta_check_passes_when_synced():
+    """Verify that sync_core_meta(check=True) succeeds on the repository checkout."""
+    assert sync_core_meta.sync_core_meta(check=True) == 0
+
+
+def test_sync_core_meta_detects_out_of_sync(tmp_path, monkeypatch):
+    """Verify that sync_core_meta(check=True) returns 1 when files differ and syncs on update."""
+    source = tmp_path / "source.json"
+    target = tmp_path / "target.json"
+
+    source.write_text('{"version": "4.6.4"}')
+    target.write_text('{"version": "4.6.3"}')
+
+    monkeypatch.setattr(sync_core_meta, "SOURCE", source)
+    monkeypatch.setattr(sync_core_meta, "TARGET", target)
+
+    assert sync_core_meta.sync_core_meta(check=True) == 1
+    assert sync_core_meta.sync_core_meta(check=False) == 0
+    assert target.read_text() == '{"version": "4.6.4"}'
+    assert sync_core_meta.sync_core_meta(check=True) == 0
