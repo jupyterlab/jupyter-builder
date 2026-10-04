@@ -1151,6 +1151,43 @@ def test_get_core_meta_offline_mode_uses_bundled(tmp_path, monkeypatch):
     assert data.get("version") == bundled_version
 
 
+def test_get_core_meta_offline_mode_does_not_invoke_jlpm_when_node_modules_missing(
+    tmp_path,
+    monkeypatch,
+):
+    """In offline mode, missing node_modules must not invoke jlpm."""
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    # Note: no node_modules created
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("JPBLD_OFFLINE", "1")
+
+    def forbidden_check_call(*_args, **_kwargs):
+        msg = "jlpm should not be invoked in offline mode"
+        raise AssertionError(msg)
+
+    monkeypatch.setattr(core_path.subprocess, "check_call", forbidden_check_call)
+
+    location = core_path.get_core_meta(ext_path=ext_path)
+    assert Path(location).exists()
+    with Path(location).open() as fid:
+        data = json.load(fid)
+    bundled_version = core_path._get_bundled_core_meta_version()
+    assert data.get("version") == bundled_version
+
+
+def test_is_compatible_with_bundled_rejects_mutable_branch():
+    """Mutable branches like 'main' must not match static bundled release metadata."""
+    assert not core_path._is_compatible_with_bundled("main", "4.6.3", used_fallback=False)
+    assert not core_path._is_compatible_with_bundled("feature-xyz", "4.6.3", used_fallback=False)
+    assert core_path._is_compatible_with_bundled("latest", "4.6.3", used_fallback=False)
+    assert core_path._is_compatible_with_bundled("4.6.3", "4.6.3", used_fallback=False)
+    assert core_path._is_compatible_with_bundled("v4.6.3", "4.6.3", used_fallback=False)
+    assert core_path._is_compatible_with_bundled("4.6.x", "4.6.3", used_fallback=False)
+    assert not core_path._is_compatible_with_bundled("3.x", "4.6.3", used_fallback=False)
+    assert core_path._is_compatible_with_bundled("main", "4.6.3", used_fallback=True)
+
+
 def test_get_core_meta_offline_mode_raises_on_incompatible_version(tmp_path, monkeypatch):
     """JPBLD_OFFLINE fails loudly when an incompatible version is requested."""
     ext_path = tmp_path / "ext"
@@ -1161,6 +1198,9 @@ def test_get_core_meta_offline_mode_raises_on_incompatible_version(tmp_path, mon
 
     with pytest.raises(RuntimeError, match="JPBLD_OFFLINE is set, but cannot resolve"):
         core_path.get_core_meta(version="9.9.9", ext_path=ext_path)
+
+    with pytest.raises(RuntimeError, match="JPBLD_OFFLINE is set, but cannot resolve"):
+        core_path.get_core_meta(version="main", ext_path=ext_path)
 
 
 def test_get_core_meta_network_failure_falls_back_to_bundled(tmp_path, monkeypatch):

@@ -80,7 +80,7 @@ def _is_compatible_with_bundled(
     used_fallback: bool,
 ) -> bool:
     """Return whether the bundled core-meta version can satisfy the requested version."""
-    if used_fallback or requested_version in {"latest", "main"}:
+    if used_fallback or requested_version == "latest":
         return True
     if _normalize_version(requested_version) == _normalize_version(bundled_version):
         return True
@@ -89,7 +89,9 @@ def _is_compatible_with_bundled(
         wildcard_pattern = re.sub(r"x", r"\\d+", escaped, flags=re.IGNORECASE)
         pattern = "^" + wildcard_pattern + r"(-.+)?$"
         return bool(re.match(pattern, bundled_version))
-    return _major_minor(requested_version) == _major_minor(bundled_version)
+    req_mm = _major_minor(requested_version)
+    bund_mm = _major_minor(bundled_version)
+    return req_mm is not None and req_mm == bund_mm
 
 
 def _prepare_bundled_core_meta(
@@ -653,6 +655,8 @@ def _download_github_core_meta(version: str, destination: Path) -> None:
 
 def _get_installed_core_meta(ext_path: Path) -> str | None:
     if not (ext_path / "node_modules").exists():
+        if _is_offline():
+            return None
         subprocess.check_call(["jlpm"], cwd=ext_path)  # noqa: S607
 
     target = ext_path
