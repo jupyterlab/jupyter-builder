@@ -1207,8 +1207,17 @@ def test_get_core_meta_network_failure_fallback_raises_on_jupyterlab_mismatch(
         core_path.get_core_meta(ext_path=ext_path)
 
 
-def test_sync_core_meta_check_passes_when_synced():
-    """Verify that sync_core_meta(check=True) succeeds on the repository checkout."""
+def test_sync_core_meta_check_passes_when_synced(tmp_path, monkeypatch):
+    """Verify that sync_core_meta(check=True) succeeds when source and target match."""
+    source = tmp_path / "source.json"
+    target = tmp_path / "target.json"
+    content = '{"name": "@jupyterlab/core-meta", "version": "4.6.3"}'
+    source.write_text(content)
+    target.write_text(content)
+
+    monkeypatch.setattr(sync_core_meta, "SOURCE", source)
+    monkeypatch.setattr(sync_core_meta, "TARGET", target)
+
     assert sync_core_meta.sync_core_meta(check=True) == 0
 
 
@@ -1226,4 +1235,13 @@ def test_sync_core_meta_detects_out_of_sync(tmp_path, monkeypatch):
     assert sync_core_meta.sync_core_meta(check=True) == 1
     assert sync_core_meta.sync_core_meta(check=False) == 0
     assert target.read_text() == '{"version": "4.6.4"}'
+    assert sync_core_meta.sync_core_meta(check=True) == 0
+
+
+@pytest.mark.skipif(
+    not sync_core_meta.SOURCE.exists(),
+    reason="requires node_modules/@jupyterlab/core-meta (run jlpm install)",
+)
+def test_sync_core_meta_checkout_is_in_sync():
+    """Verify that the repository copy of core.package.json is in sync with node_modules."""
     assert sync_core_meta.sync_core_meta(check=True) == 0
