@@ -193,7 +193,7 @@ __metadata:
   resolution: "@jupyter/builder@workspace:."
   dependencies:
     "@eslint/js": ^10.0.1
-    "@jupyterlab/core-meta": ^4.6.3
+    "@jupyterlab/core-meta": ^4.6.4
     "@module-federation/runtime-tools": ^2.0.0
     "@rspack/core": ^2.2.1
     "@types/fs-extra": ^9.0.1
@@ -224,10 +224,10 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@jupyterlab/core-meta@npm:^4.6.3":
-  version: 4.6.3
-  resolution: "@jupyterlab/core-meta@npm:4.6.3"
-  checksum: 7cd3c98f3b1bc5573b9715cb5f48d199ffa770c29d37f76eed11588f6a106bc2f3888cd9b6d7ef212e0acfde9cc7779c4c84ece64c591d5ec3e49e5b60ddf823
+"@jupyterlab/core-meta@npm:^4.6.4":
+  version: 4.6.4
+  resolution: "@jupyterlab/core-meta@npm:4.6.4"
+  checksum: d6ad0f77f057324d76be9001899db8c52c48045ed2b6833b1aa2db0b512780208b7180c912fa770d2bf5c50823b366ebfb7f1dca6ba521fb82701fbcbd1cbdad
   languageName: node
   linkType: hard
 
