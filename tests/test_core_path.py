@@ -19,6 +19,7 @@ from jupyter_builder.federated_extensions import (
     _resolve_core_path_for_jupyterlab_builder,
     _satisfies_allowing_prerelease,
 )
+from scripts import sync_core_meta
 
 
 def _make_core_package_tarball(content: bytes) -> bytes:
@@ -1112,3 +1113,175 @@ def test_resolve_core_path_does_not_write_into_node_modules(tmp_path):
 
     assert "node_modules" not in core_path
     assert {p.name for p in core_meta_dir.iterdir()} == {"core.package.json"}
+
+
+# ------------------------------------------------------------------------------
+# Bundled core-meta & offline fallback tests
+# ------------------------------------------------------------------------------
+
+
+def test_bundled_core_meta_exists_and_valid():
+    """Verify that jupyter_builder ships a valid bundled core.package.json."""
+    assert core_path.BUNDLED_CORE_META_PATH.exists()
+    version = core_path._get_bundled_core_meta_version()
+    assert version is not None
+    assert re.match(r"^\d+\.\d+\.\d+", version)
+
+
+def test_get_core_meta_offline_mode_uses_bundled(tmp_path, monkeypatch):
+    """When JPBLD_OFFLINE is set, get_core_meta returns bundled core.package.json."""
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    (ext_path / "node_modules").mkdir()
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("JPBLD_OFFLINE", "1")
+
+    def forbidden_urlopen(*_args, **_kwargs):
+        msg = "Network calls must not be made in offline mode"
+        raise AssertionError(msg)
+
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", forbidden_urlopen)
+
+    location = core_path.get_core_meta(ext_path=ext_path)
+
+    assert Path(location).exists()
+    with Path(location).open() as fid:
+        data = json.load(fid)
+    bundled_version = core_path._get_bundled_core_meta_version()
+    assert data.get("version") == bundled_version
+
+
+def test_get_core_meta_offline_mode_does_not_invoke_jlpm_when_node_modules_missing(
+    tmp_path,
+    monkeypatch,
+):
+    """In offline mode, missing node_modules must not invoke jlpm."""
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    # Note: no node_modules created
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("JPBLD_OFFLINE", "1")
+
+    def forbidden_check_call(*_args, **_kwargs):
+        msg = "jlpm should not be invoked in offline mode"
+        raise AssertionError(msg)
+
+    monkeypatch.setattr(core_path.subprocess, "check_call", forbidden_check_call)
+
+    location = core_path.get_core_meta(ext_path=ext_path)
+    assert Path(location).exists()
+    with Path(location).open() as fid:
+        data = json.load(fid)
+    bundled_version = core_path._get_bundled_core_meta_version()
+    assert data.get("version") == bundled_version
+
+
+def test_is_compatible_with_bundled_rejects_mutable_branch():
+    """Mutable branches like 'main' must not match static bundled release metadata."""
+    assert not core_path._is_compatible_with_bundled("main", "4.6.3", used_fallback=False)
+    assert not core_path._is_compatible_with_bundled("feature-xyz", "4.6.3", used_fallback=False)
+    assert core_path._is_compatible_with_bundled("latest", "4.6.3", used_fallback=False)
+    assert core_path._is_compatible_with_bundled("4.6.3", "4.6.3", used_fallback=False)
+    assert core_path._is_compatible_with_bundled("v4.6.3", "4.6.3", used_fallback=False)
+    assert core_path._is_compatible_with_bundled("4.6.x", "4.6.3", used_fallback=False)
+    assert not core_path._is_compatible_with_bundled("3.x", "4.6.3", used_fallback=False)
+    assert core_path._is_compatible_with_bundled("main", "4.6.3", used_fallback=True)
+
+
+def test_get_core_meta_offline_mode_raises_on_incompatible_version(tmp_path, monkeypatch):
+    """JPBLD_OFFLINE fails loudly when an incompatible version is requested."""
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    (ext_path / "node_modules").mkdir()
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("JPBLD_OFFLINE", "1")
+
+    with pytest.raises(RuntimeError, match="JPBLD_OFFLINE is set, but cannot resolve"):
+        core_path.get_core_meta(version="9.9.9", ext_path=ext_path)
+
+    with pytest.raises(RuntimeError, match="JPBLD_OFFLINE is set, but cannot resolve"):
+        core_path.get_core_meta(version="main", ext_path=ext_path)
+
+
+def test_get_core_meta_network_failure_falls_back_to_bundled(tmp_path, monkeypatch):
+    """When network calls fail, get_core_meta falls back to bundled core.package.json."""
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    (ext_path / "node_modules").mkdir()
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    def failing_urlopen(*_args, **_kwargs):
+        msg = "Network unreachable (offline)"
+        raise urllib.error.URLError(msg)
+
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", failing_urlopen)
+
+    location = core_path.get_core_meta(ext_path=ext_path)
+
+    assert Path(location).exists()
+    with Path(location).open() as fid:
+        data = json.load(fid)
+    bundled_version = core_path._get_bundled_core_meta_version()
+    assert data.get("version") == bundled_version
+
+
+def test_get_core_meta_network_failure_fallback_raises_on_jupyterlab_mismatch(
+    tmp_path,
+    monkeypatch,
+):
+    """Network fallback is rejected if bundled version mismatches installed jupyterlab."""
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    (ext_path / "node_modules").mkdir()
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(core_path, "installed_version", lambda _package: "9.0.0")
+
+    def failing_urlopen(*_args, **_kwargs):
+        msg = "Network unreachable"
+        raise urllib.error.URLError(msg)
+
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", failing_urlopen)
+
+    expected_msg = r"building against .* metadata but jupyterlab 9\.0\.0 is installed"
+    with pytest.raises(RuntimeError, match=expected_msg):
+        core_path.get_core_meta(ext_path=ext_path)
+
+
+def test_sync_core_meta_check_passes_when_synced(tmp_path, monkeypatch):
+    """Verify that sync_core_meta(check=True) succeeds when source and target match."""
+    source = tmp_path / "source.json"
+    target = tmp_path / "target.json"
+    content = '{"name": "@jupyterlab/core-meta", "version": "4.6.3"}'
+    source.write_text(content)
+    target.write_text(content)
+
+    monkeypatch.setattr(sync_core_meta, "SOURCE", source)
+    monkeypatch.setattr(sync_core_meta, "TARGET", target)
+
+    assert sync_core_meta.sync_core_meta(check=True) == 0
+
+
+def test_sync_core_meta_detects_out_of_sync(tmp_path, monkeypatch):
+    """Verify that sync_core_meta(check=True) returns 1 when files differ and syncs on update."""
+    source = tmp_path / "source.json"
+    target = tmp_path / "target.json"
+
+    source.write_text('{"version": "4.6.4"}')
+    target.write_text('{"version": "4.6.3"}')
+
+    monkeypatch.setattr(sync_core_meta, "SOURCE", source)
+    monkeypatch.setattr(sync_core_meta, "TARGET", target)
+
+    assert sync_core_meta.sync_core_meta(check=True) == 1
+    assert sync_core_meta.sync_core_meta(check=False) == 0
+    assert target.read_text() == '{"version": "4.6.4"}'
+    assert sync_core_meta.sync_core_meta(check=True) == 0
+
+
+@pytest.mark.skipif(
+    not sync_core_meta.SOURCE.exists(),
+    reason="requires node_modules/@jupyterlab/core-meta (run jlpm install)",
+)
+def test_sync_core_meta_checkout_is_in_sync():
+    """Verify that the repository copy of core.package.json is in sync with node_modules."""
+    assert sync_core_meta.sync_core_meta(check=True) == 0

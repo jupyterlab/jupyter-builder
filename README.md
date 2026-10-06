@@ -128,13 +128,14 @@ watch_labextension(
 ### Environment variables
 
 jupyter-builder supports the following environment variables to override network URLs —
-for example, to point at an internal mirror or a local proxy. A warning is emitted at startup
-whenever a variable is set.
+for example, to point at an internal mirror or a local proxy — or to run in offline mode.
+A warning is emitted at startup whenever a URL override variable is set.
 
-| Variable               | Default                             | Purpose                                                           |
-| ---------------------- | ----------------------------------- | ----------------------------------------------------------------- |
-| `JPBLD_NPM_URL`        | `https://registry.npmjs.org`        | npm registry used to resolve and download `@jupyterlab/core-meta` |
-| `JPBLD_RAW_GITHUB_URL` | `https://raw.githubusercontent.com` | Raw GitHub content URL used as a fallback when npm is unavailable |
+| Variable               | Default                             | Purpose                                                                                                                                     |
+| ---------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `JPBLD_NPM_URL`        | `https://registry.npmjs.org`        | npm registry used to resolve and download `@jupyterlab/core-meta`                                                                           |
+| `JPBLD_RAW_GITHUB_URL` | `https://raw.githubusercontent.com` | Raw GitHub content URL used as a fallback when npm is unavailable                                                                           |
+| `JPBLD_OFFLINE`        | `""` (unset)                        | Explicit offline mode (`1`, `true`, or `yes`). Disables network downloads and uses local cached or bundled `@jupyterlab/core-meta` metadata |
 
 **Example — redirect to a corporate npm mirror:**
 
@@ -143,13 +144,30 @@ export JPBLD_NPM_URL=https://npm.internal.example.com
 jupyter-builder build /path/to/extension
 ```
 
+**Example — offline build:**
+
+```bash
+export JPBLD_OFFLINE=1
+jupyter-builder build /path/to/extension
+```
+
 **Core metadata resolution order**
 
-When no explicit `--core-version` is given, jupyter-builder looks for
-`@jupyterlab/core-meta` in the extension's `node_modules` first (no network
-required). If the package is not found there a warning is printed and the
-metadata is fetched from the npm registry, falling back to raw GitHub if npm
-is unreachable.
+When resolving `@jupyterlab/core-meta`:
+
+1. When no explicit `--core-version` is given, jupyter-builder looks for
+   `@jupyterlab/core-meta` in the extension's `node_modules` first (no network
+   required).
+2. If the requested metadata version is already cached locally
+   (`~/.cache/jupyterlab_builder/core/<version>/core.package.json`), the cached
+   file is reused directly.
+3. If `JPBLD_OFFLINE` is enabled (`1`, `true`, or `yes`), network access is prevented
+   and jupyter-builder resolves against the bundled `core.package.json` shipped with the
+   package (verifying version compatibility).
+4. Otherwise, metadata is fetched from the npm registry (`JPBLD_NPM_URL`),
+   falling back to raw GitHub (`JPBLD_RAW_GITHUB_URL`) if npm is unreachable.
+5. If both npm and GitHub are unreachable (e.g., due to network failure),
+   jupyter-builder falls back to the bundled `core.package.json` as a last resort.
 
 ## Uninstall
 
