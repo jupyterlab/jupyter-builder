@@ -42,10 +42,28 @@
 ///////////////////////////////////////////////////////
 
 import * as path from 'path';
-import { program as commander } from 'commander';
+import { program as commander, InvalidArgumentError } from 'commander';
 import { type RspackError, MultiStats, rspack } from '@rspack/core';
-import generateConfig from './extensionConfig';
+import generateConfig, {
+  type ModuleFederationVersion
+} from './extensionConfig';
 import { stdout as colors } from 'supports-color';
+
+/**
+ * Parse the `--module-federation-version` flag.
+ *
+ * Only 1 and 2 are accepted. Unset is not the same as 1: it lets the
+ * extension's `jupyterlab.moduleFederationVersion` apply before the default.
+ */
+function parseModuleFederationVersion(value: string): ModuleFederationVersion {
+  if (value !== '1' && value !== '2') {
+    throw new InvalidArgumentError(
+      'Expected 1 or 2. Version 1 (the default) is the webpack-compatible ' +
+        'Module Federation runtime; version 2 is experimental'
+    );
+  }
+  return value === '1' ? 1 : 2;
+}
 
 commander
   .description('Build an extension')
@@ -55,6 +73,12 @@ commander
   .option(
     '--static-url <url>',
     'url for build assets, if hosted outside the built extension'
+  )
+  .option(
+    '--module-federation-version <1|2>',
+    'Module Federation runtime version to build with, overriding the ' +
+      "extension's jupyterlab.moduleFederationVersion (default: 1)",
+    parseModuleFederationVersion
   )
   .option('--watch')
   .action(async (options, command) => {
@@ -68,7 +92,8 @@ commander
       mode,
       corePackageFile,
       staticUrl: options.staticUrl,
-      devtool
+      devtool,
+      moduleFederationVersion: options.moduleFederationVersion
     });
     const compiler = rspack(config);
 
