@@ -78,7 +78,7 @@ jobs:
 
   test:
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -130,6 +130,8 @@ jobs:
       - run: pip install -e ".[test,dev]"
       - name: Run the unit tests
         run: pytest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   test_prereleases:
     name: Test Prereleases
@@ -144,6 +146,8 @@ jobs:
       - run: pip install -e ".[test,dev]"
       - name: Run the tests
         run: pytest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   make_sdist:
     name: Make SDist
