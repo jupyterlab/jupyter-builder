@@ -151,6 +151,13 @@ or per extension, in the extension's `package.json`:
 The `--module-federation-version` flag takes precedence over the `package.json` value; if
 neither is set the default of `1` applies.
 
+> \[!NOTE\]
+> Both selectors require `@jupyter/builder`. Extensions that still build with the legacy
+> `@jupyterlab/builder` always use Module Federation 1. Passing
+> `--module-federation-version` (or `module_federation_version=` from Python) to such an
+> extension fails with an error. `jupyterlab.moduleFederationVersion` in `package.json` is
+> ignored there, because `@jupyterlab/builder` does not read it.
+
 **What 1 and 2 mean.** Both are Rspack's built-in plugins
 ([Rspack: Module Federation](https://rspack.rs/guide/advanced/module-federation)):
 

@@ -234,6 +234,85 @@ def test_files_build_development(extension_folder):
         assert filepath.exists(), f"File {filename} does not exist in {folder_path}!"
 
 
+# Global defined by `@module-federation/runtime-core`, which only version 2
+# (`rspack.container.ModuleFederationPlugin`) bundles; the webpack-compatible
+# `ModuleFederationPluginV1` emits webpack's own sharing runtime instead.
+MF_RUNTIME_MARKER = "__FEDERATION__"
+
+
+def _uses_mf_runtime(extension_folder):
+    """Whether the built extension bundles the Module Federation runtime."""
+    static_dir = extension_folder / "myextension/labextension/static"
+    return any(
+        MF_RUNTIME_MARKER in path.read_text(encoding="utf-8") for path in static_dir.glob("*.js")
+    )
+
+
+def _set_package_mf_version(extension_folder, version):
+    package_json_path = extension_folder / "package.json"
+    package_data = json.loads(package_json_path.read_text())
+    package_data["jupyterlab"]["moduleFederationVersion"] = version
+    package_json_path.write_text(json.dumps(package_data, indent=2))
+
+
+@pytest.mark.parametrize(
+    ("package_version", "cli_version", "expect_mf_runtime"),
+    [
+        pytest.param(None, None, False, id="default-is-1"),
+        pytest.param(None, "1", False, id="cli-1"),
+        pytest.param(None, "2", True, id="cli-2"),
+        pytest.param(2, None, True, id="package-2"),
+        pytest.param(2, "1", False, id="cli-1-overrides-package-2"),
+        pytest.param(1, "2", True, id="cli-2-overrides-package-1"),
+    ],
+)
+def test_build_module_federation_version(
+    extension_folder,
+    package_version,
+    cli_version,
+    expect_mf_runtime,
+):
+    """The selected Module Federation plugin must build and be the one used.
+
+    Runs the whole path: Python flag handling, Commander parsing, the
+    `package.json` value and its precedence, and an actual rspack build with
+    the chosen plugin.
+    """
+    if package_version is not None:
+        _set_package_mf_version(extension_folder, package_version)
+    cli_flag = [] if cli_version is None else ["--module-federation-version", cli_version]
+
+    run(
+        ["jupyter-builder", "build", *cli_flag, str(extension_folder)],
+        cwd=extension_folder,
+        check=True,
+    )
+
+    output_dir = extension_folder / "myextension/labextension"
+    load = json.loads((output_dir / "package.json").read_text())["jupyterlab"]["_build"]["load"]
+    assert (output_dir / load).exists(), f"{load} is missing from {output_dir}!"
+    assert _uses_mf_runtime(extension_folder) == expect_mf_runtime, (
+        f"Expected the Module Federation runtime to be "
+        f"{'bundled' if expect_mf_runtime else 'absent'}!"
+    )
+
+
+def test_build_rejects_invalid_package_mf_version(extension_folder):
+    _set_package_mf_version(extension_folder, 3)
+
+    result = run(
+        ["jupyter-builder", "build", str(extension_folder)],
+        cwd=extension_folder,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    output = result.stdout + result.stderr
+
+    assert result.returncode != 0, f"Invalid moduleFederationVersion was accepted!\n{output}"
+    assert "moduleFederationVersion" in output, f"Error does not name the field!\n{output}"
+
+
 def test_files_build_jupyterlab_builder(jupyterlab_builder_extension_folder):
     extension_folder = jupyterlab_builder_extension_folder
     run(["jupyter-builder", "build", str(extension_folder)], cwd=extension_folder, check=True)
@@ -243,6 +322,29 @@ def test_files_build_jupyterlab_builder(jupyterlab_builder_extension_folder):
     for filename in expected_files:
         filepath = folder_path / filename
         assert filepath.exists(), f"File {filename} does not exist in {folder_path}!"
+
+
+@pytest.mark.parametrize("command", ["build", "watch"])
+def test_mf_version_refused_for_jupyterlab_builder(jupyterlab_builder_extension_folder, command):
+    """@jupyterlab/builder has no such flag, so it must fail before running."""
+    extension_folder = jupyterlab_builder_extension_folder
+    result = run(
+        [
+            "jupyter-builder",
+            command,
+            "--module-federation-version",
+            "1",
+            str(extension_folder),
+        ],
+        cwd=extension_folder,
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=WATCH_INITIAL_BUILD_TIMEOUT,
+    )
+
+    assert result.returncode != 0
+    assert "only supported by @jupyter/builder" in result.stderr, result.stderr
 
 
 # --------------------------------- WATCH TESTS ---------------------------------------
