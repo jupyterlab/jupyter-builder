@@ -1,0 +1,58 @@
+name: Dependabot sync core-meta
+
+on:
+  pull_request_target:
+    paths:
+      - 'package.json'
+      - 'yarn.lock'
+
+jobs:
+  sync-core-meta:
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout the branch from the PR that triggered the job
+        run: gh pr checkout ${{ github.event.pull_request.number }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Base Setup
+        uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
+
+      - name: Install dependencies
+        run: |
+          set -eux
+          node jupyter_builder/yarn.js install
+
+      - name: Sync bundled core-meta
+        run: |
+          set -eux
+          python scripts/sync_core_meta.py
+
+      - name: Commit and push changes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if ! git diff --quiet jupyter_builder/core.package.json; then
+            git pull --no-tags
+            git add jupyter_builder/core.package.json
+            git commit -m "chore: sync bundled core.package.json with @jupyterlab/core-meta bump"
+            git config push.default upstream
+            git push
+          else
+            echo "No changes to jupyter_builder/core.package.json"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

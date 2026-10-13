@@ -102,7 +102,6 @@ before-build-npm = [
 before-build-python = [
     "node jupyter_builder/yarn.js clean:lib",
     "node jupyter_builder/yarn.js clean:lintcache",
-    "python scripts/sync_core_meta.py",
 ]
 
 [tool.mypy]

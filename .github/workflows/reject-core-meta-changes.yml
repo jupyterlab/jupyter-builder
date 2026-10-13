@@ -1,0 +1,29 @@
+# This workflow fails in PRs with manual changes to jupyter_builder/core.package.json
+# This file is auto-synchronized from node_modules/@jupyterlab/core-meta/core.package.json
+
+name: 'Reject changes to core.package.json'
+
+on:
+  pull_request:
+    paths:
+      - 'jupyter_builder/core.package.json'
+
+permissions:
+  contents: read
+
+jobs:
+  core-meta-check:
+    runs-on: ubuntu-latest
+    if: github.actor != 'dependabot[bot]' && github.actor != 'github-actions[bot]' && github.event.pull_request.number != 187
+    steps:
+      - name: Fail if core.package.json is manually modified
+        shell: bash
+        run: |
+          echo "## ❌ Manual Changes to \`core.package.json\` Detected" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`jupyter_builder/core.package.json\` is auto-generated and should not be manually modified." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "This file is auto-synchronized from \`node_modules/@jupyterlab/core-meta/core.package.json\` by Dependabot." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Please revert your manual changes to this file." >> $GITHUB_STEP_SUMMARY
+          exit 1
