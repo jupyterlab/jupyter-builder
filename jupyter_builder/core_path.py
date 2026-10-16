@@ -119,22 +119,74 @@ def _local_core_meta_satisfies(core_meta_version: str, constraint: str) -> bool:
     """
     if constraint == "latest":
         return bool(re.match(r"\d", core_meta_version))
+    try:
+        if make_range(constraint, loose=True).test(core_meta_version):  # type: ignore[no-untyped-call]
+            return True
+    except Exception:  # noqa: BLE001
+        return False
     return _satisfies_allowing_prerelease(core_meta_version, constraint)
+
+
+def _resolve_cached_core_meta(
+    cache_root: Path,
+    constraint: str,
+    used_fallback_resolution: bool,
+    logger: logging.Logger | None,
+) -> tuple[Path, str] | None:
+    """Find a concrete version cached in `cache_root` that satisfies `constraint`.
+
+    Returns `(path, version)` for the highest matching version, or None if no cached
+    version satisfies the constraint.
+    """
+    if not cache_root.is_dir():
+        return None
+    matches: list[tuple[Path, str]] = []
+    try:
+        entries = list(cache_root.iterdir())
+    except OSError:
+        return None
+    for entry in entries:
+        if not entry.is_dir():
+            continue
+        core_meta = _get_cached_core_meta_file(cache_root, entry.name)
+        if core_meta is None or not core_meta.is_file():
+            continue
+        version = _read_core_meta_version(core_meta) or entry.name
+        if not re.match(r"^\d+\.\d+\.\d+", version):
+            continue
+        if _local_core_meta_satisfies(version, constraint):
+            matches.append((core_meta, version))
+    if not matches:
+        return None
+    matches.sort(key=lambda item: _semver_key(item[1]), reverse=True)
+    for core_meta, version in matches:
+        _check_matches_installed_jupyterlab(version, used_fallback_resolution, logger)
+        return core_meta, version
+    return None
 
 
 def _resolve_local_core_meta(
     constraint: str,
     used_fallback_resolution: bool,
     logger: logging.Logger | None,
+    cache_root: Path | None = None,
 ) -> tuple[Path, str] | None:
     """Find core metadata available without network access that satisfies `constraint`.
 
-    The installed JupyterLab's own metadata is preferred: it is what the extension will
-    run against in this environment, and it never goes stale. The snapshot bundled with
-    jupyter-builder is the last resort, for environments without JupyterLab installed.
+    The local cache is checked first for concrete versions satisfying `constraint`.
+    Next, the installed JupyterLab's own metadata is preferred: it is what the extension
+    will run against in this environment, and it never goes stale. The snapshot bundled
+    with jupyter-builder is the last resort, for environments without JupyterLab installed.
 
     Returns `(path, version)`, or None if neither is available and compatible.
     """
+    if cache_root is None:
+        cache_root = _home_dir() / ".cache" / "jupyterlab_builder" / "core"
+
+    cached = _resolve_cached_core_meta(cache_root, constraint, used_fallback_resolution, logger)
+    if cached is not None:
+        return cached
+
     for core_meta in (_installed_jupyterlab_core_meta(), BUNDLED_CORE_META_PATH):
         if core_meta is None or not core_meta.is_file():
             continue
@@ -179,8 +231,14 @@ def _offline_core_meta(
     constraint: str,
     used_fallback_resolution: bool,
     logger: logging.Logger | None,
+    cache_root: Path | None = None,
 ) -> str:
-    local = _resolve_local_core_meta(constraint, used_fallback_resolution, logger)
+    local = _resolve_local_core_meta(
+        constraint,
+        used_fallback_resolution,
+        logger,
+        cache_root=cache_root,
+    )
     if local is None:
         msg = f"JPBLD_OFFLINE is set, but {_no_local_core_meta_message(constraint)}"
         raise RuntimeError(msg)
@@ -224,7 +282,12 @@ def _download_core_meta(
             _download_github_core_meta(_github_ref(github_version), github_cache_file)
             return str(github_cache_file)
         except urllib.error.URLError as github_error:
-            local = _resolve_local_core_meta(constraint, used_fallback_resolution, logger)
+            local = _resolve_local_core_meta(
+                constraint,
+                used_fallback_resolution,
+                logger,
+                cache_root=cache_root,
+            )
             if local is not None:
                 core_meta, core_meta_version = local
                 if logger:
@@ -274,7 +337,12 @@ def get_core_meta(
         return str(cached_file)
 
     if _is_offline():
-        return _offline_core_meta(constraint, used_fallback_resolution, logger)
+        return _offline_core_meta(
+            constraint,
+            used_fallback_resolution,
+            logger,
+            cache_root=cache_root,
+        )
 
     return _download_core_meta(
         cache_root,
@@ -664,9 +732,7 @@ def _download_github_core_meta(version: str, destination: Path) -> None:
 
 
 def _get_installed_core_meta(ext_path: Path) -> str | None:
-    if not (ext_path / "node_modules").exists():
-        if _is_offline():
-            return None
+    if not (ext_path / "node_modules").exists() and not _is_offline():
         subprocess.check_call(["jlpm"], cwd=ext_path)  # noqa: S607
 
     target = ext_path

@@ -1318,6 +1318,68 @@ def test_get_core_meta_offline_mode_prefers_cache(tmp_path, monkeypatch):
     assert core_path.get_core_meta(version="4.5.7", ext_path=ext_path) == str(cache_file)
 
 
+def test_local_core_meta_satisfies_exact_prerelease():
+    """An exact prerelease constraint matches identical metadata."""
+    assert core_path._local_core_meta_satisfies("4.7.0-alpha.2", "4.7.0-alpha.2")
+    assert core_path._local_core_meta_satisfies("4.7.0-beta.1", "4.7.0-beta.1")
+    assert not core_path._local_core_meta_satisfies("4.7.0-alpha.1", "4.7.0-alpha.2")
+
+
+def test_get_core_meta_offline_mode_cached_semver_range(tmp_path, monkeypatch):
+    """Cached concrete versions are found for semver ranges in offline mode."""
+    ext_path = _make_ext(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("JPBLD_OFFLINE", "1")
+    _forbid_network(monkeypatch)
+    cache_dir = tmp_path / ".cache" / "jupyterlab_builder" / "core"
+    file_457 = cache_dir / "4.5.7" / "core.package.json"
+    file_457.parent.mkdir(parents=True)
+    file_457.write_text('{"version": "4.5.7"}')
+    file_458 = cache_dir / "4.5.8" / "core.package.json"
+    file_458.parent.mkdir(parents=True)
+    file_458.write_text('{"version": "4.5.8"}')
+
+    assert core_path.get_core_meta(version="4.5.x", ext_path=ext_path) == str(file_458)
+
+
+def test_get_core_meta_network_failure_falls_back_to_cached_semver_range(tmp_path, monkeypatch):
+    """When network fails, cached versions satisfying semver ranges are used."""
+    ext_path = _make_ext(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    _fail_network(monkeypatch)
+    cache_dir = tmp_path / ".cache" / "jupyterlab_builder" / "core"
+    file_457 = cache_dir / "4.5.7" / "core.package.json"
+    file_457.parent.mkdir(parents=True)
+    file_457.write_text('{"version": "4.5.7"}')
+
+    assert core_path.get_core_meta(version="4.5.x", ext_path=ext_path) == str(file_457)
+
+
+def test_get_core_meta_offline_finds_ancestor_node_modules(tmp_path, monkeypatch):
+    """Offline mode skips jlpm but continues searching ancestor node_modules."""
+    workspace_root = tmp_path / "workspace"
+    hoisted_meta = (
+        workspace_root / "node_modules" / "@jupyterlab" / "core-meta" / "core.package.json"
+    )
+    hoisted_meta.parent.mkdir(parents=True)
+    hoisted_meta.write_text('{"version": "4.6.4"}')
+
+    ext_path = workspace_root / "packages" / "my-ext"
+    ext_path.mkdir(parents=True)
+    (ext_path / "package.json").write_text('{"name": "my-ext"}')
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("JPBLD_OFFLINE", "1")
+
+    def forbidden_check_call(*_args, **_kwargs):
+        msg = "jlpm should not be invoked in offline mode"
+        raise AssertionError(msg)
+
+    monkeypatch.setattr(core_path.subprocess, "check_call", forbidden_check_call)
+
+    assert core_path.get_core_meta(ext_path=ext_path) == str(hoisted_meta)
+
+
 @pytest.mark.parametrize("version", ["9.9.9", "4.5.7", "main"])
 def test_get_core_meta_offline_mode_raises_on_incompatible_version(tmp_path, monkeypatch, version):
     """JPBLD_OFFLINE fails loudly when no local copy satisfies the requested version."""
