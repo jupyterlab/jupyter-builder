@@ -1,12 +1,16 @@
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
-"""Sync jupyter_builder/core.package.json with @jupyterlab/core-meta in node_modules."""
+"""Sync jupyter_builder/core.package.json with @jupyterlab/core-meta in node_modules.
+
+The bundled copy is jupyter-builder's last-resort core metadata for offline builds. It
+must match the @jupyterlab/core-meta pinned in yarn.lock byte for byte, so it is never
+edited by hand: bump @jupyterlab/core-meta, run `jlpm`, then `jlpm sync:core-meta`.
+"""
 
 from __future__ import annotations
 
 import argparse
-import filecmp
 import shutil
 import sys
 from pathlib import Path
@@ -25,18 +29,22 @@ def sync_core_meta(*, check: bool = False) -> int:
         )
         return 1
 
+    in_sync = TARGET.exists() and TARGET.read_bytes() == SOURCE.read_bytes()
     if check:
-        if not TARGET.exists() or not filecmp.cmp(SOURCE, TARGET, shallow=False):
+        if not in_sync:
             print(
-                f"Error: {TARGET} is out of date with {SOURCE}.\n"
-                "Run 'jlpm run sync:core-meta' or 'python scripts/sync_core_meta.py' to update it.",
+                f"Error: {TARGET} does not match {SOURCE}.\n"
+                "This file is generated from the @jupyterlab/core-meta pinned in yarn.lock "
+                "and must not be edited by hand. Run 'jlpm' and then "
+                "'jlpm sync:core-meta' to regenerate it.",
                 file=sys.stderr,
             )
             return 1
-        print("jupyter_builder/core.package.json is up to date.")
+        print(f"{TARGET.name} is in sync with @jupyterlab/core-meta.")
         return 0
 
-    shutil.copy2(SOURCE, TARGET)
+    if not in_sync:
+        shutil.copyfile(SOURCE, TARGET)
     print(f"Synced {SOURCE} -> {TARGET}")
     return 0
 

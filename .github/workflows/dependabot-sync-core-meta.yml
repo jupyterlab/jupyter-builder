@@ -1,58 +1,60 @@
 name: Dependabot sync core-meta
 
+# Regenerates jupyter_builder/core.package.json on Dependabot PRs that bump
+# @jupyterlab/core-meta, so the bundled snapshot never lags behind yarn.lock.
+#
+# pull_request_target runs with a write token, so the job is restricted to
+# Dependabot's own branches in this repository and skips install scripts.
+#
+# A push made with GITHUB_TOKEN does not trigger other workflows, so CI does not
+# rerun on the sync commit; close and reopen the PR to rerun it before merging.
+
 on:
   pull_request_target:
+    types: [opened, synchronize, reopened]
     paths:
-      - 'package.json'
-      - 'yarn.lock'
+      - "package.json"
+      - "yarn.lock"
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   sync-core-meta:
+    if: >-
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    if: github.actor == 'dependabot[bot]'
-
     permissions:
       contents: write
-      pull-requests: write
 
     steps:
-      - name: Checkout
+      - name: Checkout the Dependabot branch
         uses: actions/checkout@v7
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Checkout the branch from the PR that triggered the job
-        run: gh pr checkout ${{ github.event.pull_request.number }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Base Setup
         uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
 
       - name: Install dependencies
-        run: |
-          set -eux
-          node jupyter_builder/yarn.js install
+        # Only node_modules/@jupyterlab/core-meta is needed; don't run package scripts.
+        run: node jupyter_builder/yarn.js install --mode=skip-build
 
       - name: Sync bundled core-meta
-        run: |
-          set -eux
-          python scripts/sync_core_meta.py
+        run: python scripts/sync_core_meta.py
 
       - name: Commit and push changes
-        shell: bash
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          if ! git diff --quiet jupyter_builder/core.package.json; then
-            git pull --no-tags
-            git add jupyter_builder/core.package.json
-            git commit -m "chore: sync bundled core.package.json with @jupyterlab/core-meta bump"
-            git config push.default upstream
-            git push
-          else
-            echo "No changes to jupyter_builder/core.package.json"
+          if git diff --quiet -- jupyter_builder/core.package.json; then
+            echo "jupyter_builder/core.package.json is already in sync"
+            exit 0
           fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add jupyter_builder/core.package.json
+          git commit -m "Sync bundled core.package.json with @jupyterlab/core-meta"
+          git push

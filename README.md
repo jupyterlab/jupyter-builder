@@ -131,11 +131,11 @@ jupyter-builder supports the following environment variables to override network
 for example, to point at an internal mirror or a local proxy — or to run in offline mode.
 A warning is emitted at startup whenever a URL override variable is set.
 
-| Variable               | Default                             | Purpose                                                                                                                                     |
-| ---------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `JPBLD_NPM_URL`        | `https://registry.npmjs.org`        | npm registry used to resolve and download `@jupyterlab/core-meta`                                                                           |
-| `JPBLD_RAW_GITHUB_URL` | `https://raw.githubusercontent.com` | Raw GitHub content URL used as a fallback when npm is unavailable                                                                           |
-| `JPBLD_OFFLINE`        | `""` (unset)                        | Explicit offline mode (`1`, `true`, or `yes`). Disables network downloads and uses local cached or bundled `@jupyterlab/core-meta` metadata |
+| Variable               | Default                             | Purpose                                                                                                                 |
+| ---------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `JPBLD_NPM_URL`        | `https://registry.npmjs.org`        | npm registry used to resolve and download `@jupyterlab/core-meta`                                                       |
+| `JPBLD_RAW_GITHUB_URL` | `https://raw.githubusercontent.com` | Raw GitHub content URL used as a fallback when npm is unavailable                                                       |
+| `JPBLD_OFFLINE`        | `""` (unset)                        | Offline mode (`1`, `true`, or `yes`). Skips network downloads and uses cached or local `@jupyterlab/core-meta` metadata |
 
 **Example — redirect to a corporate npm mirror:**
 
@@ -157,17 +157,22 @@ When resolving `@jupyterlab/core-meta`:
 
 1. When no explicit `--core-version` is given, jupyter-builder looks for
    `@jupyterlab/core-meta` in the extension's `node_modules` first (no network
-   required).
-2. If the requested metadata version is already cached locally
+   required). Otherwise the version range to build against is taken from
+   `--core-version`, or from the extension's legacy `@jupyterlab/builder`
+   dependency, defaulting to the latest release.
+1. If that version is already cached locally
    (`~/.cache/jupyterlab_builder/core/<version>/core.package.json`), the cached
-   file is reused directly.
-3. If `JPBLD_OFFLINE` is enabled (`1`, `true`, or `yes`), network access is prevented
-   and jupyter-builder resolves against the bundled `core.package.json` shipped with the
-   package (verifying version compatibility).
-4. Otherwise, metadata is fetched from the npm registry (`JPBLD_NPM_URL`),
+   file is reused.
+1. Otherwise, metadata is fetched from the npm registry (`JPBLD_NPM_URL`),
    falling back to raw GitHub (`JPBLD_RAW_GITHUB_URL`) if npm is unreachable.
-5. If both npm and GitHub are unreachable (e.g., due to network failure),
-   jupyter-builder falls back to the bundled `core.package.json` as a last resort.
+   This step is skipped when `JPBLD_OFFLINE` is set.
+1. If the metadata cannot be downloaded, or `JPBLD_OFFLINE` is set, a local
+   copy is used if its version satisfies the requested range: first
+   `jupyterlab/staging/package.json` from the installed JupyterLab, then the
+   snapshot of `@jupyterlab/core-meta` bundled with jupyter-builder. Branch
+   names such as `main` are never satisfied by a local copy.
+
+To build against a specific metadata file instead, pass `--core-package-file`.
 
 ## Uninstall
 

@@ -3,12 +3,12 @@
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
+import importlib.util
 import io
 import json
 import logging
 import os
 import re
-import shutil
 import subprocess
 import tarfile
 import urllib.error
@@ -18,8 +18,11 @@ from importlib.metadata import version as installed_version
 from pathlib import Path
 
 from .constants import JPBLD_NPM_URL, JPBLD_RAW_GITHUB_URL
+from .jupyterlab_semver import make_range, make_semver
 
-#: Path to the bundled fallback core.package.json shipped with jupyter-builder
+#: Snapshot of `@jupyterlab/core-meta` shipped with jupyter-builder, used as a last
+#: resort when the metadata cannot be downloaded. It is kept byte-for-byte in sync with
+#: the `@jupyterlab/core-meta` pinned in yarn.lock by `scripts/sync_core_meta.py`.
 BUNDLED_CORE_META_PATH = Path(__file__).resolve().parent / "core.package.json"
 
 _MAX_CORE_META_BYTES = 5 * 1024 * 1024  # 5 MB — generous upper bound for core.package.json
@@ -53,61 +56,109 @@ def _is_offline() -> bool:
     return os.getenv("JPBLD_OFFLINE", "").strip().lower() in {"1", "true", "yes"}
 
 
-def _get_bundled_core_meta() -> Path | None:
-    """Return the bundled core.package.json path if it exists."""
-    if BUNDLED_CORE_META_PATH.exists():
-        return BUNDLED_CORE_META_PATH
+def _installed_jupyterlab_core_meta() -> Path | None:
+    """Return the core metadata shipped by the installed `jupyterlab` Python package.
+
+    JupyterLab ships `jupyterlab/staging/package.json`, from which every
+    `@jupyterlab/core-meta` release is copied, so it is the exact metadata of the
+    JupyterLab installed alongside. The package is located without being imported.
+    """
+    try:
+        spec = importlib.util.find_spec("jupyterlab")
+    except (ImportError, ValueError):
+        return None
+    if spec is None or not spec.submodule_search_locations:
+        return None
+    for location in spec.submodule_search_locations:
+        candidate = Path(location) / "staging" / "package.json"
+        if candidate.is_file():
+            return candidate
     return None
 
 
-def _get_bundled_core_meta_version() -> str | None:
-    """Return the version declared in the bundled core.package.json, if available."""
-    bundled = _get_bundled_core_meta()
-    if bundled is None:
-        return None
+def _read_core_meta_version(core_meta: Path) -> str | None:
     try:
-        with bundled.open() as fid:
-            data = json.load(fid)
-            v = data.get("version")
-            return str(v) if v else None
-    except (OSError, ValueError):
+        with core_meta.open() as fid:
+            version = json.load(fid).get("version")
+    except (OSError, ValueError, AttributeError):
         return None
+    return version if isinstance(version, str) and version else None
 
 
-def _is_compatible_with_bundled(
-    requested_version: str,
-    bundled_version: str,
-    used_fallback: bool,
-) -> bool:
-    """Return whether the bundled core-meta version can satisfy the requested version."""
-    if used_fallback or requested_version == "latest":
-        return True
-    if _normalize_version(requested_version) == _normalize_version(bundled_version):
-        return True
-    if _is_wildcard_version(requested_version):
-        escaped = re.escape(requested_version)
-        wildcard_pattern = re.sub(r"x", r"\\d+", escaped, flags=re.IGNORECASE)
-        pattern = "^" + wildcard_pattern + r"(-.+)?$"
-        return bool(re.match(pattern, bundled_version))
-    req_mm = _major_minor(requested_version)
-    bund_mm = _major_minor(bundled_version)
-    return req_mm is not None and req_mm == bund_mm
+def _satisfies_allowing_prerelease(current: str, version_range: str) -> bool:
+    """Return whether ``current`` satisfies ``version_range``, counting prereleases.
 
-
-def _prepare_bundled_core_meta(
-    bundled_file: Path,
-    bundled_version: str,
-    cache_root: Path,
-) -> str:
-    """Ensure the bundled core-meta is available in cache_root to avoid write-permission issues."""
+    A prerelease has to clear the comparators both as itself and as its release,
+    so it can neither reach under a lower bound nor slip beneath an upper one:
+    ``22.12.0-alpha.1`` sorts before the ``22.12.0`` it needs to be, and
+    ``21.0.0-alpha.1`` is only ``<21.0.0`` because 21 is excluded to begin with.
+    """
     try:
-        dest = cache_root / bundled_version / "core.package.json"
-        if not dest.exists():
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(bundled_file, dest)
-        return str(dest)
-    except OSError:
-        return str(bundled_file)
+        range_ = make_range(version_range, loose=True)  # type: ignore[no-untyped-call]
+        version = make_semver(current, loose=True)  # type: ignore[no-untyped-call]
+    except Exception:  # noqa: BLE001
+        return False
+    candidates = [version]
+    if version.prerelease:
+        release = f"{version.major}.{version.minor}.{version.patch}"
+        candidates.append(make_semver(release, loose=True))  # type: ignore[no-untyped-call]
+    return any(
+        all(comparator.test(candidate) for candidate in candidates for comparator in comparator_set)
+        for comparator_set in range_.set
+    )
+
+
+def _local_core_meta_satisfies(core_meta_version: str, constraint: str) -> bool:
+    """Return whether locally available metadata can stand in for `constraint`.
+
+    `constraint` is the npm range the build asked for, e.g. "^4.0.0" from a legacy
+    `@jupyterlab/builder` pin or "4.5.7" from `--core-version`. Unlike a download,
+    which resolves the range to one release, any version within it will do here.
+    "latest" accepts any release; branch names such as "main" are mutable and are
+    never satisfied by a release snapshot.
+    """
+    if constraint == "latest":
+        return bool(re.match(r"\d", core_meta_version))
+    return _satisfies_allowing_prerelease(core_meta_version, constraint)
+
+
+def _resolve_local_core_meta(
+    constraint: str,
+    used_fallback_resolution: bool,
+    logger: logging.Logger | None,
+) -> tuple[Path, str] | None:
+    """Find core metadata available without network access that satisfies `constraint`.
+
+    The installed JupyterLab's own metadata is preferred: it is what the extension will
+    run against in this environment, and it never goes stale. The snapshot bundled with
+    jupyter-builder is the last resort, for environments without JupyterLab installed.
+
+    Returns `(path, version)`, or None if neither is available and compatible.
+    """
+    for core_meta in (_installed_jupyterlab_core_meta(), BUNDLED_CORE_META_PATH):
+        if core_meta is None or not core_meta.is_file():
+            continue
+        core_meta_version = _read_core_meta_version(core_meta)
+        if core_meta_version is None or not _local_core_meta_satisfies(
+            core_meta_version,
+            constraint,
+        ):
+            continue
+        _check_matches_installed_jupyterlab(core_meta_version, used_fallback_resolution, logger)
+        return core_meta, core_meta_version
+    return None
+
+
+def _no_local_core_meta_message(constraint: str) -> str:
+    installed = _installed_jupyterlab_core_meta()
+    installed_version = _read_core_meta_version(installed) if installed else None
+    bundled_version = _read_core_meta_version(BUNDLED_CORE_META_PATH)
+    return (
+        f"no local copy of @jupyterlab/core-meta satisfies {constraint!r} "
+        f"(installed jupyterlab: {installed_version or 'not found'}, "
+        f"bundled with jupyter-builder: {bundled_version or 'not found'}). "
+        "Pass --core-package-file to build against a specific core.package.json."
+    )
 
 
 def _http_get(url: str, *, headers: dict[str, str] | None = None, timeout: int = 10) -> bytes:
@@ -124,84 +175,33 @@ def _http_get(url: str, *, headers: dict[str, str] | None = None, timeout: int =
         return bytes(resp.read())
 
 
-def _handle_offline_core_meta(
-    cache_root: Path,
-    requested_version: str,
+def _offline_core_meta(
+    constraint: str,
     used_fallback_resolution: bool,
     logger: logging.Logger | None,
 ) -> str:
-    bundled_file = _get_bundled_core_meta()
-    bundled_version = _get_bundled_core_meta_version() if bundled_file else None
-    if (
-        bundled_file is not None
-        and bundled_version is not None
-        and _is_compatible_with_bundled(
-            requested_version,
-            bundled_version,
-            used_fallback_resolution,
+    local = _resolve_local_core_meta(constraint, used_fallback_resolution, logger)
+    if local is None:
+        msg = f"JPBLD_OFFLINE is set, but {_no_local_core_meta_message(constraint)}"
+        raise RuntimeError(msg)
+    core_meta, core_meta_version = local
+    if logger:
+        logger.info(
+            "JPBLD_OFFLINE is set; using @jupyterlab/core-meta %s from %s.",
+            core_meta_version,
+            core_meta,
         )
-    ):
-        _check_matches_installed_jupyterlab(
-            bundled_version,
-            used_fallback_resolution,
-            logger=logger,
-        )
-        if logger:
-            logger.info(
-                "JPBLD_OFFLINE is set; using bundled @jupyterlab/core-meta (%s).",
-                bundled_version,
-            )
-        return _prepare_bundled_core_meta(bundled_file, bundled_version, cache_root)
-
-    msg = (
-        f"JPBLD_OFFLINE is set, but cannot resolve @jupyterlab/core-meta for requested "
-        f"version {requested_version!r} (bundled version: {bundled_version!r})."
-    )
-    raise RuntimeError(msg)
-
-
-def _fallback_bundled_core_meta(
-    cache_root: Path,
-    requested_version: str,
-    used_fallback_resolution: bool,
-    logger: logging.Logger | None,
-    github_error: urllib.error.URLError,
-) -> str | None:
-    bundled_file = _get_bundled_core_meta()
-    bundled_version = _get_bundled_core_meta_version() if bundled_file else None
-    if (
-        bundled_file is not None
-        and bundled_version is not None
-        and _is_compatible_with_bundled(
-            requested_version,
-            bundled_version,
-            used_fallback_resolution,
-        )
-    ):
-        _check_matches_installed_jupyterlab(
-            bundled_version,
-            used_fallback_resolution=True,
-            logger=logger,
-        )
-        if logger:
-            logger.warning(
-                "\033[33mCould not reach npm or GitHub to download "
-                "@jupyterlab/core-meta (%s). Falling back to bundled "
-                "core.package.json (%s).\n \033[0m",
-                github_error,
-                bundled_version,
-            )
-        return _prepare_bundled_core_meta(bundled_file, bundled_version, cache_root)
-    return None
+    return str(core_meta)
 
 
 def _download_core_meta(
     cache_root: Path,
     requested_version: str,
+    constraint: str,
     used_fallback_resolution: bool,
     logger: logging.Logger | None,
 ) -> str:
-    """Download core.package.json from npm or GitHub, with bundled fallback as last resort."""
+    """Download core.package.json from npm or GitHub, falling back to a local copy."""
     try:
         npm_version = _resolve_npm_version(requested_version)
         _check_matches_installed_jupyterlab(npm_version, used_fallback_resolution, logger)
@@ -224,22 +224,27 @@ def _download_core_meta(
             _download_github_core_meta(_github_ref(github_version), github_cache_file)
             return str(github_cache_file)
         except urllib.error.URLError as github_error:
-            fallback = _fallback_bundled_core_meta(
-                cache_root,
-                requested_version,
-                used_fallback_resolution,
-                logger,
-                github_error,
-            )
-            if fallback is not None:
-                return fallback
+            local = _resolve_local_core_meta(constraint, used_fallback_resolution, logger)
+            if local is not None:
+                core_meta, core_meta_version = local
+                if logger:
+                    logger.warning(
+                        "\033[33mCould not download @jupyterlab/core-meta %s (%s); "
+                        "falling back to @jupyterlab/core-meta %s from %s. Set "
+                        "JPBLD_OFFLINE=1 to skip the download attempt.\n \033[0m",
+                        requested_version,
+                        github_error,
+                        core_meta_version,
+                        core_meta,
+                    )
+                return str(core_meta)
 
             msg = (
                 f"Could not resolve @jupyterlab/core-meta for requested version "
                 f"{requested_version!r}: not found on the npm registry "
                 f"({npm_error}) or in the jupyterlab/jupyterlab GitHub repository "
-                f"({github_error}). Verify that the version exists "
-                f"(both '4.5.7' and 'v4.5.7' are accepted)."
+                f"({github_error}), and {_no_local_core_meta_message(constraint)} "
+                f"Verify that the version exists (both '4.5.7' and 'v4.5.7' are accepted)."
             )
             raise RuntimeError(msg) from github_error
 
@@ -253,16 +258,15 @@ def get_core_meta(
     if version is not None:
         # Accept both "vX.Y.Z" and "X.Y.Z" for an explicitly requested version, as
         # well as npm range specifiers such as "4", "4.5" or "^4.3.6 || ^3.6.8".
-        requested_version = _expand_partial_version(
-            _range_lower_bound(version) or _normalize_version(version),
-        )
+        constraint = _normalize_version(version)
         used_fallback_resolution = False
     else:
-        installed_core_meta, requested_version, used_fallback_resolution = (
+        installed_core_meta, constraint, used_fallback_resolution = (
             _resolve_version_without_installed_core_meta(ext_path, logger)
         )
         if installed_core_meta is not None:
             return installed_core_meta
+    requested_version = _expand_partial_version(_range_lower_bound(constraint) or constraint)
 
     cache_root = _home_dir() / ".cache" / "jupyterlab_builder" / "core"
     cached_file = _get_cached_core_meta_file(cache_root, requested_version)
@@ -270,16 +274,12 @@ def get_core_meta(
         return str(cached_file)
 
     if _is_offline():
-        return _handle_offline_core_meta(
-            cache_root,
-            requested_version,
-            used_fallback_resolution,
-            logger,
-        )
+        return _offline_core_meta(constraint, used_fallback_resolution, logger)
 
     return _download_core_meta(
         cache_root,
         requested_version,
+        constraint,
         used_fallback_resolution,
         logger,
     )
@@ -289,10 +289,11 @@ def _resolve_version_without_installed_core_meta(
     ext_path: str | os.PathLike[str] | None,
     logger: logging.Logger | None,
 ) -> tuple[str | None, str, bool]:
-    """Resolve a version when no explicit `version` was given.
+    """Resolve a version constraint when no explicit `version` was given.
 
-    Returns `(installed_core_meta_path, requested_version, used_fallback_resolution)`.
-    If `installed_core_meta_path` is not None, the caller should return it directly and
+    Returns `(installed_core_meta_path, constraint, used_fallback_resolution)`, where
+    `constraint` is an npm range such as "^4.0.0", or "latest". If
+    `installed_core_meta_path` is not None, the caller should return it directly and
     ignore the other two values.
     """
     if ext_path is None:
@@ -303,8 +304,9 @@ def _resolve_version_without_installed_core_meta(
     if installed_core_meta is not None:
         return installed_core_meta, "", False
 
-    legacy_version = _legacy_builder_marker_version(resolved_ext_path)
-    if legacy_version is not None:
+    legacy_spec = _legacy_builder_marker_spec(resolved_ext_path)
+    if legacy_spec is not None:
+        legacy_version = _range_lower_bound(legacy_spec)
         if logger:
             logger.warning(
                 "\033[33m@jupyterlab/core-meta was not found in node_modules. This "
@@ -317,7 +319,7 @@ def _resolve_version_without_installed_core_meta(
                 legacy_version,
                 _LEGACY_BUILDER_MARKER,
             )
-        return None, _expand_partial_version(legacy_version), False
+        return None, legacy_spec, False
 
     if logger:
         logger.warning(
@@ -329,11 +331,11 @@ def _resolve_version_without_installed_core_meta(
     return None, "latest", True
 
 
-def _legacy_builder_marker_version(ext_path: Path) -> str | None:
-    """Return the extension's own pinned `@jupyterlab/builder` version, if declared.
+def _legacy_builder_marker_spec(ext_path: Path) -> str | None:
+    """Return the extension's own `@jupyterlab/builder` version range, if declared.
 
-    Returns None if the marker isn't declared, the version is a local path/workspace
-    spec rather than a real version, or `package.json` can't be read.
+    Returns None if the marker isn't declared, the spec is a local path/workspace
+    spec rather than a real version range, or `package.json` can't be read.
     """
     try:
         with (ext_path / "package.json").open() as fid:
@@ -345,7 +347,15 @@ def _legacy_builder_marker_version(ext_path: Path) -> str | None:
     ) or ext_data.get("dependencies", {}).get(_LEGACY_BUILDER_MARKER)
     if not isinstance(version_spec, str) or "/" in version_spec:
         return None
-    return _range_lower_bound(version_spec)
+    if _range_lower_bound(version_spec) is None:
+        return None
+    return version_spec.strip()
+
+
+def _legacy_builder_marker_version(ext_path: Path) -> str | None:
+    """Return the version the extension's `@jupyterlab/builder` range starts at, if any."""
+    spec = _legacy_builder_marker_spec(ext_path)
+    return _range_lower_bound(spec) if spec is not None else None
 
 
 def _normalize_version(version: str) -> str:

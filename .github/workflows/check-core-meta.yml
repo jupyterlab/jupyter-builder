@@ -29,11 +29,8 @@ jobs:
         uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
 
       - name: Install dependencies
-        run: |
-          set -eux
-          node jupyter_builder/yarn.js install
+        run: node jupyter_builder/yarn.js install --immutable --mode=skip-build
 
+      # Also rejects hand edits: the file must match the pinned core-meta byte for byte.
       - name: Verify bundled core-meta is in sync
-        run: |
-          set -eux
-          python scripts/sync_core_meta.py --check
+        run: python scripts/sync_core_meta.py --check
