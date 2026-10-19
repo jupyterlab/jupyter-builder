@@ -169,8 +169,9 @@ When resolving `@jupyterlab/core-meta`:
 1. If the metadata cannot be downloaded, or `JPBLD_OFFLINE` is set, a local
    copy is used if its version satisfies the requested range: first
    `jupyterlab/staging/package.json` from the installed JupyterLab, then the
-   snapshot of `@jupyterlab/core-meta` bundled with jupyter-builder. Branch
-   names such as `main` are never satisfied by a local copy.
+   highest matching release in the download cache, then the snapshot of
+   `@jupyterlab/core-meta` bundled with jupyter-builder. Branch names such as
+   `main` are never satisfied by a local copy.
 
 To build against a specific metadata file instead, pass `--core-package-file`.
 

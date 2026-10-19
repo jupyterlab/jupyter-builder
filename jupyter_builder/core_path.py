@@ -18,7 +18,7 @@ from importlib.metadata import version as installed_version
 from pathlib import Path
 
 from .constants import JPBLD_NPM_URL, JPBLD_RAW_GITHUB_URL
-from .jupyterlab_semver import make_range, make_semver
+from .jupyterlab_semver import make_range, make_semver, satisfies
 
 #: Snapshot of `@jupyterlab/core-meta` shipped with jupyter-builder, used as a last
 #: resort when the metadata cannot be downloaded. It is kept byte-for-byte in sync with
@@ -119,75 +119,55 @@ def _local_core_meta_satisfies(core_meta_version: str, constraint: str) -> bool:
     """
     if constraint == "latest":
         return bool(re.match(r"\d", core_meta_version))
-    try:
-        if make_range(constraint, loose=True).test(core_meta_version):  # type: ignore[no-untyped-call]
-            return True
-    except Exception:  # noqa: BLE001
-        return False
-    return _satisfies_allowing_prerelease(core_meta_version, constraint)
+    # An ordinary match first, so an exact prerelease request such as "4.7.0-alpha.2"
+    # accepts that very prerelease; the stricter policy only widens what else counts.
+    return satisfies(core_meta_version, constraint, loose=True) or (  # type: ignore[no-untyped-call]
+        _satisfies_allowing_prerelease(core_meta_version, constraint)
+    )
 
 
-def _resolve_cached_core_meta(
-    cache_root: Path,
-    constraint: str,
-    used_fallback_resolution: bool,
-    logger: logging.Logger | None,
-) -> tuple[Path, str] | None:
-    """Find a concrete version cached in `cache_root` that satisfies `constraint`.
+def _cached_core_meta_candidates(cache_root: Path, constraint: str) -> list[Path]:
+    """Return releases downloaded earlier that satisfy `constraint`, highest first.
 
-    Returns `(path, version)` for the highest matching version, or None if no cached
-    version satisfies the constraint.
+    Downloads are stored under their concrete version, so an entry only counts if
+    its directory name is the version recorded in the file. This leaves out mutable
+    metadata cached under a branch name such as "main".
     """
-    if not cache_root.is_dir():
-        return None
-    matches: list[tuple[Path, str]] = []
     try:
         entries = list(cache_root.iterdir())
     except OSError:
-        return None
+        return []
+    matching: list[tuple[str, Path]] = []
     for entry in entries:
-        if not entry.is_dir():
+        cached_file = _get_cached_core_meta_file(cache_root, entry.name)
+        if cached_file is None or _read_core_meta_version(cached_file) != entry.name:
             continue
-        core_meta = _get_cached_core_meta_file(cache_root, entry.name)
-        if core_meta is None or not core_meta.is_file():
-            continue
-        version = _read_core_meta_version(core_meta) or entry.name
-        if not re.match(r"^\d+\.\d+\.\d+", version):
-            continue
-        if _local_core_meta_satisfies(version, constraint):
-            matches.append((core_meta, version))
-    if not matches:
-        return None
-    matches.sort(key=lambda item: _semver_key(item[1]), reverse=True)
-    for core_meta, version in matches:
-        _check_matches_installed_jupyterlab(version, used_fallback_resolution, logger)
-        return core_meta, version
-    return None
+        if _local_core_meta_satisfies(entry.name, constraint):
+            matching.append((entry.name, cached_file))
+    matching.sort(key=lambda item: _semver_key(item[0]), reverse=True)
+    return [cached_file for _, cached_file in matching]
 
 
 def _resolve_local_core_meta(
     constraint: str,
     used_fallback_resolution: bool,
     logger: logging.Logger | None,
-    cache_root: Path | None = None,
+    cache_root: Path,
 ) -> tuple[Path, str] | None:
     """Find core metadata available without network access that satisfies `constraint`.
 
-    The local cache is checked first for concrete versions satisfying `constraint`.
-    Next, the installed JupyterLab's own metadata is preferred: it is what the extension
-    will run against in this environment, and it never goes stale. The snapshot bundled
-    with jupyter-builder is the last resort, for environments without JupyterLab installed.
+    The installed JupyterLab's own metadata is preferred: it is what the extension will
+    run against in this environment, and it never goes stale. Next come releases
+    downloaded earlier, highest first. The snapshot bundled with jupyter-builder is the
+    last resort, for environments with neither.
 
-    Returns `(path, version)`, or None if neither is available and compatible.
+    Returns `(path, version)`, or None if none is available and compatible.
     """
-    if cache_root is None:
-        cache_root = _home_dir() / ".cache" / "jupyterlab_builder" / "core"
-
-    cached = _resolve_cached_core_meta(cache_root, constraint, used_fallback_resolution, logger)
-    if cached is not None:
-        return cached
-
-    for core_meta in (_installed_jupyterlab_core_meta(), BUNDLED_CORE_META_PATH):
+    for core_meta in (
+        _installed_jupyterlab_core_meta(),
+        *_cached_core_meta_candidates(cache_root, constraint),
+        BUNDLED_CORE_META_PATH,
+    ):
         if core_meta is None or not core_meta.is_file():
             continue
         core_meta_version = _read_core_meta_version(core_meta)
@@ -208,7 +188,8 @@ def _no_local_core_meta_message(constraint: str) -> str:
     return (
         f"no local copy of @jupyterlab/core-meta satisfies {constraint!r} "
         f"(installed jupyterlab: {installed_version or 'not found'}, "
-        f"bundled with jupyter-builder: {bundled_version or 'not found'}). "
+        f"bundled with jupyter-builder: {bundled_version or 'not found'}, "
+        "and no matching release in the download cache). "
         "Pass --core-package-file to build against a specific core.package.json."
     )
 
@@ -231,7 +212,7 @@ def _offline_core_meta(
     constraint: str,
     used_fallback_resolution: bool,
     logger: logging.Logger | None,
-    cache_root: Path | None = None,
+    cache_root: Path,
 ) -> str:
     local = _resolve_local_core_meta(
         constraint,

@@ -1355,6 +1355,86 @@ def test_get_core_meta_network_failure_falls_back_to_cached_semver_range(tmp_pat
     assert core_path.get_core_meta(version="4.5.x", ext_path=ext_path) == str(file_457)
 
 
+def _write_cache_entry(tmp_path, version, dirname=None):
+    cache_file = (
+        tmp_path / ".cache" / "jupyterlab_builder" / "core" / (dirname or version)
+    ) / "core.package.json"
+    cache_file.parent.mkdir(parents=True)
+    cache_file.write_text(json.dumps({"version": version}))
+    return cache_file
+
+
+def test_get_core_meta_offline_mode_cached_range_skips_out_of_range_and_branches(
+    tmp_path,
+    monkeypatch,
+):
+    """Releases outside the range and metadata cached under a branch name are skipped."""
+    ext_path = _make_ext(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("JPBLD_OFFLINE", "1")
+    _forbid_network(monkeypatch)
+    expected = _write_cache_entry(tmp_path, "4.5.7")
+    _write_cache_entry(tmp_path, "4.6.0")
+    _write_cache_entry(tmp_path, "4.6.0-alpha.0")
+    # e.g. left behind by `--core-version=main`; its contents change over time.
+    _write_cache_entry(tmp_path, "4.5.9", dirname="main")
+
+    assert core_path.get_core_meta(version="4.5.x", ext_path=ext_path) == str(expected)
+
+
+def test_get_core_meta_offline_mode_ignores_cached_branch_metadata(tmp_path, monkeypatch):
+    ext_path = _make_ext(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("JPBLD_OFFLINE", "1")
+    _forbid_network(monkeypatch)
+    expected = _write_cache_entry(tmp_path, "4.6.4")
+    _write_cache_entry(tmp_path, "4.7.0-alpha.0", dirname="main")
+
+    assert core_path.get_core_meta(ext_path=ext_path) == str(expected)
+
+
+@pytest.mark.parametrize("version", [None, "^4.0.0", "4.x"])
+def test_get_core_meta_offline_mode_prefers_installed_jupyterlab_over_cache(
+    tmp_path,
+    monkeypatch,
+    version,
+):
+    """An older release cached by an earlier build doesn't shadow the installed jupyterlab."""
+    ext_path = _make_ext(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("JPBLD_OFFLINE", "1")
+    monkeypatch.setattr(core_path, "installed_version", lambda _package: "4.6.4")
+    _forbid_network(monkeypatch)
+    _write_cache_entry(tmp_path, "4.5.7")
+    staging = _install_fake_jupyterlab(tmp_path, monkeypatch, "4.6.4")
+
+    assert core_path.get_core_meta(version=version, ext_path=ext_path) == str(staging)
+
+
+def test_get_core_meta_network_failure_prefers_installed_jupyterlab_over_cache(
+    tmp_path,
+    monkeypatch,
+):
+    ext_path = _make_ext(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(core_path, "installed_version", lambda _package: "4.6.4")
+    _fail_network(monkeypatch)
+    _write_cache_entry(tmp_path, "4.5.7")
+    staging = _install_fake_jupyterlab(tmp_path, monkeypatch, "4.6.4")
+
+    assert core_path.get_core_meta(ext_path=ext_path) == str(staging)
+
+
+def test_get_core_meta_offline_mode_prefers_cache_over_bundled(tmp_path, monkeypatch):
+    ext_path = _make_ext(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("JPBLD_OFFLINE", "1")
+    _forbid_network(monkeypatch)
+    expected = _write_cache_entry(tmp_path, "4.6.3")
+
+    assert core_path.get_core_meta(version="~4.6.0", ext_path=ext_path) == str(expected)
+
+
 def test_get_core_meta_offline_finds_ancestor_node_modules(tmp_path, monkeypatch):
     """Offline mode skips jlpm but continues searching ancestor node_modules."""
     workspace_root = tmp_path / "workspace"
