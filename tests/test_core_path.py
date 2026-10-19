@@ -1460,6 +1460,84 @@ def test_get_core_meta_offline_finds_ancestor_node_modules(tmp_path, monkeypatch
     assert core_path.get_core_meta(ext_path=ext_path) == str(hoisted_meta)
 
 
+def _make_hoisted_workspace(tmp_path):
+    """Make a workspace whose dependencies are hoisted out of the member extension."""
+    root = tmp_path / "workspace"
+    core_meta = root / "node_modules" / "@jupyterlab" / "core-meta" / "core.package.json"
+    core_meta.parent.mkdir(parents=True)
+    core_meta.write_text('{"version": "4.6.4"}')
+    builder_dir = root / "node_modules" / "@jupyter" / "builder"
+    builder_dir.mkdir(parents=True)
+    (builder_dir / "package.json").write_text('{"version": "1.0.0"}')
+    ext_path = root / "packages" / "ext"
+    ext_path.mkdir(parents=True)
+    (ext_path / "package.json").write_text(
+        json.dumps({"name": "ext", "devDependencies": {"@jupyter/builder": "^1.0.0"}}),
+    )
+    return ext_path, core_meta, builder_dir / "lib" / "build-labextension.js"
+
+
+@pytest.mark.parametrize("command", ["build", "watch"])
+def test_offline_build_and_watch_use_hoisted_workspace_dependencies(
+    tmp_path,
+    monkeypatch,
+    command,
+):
+    """Offline, neither metadata lookup nor builder preparation runs jlpm in a workspace."""
+    ext_path, core_meta, builder = _make_hoisted_workspace(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("JPBLD_OFFLINE", "1")
+    _forbid_network(monkeypatch)
+    calls = []
+
+    def fake_check_call(args, **_kwargs):
+        if args[0] == "jlpm":
+            msg = "jlpm should not be invoked in offline mode"
+            raise AssertionError(msg)
+        calls.append(args)
+
+    def no_node_version(*_args, **_kwargs):
+        raise OSError
+
+    monkeypatch.setattr(federated_extensions.subprocess, "check_call", fake_check_call)
+    monkeypatch.setattr(federated_extensions.subprocess, "check_output", no_node_version)
+    monkeypatch.setattr(federated_extensions, "_which_node_js", lambda: "node")
+    monkeypatch.setattr(federated_extensions, "develop_labextension_py", lambda *_a, **_k: None)
+
+    if command == "build":
+        federated_extensions.build_labextension(ext_path)
+        expected = ["node", str(builder), "--core-package-file", str(core_meta), str(ext_path)]
+    else:
+        federated_extensions.watch_labextension(ext_path, labextensions_path=[])
+        expected = [
+            "node",
+            str(builder),
+            "--core-package-file",
+            str(core_meta),
+            "--watch",
+            str(ext_path),
+        ]
+
+    assert calls == [expected]
+
+
+def test_ensure_builder_offline_explains_missing_dependencies(tmp_path, monkeypatch):
+    ext_path = _make_ext(tmp_path, builder_spec="^4.0.0")
+    (ext_path / "node_modules").rmdir()
+    core_package_file = tmp_path / "core.package.json"
+    core_package_file.write_text("{}")
+    monkeypatch.setenv("JPBLD_OFFLINE", "1")
+
+    def forbidden_check_call(*_args, **_kwargs):
+        msg = "jlpm should not be invoked in offline mode"
+        raise AssertionError(msg)
+
+    monkeypatch.setattr(federated_extensions.subprocess, "check_call", forbidden_check_call)
+
+    with pytest.raises(ValueError, match=r"Could not find @jupyterlab/builder .*JPBLD_OFFLINE"):
+        _ensure_builder(str(ext_path), str(core_package_file))
+
+
 @pytest.mark.parametrize("version", ["9.9.9", "4.5.7", "main"])
 def test_get_core_meta_offline_mode_raises_on_incompatible_version(tmp_path, monkeypatch, version):
     """JPBLD_OFFLINE fails loudly when no local copy satisfies the requested version."""

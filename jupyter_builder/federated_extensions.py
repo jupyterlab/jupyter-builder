@@ -32,7 +32,7 @@ else:
     from tomli import load
 
 from .commands import _test_overlap
-from .core_path import _satisfies_allowing_prerelease, get_core_meta
+from .core_path import _is_offline, _satisfies_allowing_prerelease, get_core_meta
 from .jlpm import _which_node_js
 from .jupyterlab_semver import clean
 
@@ -441,7 +441,9 @@ def _ensure_builder(ext_path: str, core_package_file: str) -> tuple[str, str]:
     if "/" in dep_version2:
         with (Path(ext_path) / dep_version2 / "package.json").open() as fid:
             dep_version2 = str(json.load(fid).get("version", ""))
-    if not (Path(ext_path) / "node_modules").exists():
+    # Offline, skip the install but still search the ancestors: in a workspace,
+    # the builder may be hoisted into a parent's node_modules.
+    if not (Path(ext_path) / "node_modules").exists() and not _is_offline():
         subprocess.check_call(["jlpm"], cwd=ext_path)  # noqa: S607
 
     # Find the marker package in node_modules using node module resolution.
@@ -451,6 +453,11 @@ def _ensure_builder(ext_path: str, core_package_file: str) -> tuple[str, str]:
     while not Path(target).joinpath("node_modules", *marker_parts).exists():
         if Path(target).parent == Path(target):
             msg = f"Could not find {marker_pkg}"
+            if _is_offline():
+                msg += (
+                    " (JPBLD_OFFLINE is set, so dependencies were not installed; "
+                    "run 'jlpm' with network access first)"
+                )
             raise ValueError(msg)
         target = str(Path(target).parent)
 
