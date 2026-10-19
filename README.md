@@ -156,22 +156,18 @@ jupyter-builder build /path/to/extension
 When resolving `@jupyterlab/core-meta`:
 
 1. When no explicit `--core-version` is given, jupyter-builder looks for
-   `@jupyterlab/core-meta` in the extension's `node_modules` first (no network
-   required). Otherwise the version range to build against is taken from
+   `@jupyterlab/core-meta` in the extension's `node_modules` first. Otherwise the version range to build against is taken from
    `--core-version`, or from the extension's legacy `@jupyterlab/builder`
    dependency, defaulting to the latest release.
-1. If that version is already cached locally
-   (`~/.cache/jupyterlab_builder/core/<version>/core.package.json`), the cached
-   file is reused.
-1. Otherwise, metadata is fetched from the npm registry (`JPBLD_NPM_URL`),
-   falling back to raw GitHub (`JPBLD_RAW_GITHUB_URL`) if npm is unreachable.
+1. If that version is already cached locally, the   cached file is reused.
+1. Otherwise, metadata is fetched from the npm registry,
+   falling back to raw GitHub if npm is unreachable.
    This step is skipped when `JPBLD_OFFLINE` is set.
 1. If the metadata cannot be downloaded, or `JPBLD_OFFLINE` is set, a local
    copy is used if its version satisfies the requested range: first
-   `jupyterlab/staging/package.json` from the installed JupyterLab, then the
+   the metadata from the installed JupyterLab, then the
    highest matching release in the download cache, then the snapshot of
-   `@jupyterlab/core-meta` bundled with jupyter-builder. Branch names such as
-   `main` are never satisfied by a local copy.
+   `@jupyterlab/core-meta` bundled with jupyter-builder.
 
 To build against a specific metadata file instead, pass `--core-package-file`.
 
