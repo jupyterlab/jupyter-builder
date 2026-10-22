@@ -157,6 +157,10 @@ is unreachable.
 pip uninstall jupyter_builder
 ```
 
+## Learn more
+
+- [Announcing jupyter-builder: A Standalone Build System for JupyterLab Extensions](https://blog.jupyter.org/posts/2026/announcing-jupyter-builder-a-standalone-build-system/) - the announcement post on the Jupyter Blog, covering the motivation, how compatibility is checked without JupyterLab installed, and how to migrate existing extensions.
+
 ## Credits
 
 This package was initially created during [GSoC 2024](https://summerofcode.withgoogle.com) by [@cronan03](https://github.com/cronan03), mentored by [@fcollonval](https://github.com/fcollonval).
