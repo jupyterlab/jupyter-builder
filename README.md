@@ -163,8 +163,6 @@ pip uninstall jupyter_builder
 
 ## Acknowledgments
 
-Work on this package was funded by the Jupyter Foundation through its Community Funding program. See the [Finish Jupyter Build System Separation](https://jupyter-governance.github.io/funding-proposals/projects/2025/finish-jupyter-build-system-separation/) funding report for a summary of the work completed.
-
-## Credits
-
 This package was initially created during [GSoC 2024](https://summerofcode.withgoogle.com) by [@cronan03](https://github.com/cronan03), mentored by [@fcollonval](https://github.com/fcollonval).
+
+Further work on this package was funded by the Jupyter Foundation through its Community Funding program. See the [Finish Jupyter Build System Separation](https://jupyter-governance.github.io/funding-proposals/projects/2025/finish-jupyter-build-system-separation/) funding report for a summary of the work completed.
