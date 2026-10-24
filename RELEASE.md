@@ -49,6 +49,33 @@ npm login
 npm publish --access public
 ```
 
+## Updating the vendored Yarn bundle
+
+`jupyter_builder/yarn.js` is a prebuilt copy of the Yarn CLI, and its third-party
+license report is generated. Vendoring a new bundle is therefore a two-part
+change:
+
+1. Replace `jupyter_builder/yarn.js`, and update `packageManager` in `package.json`
+   and `BERRY_TAG` in `.github/workflows/verify-yarn-bundle.yml` to match.
+
+1. Regenerate the license report and commit the result:
+
+   ```bash
+   python scripts/generate_yarn_licenses.py <new-yarn-version>
+   ```
+
+   This clones Berry at the matching tag, builds the bundle with esbuild's metafile
+   turned on, and rewrites `THIRD_PARTY_LICENSES/yarn.js.third-party-licenses.json`,
+   `THIRD_PARTY_LICENSES/yarn.js.LICENSE.txt` and the `license` SPDX expression in
+   `pyproject.toml` from the one file list esbuild produces. It needs `node` and
+   `git`, and takes about half a minute.
+
+Which packages Yarn bundles, and under which licenses, changes between Yarn
+releases, so skipping the regeneration leaves the distribution's license metadata
+wrong. The `Verify vendored yarn.js` workflow enforces this: the build it already
+runs to check the bundle's hash also emits the metafile, and the job then
+regenerates the report from it and fails if the committed one differs.
+
 ## Automated releases with the Jupyter Releaser
 
 The extension repository should already be compatible with the Jupyter Releaser. But
