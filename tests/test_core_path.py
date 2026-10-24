@@ -12,6 +12,7 @@ from unittest import mock
 import pytest
 
 from jupyter_builder import core_path, federated_extensions
+from jupyter_builder.commands import _test_overlap
 from jupyter_builder.federated_extensions import (
     _check_node_version,
     _ensure_builder,
@@ -986,6 +987,57 @@ def test_ensure_builder_with_jupyterlab_builder(tmp_path):
 
     assert builder_path == str(builder_dir / "lib" / "build-labextension.js")
     assert marker_pkg == "@jupyterlab/builder"
+
+
+def test_ensure_builder_with_local_file_package(tmp_path):
+    ext_path = tmp_path / "ext"
+    core_path_dir = tmp_path / "core-meta"
+    core_package_file = core_path_dir / "core.package.json"
+    local_builder_dir = tmp_path / "local-builder"
+    builder_dir = ext_path / "node_modules" / "@jupyter" / "builder"
+
+    builder_dir.mkdir(parents=True)
+    core_path_dir.mkdir()
+    local_builder_dir.mkdir()
+
+    core_package_file.write_text(json.dumps({"devDependencies": {"@jupyter/builder": "^5.0.0"}}))
+    (ext_path / "package.json").write_text(
+        json.dumps({"devDependencies": {"@jupyter/builder": "file:../local-builder"}}),
+    )
+    (local_builder_dir / "package.json").write_text(json.dumps({"version": "5.0.0"}))
+    (builder_dir / "package.json").write_text(json.dumps({"version": "5.0.0"}))
+
+    builder_path, marker_pkg = _ensure_builder(str(ext_path), str(core_package_file))
+
+    assert builder_path == str(builder_dir / "lib" / "build-labextension.js")
+    assert marker_pkg == "@jupyter/builder"
+
+
+def test_ensure_builder_with_file_path(tmp_path):
+    ext_path = tmp_path / "ext"
+    core_path_dir = tmp_path / "core-meta"
+    core_package_file = core_path_dir / "core.package.json"
+    builder_dir = ext_path / "node_modules" / "@jupyter" / "builder"
+
+    builder_dir.mkdir(parents=True)
+    core_path_dir.mkdir()
+
+    core_package_file.write_text(json.dumps({"devDependencies": {"@jupyter/builder": "^5.0.0"}}))
+    (ext_path / "package.json").write_text(
+        json.dumps({"devDependencies": {"@jupyter/builder": "file:../local-builder"}}),
+    )
+    (builder_dir / "package.json").write_text(json.dumps({"version": "5.0.0"}))
+
+    builder_path, marker_pkg = _ensure_builder(str(ext_path), str(core_package_file))
+
+    assert builder_path == str(builder_dir / "lib" / "build-labextension.js")
+    assert marker_pkg == "@jupyter/builder"
+
+
+def test_test_overlap_handles_invalid_semver_range():
+    assert _test_overlap("^1.0.0", "file:../builder") is None
+    assert _test_overlap("file:../builder", "^1.0.0") is None
+    assert _test_overlap("invalid-version", "another-invalid") is None
 
 
 def _write_rspack(ext_path: Path, node_range: str) -> None:

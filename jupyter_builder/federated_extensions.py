@@ -446,6 +446,20 @@ def _select_builder_marker(ext_data: dict[str, Any]) -> tuple[str | None, str | 
     return None, None
 
 
+def _resolve_local_builder_version(ext_path: str, dep_version: str) -> str:
+    """Read package version if builder dependency is a local path or file: protocol."""
+    clean_path = dep_version.removeprefix("file:")
+    if "/" in clean_path or "\\" in clean_path:
+        candidate_pkg_json = Path(ext_path) / clean_path / "package.json"
+        if candidate_pkg_json.is_file():
+            try:
+                with candidate_pkg_json.open() as fid:
+                    return str(json.load(fid).get("version", ""))
+            except (OSError, ValueError):
+                pass
+    return dep_version
+
+
 def _ensure_builder(ext_path: str, core_package_file: str) -> tuple[str, str]:
     """Ensure that we can build the extension and return ``(script, marker_pkg)``."""
     with Path(core_package_file).open() as fid:
@@ -459,11 +473,8 @@ def _ensure_builder(ext_path: str, core_package_file: str) -> tuple[str, str]:
         raise ValueError(msg)
     dep_version2 = cast("str", dep_version2)
 
-    # if we have installed from disk (version is a path), assume we know what
-    # we are doing and do not check versions.
-    if "/" in dep_version2:
-        with (Path(ext_path) / dep_version2 / "package.json").open() as fid:
-            dep_version2 = str(json.load(fid).get("version", ""))
+    # If installed from disk (version is a file: protocol or path), read its version.
+    dep_version2 = _resolve_local_builder_version(ext_path, dep_version2)
     if not (Path(ext_path) / "node_modules").exists():
         subprocess.check_call(["jlpm"], cwd=ext_path)  # noqa: S607
 
