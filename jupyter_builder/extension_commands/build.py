@@ -57,6 +57,19 @@ class BuildLabExtensionApp(BaseExtensionApp):
         "core-version": "BuildLabExtensionApp.core_version",
     }
 
+    # Also accept boolean options without a value
+    flags = {  # noqa: RUF012
+        **BaseExtensionApp.flags,
+        "development": (
+            {"BuildLabExtensionApp": {"development": True}},
+            "Build in development mode",
+        ),
+        "source-map": (
+            {"BuildLabExtensionApp": {"source_map": True}},
+            "Generate source maps",
+        ),
+    }
+
     def run_task(self) -> None:
         """Build the labextension in the configured path."""
         self.extra_args = self.extra_args or [str(Path.cwd())]
