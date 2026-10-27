@@ -626,20 +626,20 @@ def _get_labextension_metadata(module: str) -> tuple[Any, list[dict[str, str]]]:
         magic-named `_jupyter_labextension_paths` function
 
     """
-    mod_path = str(Path(module).resolve())
-    if not Path(mod_path).exists():
-        msg = f"The path `{mod_path}` does not exist."
-        raise FileNotFoundError(msg)
-
     errors = []
 
-    # Check if the path is a valid labextension
+    # Check if `module` is an importable labextension module.
     try:
         m = importlib.import_module(module)
         if hasattr(m, "_jupyter_labextension_paths"):
             return m, m._jupyter_labextension_paths()  # noqa: SLF001
     except Exception as exc:  # noqa: BLE001
         errors.append(exc)
+
+    mod_path = str(Path(module).resolve())
+    if not Path(mod_path).exists():
+        msg = f"The path `{mod_path}` does not exist."
+        raise FileNotFoundError(msg)
 
     # Try to get the package name
     package = None
