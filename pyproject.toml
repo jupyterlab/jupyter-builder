@@ -218,3 +218,4 @@ notice-rgx = "(?i)Copyright \\(c\\) Jupyter Development Team\\."
 "scripts/*" = ["INP001"]
 # T201 this generator is a CLI tool; its progress output *is* its interface
 "scripts/generate_yarn_licenses.py" = ["T201"]
+"scripts/sync_core_meta.py" = ["T201"]

@@ -4,12 +4,15 @@
 import json
 import os
 import shutil
+import sys
 from pathlib import Path
 from subprocess import run
 
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 # Subprocess coverage (`[tool.coverage.run] patch = ["subprocess"]`) makes the
 # `jupyter-builder`/`jlpm` CLIs spawned by the tests record their own coverage

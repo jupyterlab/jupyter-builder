@@ -1,0 +1,36 @@
+name: check:core-meta
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash -eux {0}
+
+permissions:
+  contents: read
+
+jobs:
+  check-core-meta:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Base Setup
+        uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
+
+      - name: Install dependencies
+        run: node jupyter_builder/yarn.js install --immutable --mode=skip-build
+
+      # Also rejects hand edits: the file must match the pinned core-meta byte for byte.
+      - name: Verify bundled core-meta is in sync
+        run: python scripts/sync_core_meta.py --check

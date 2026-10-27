@@ -32,9 +32,9 @@ else:
     from tomli import load
 
 from .commands import _test_overlap
-from .core_path import get_core_meta
+from .core_path import _is_offline, _satisfies_allowing_prerelease, get_core_meta
 from .jlpm import _which_node_js
-from .jupyterlab_semver import clean, make_range, make_semver
+from .jupyterlab_semver import clean
 
 DEPRECATED_ARGUMENT = object()
 
@@ -359,29 +359,6 @@ def _read_rspack_node_range(builder: str, ext_path: str) -> str:
     return _FALLBACK_NODE_RANGE
 
 
-def _satisfies_allowing_prerelease(current: str, node_range: str) -> bool:
-    """Return whether ``current`` satisfies ``node_range``, counting prereleases.
-
-    A prerelease has to clear the comparators both as itself and as its release,
-    so it can neither reach under a lower bound nor slip beneath an upper one:
-    ``22.12.0-alpha.1`` sorts before the ``22.12.0`` it needs to be, and
-    ``21.0.0-alpha.1`` is only ``<21.0.0`` because 21 is excluded to begin with.
-    """
-    try:
-        range_ = make_range(node_range, loose=True)  # type: ignore[no-untyped-call]
-        version = make_semver(current, loose=True)  # type: ignore[no-untyped-call]
-    except Exception:  # noqa: BLE001
-        return False
-    candidates = [version]
-    if version.prerelease:
-        release = f"{version.major}.{version.minor}.{version.patch}"
-        candidates.append(make_semver(release, loose=True))  # type: ignore[no-untyped-call]
-    return any(
-        all(comparator.test(candidate) for candidate in candidates for comparator in comparator_set)
-        for comparator_set in range_.set
-    )
-
-
 def _check_node_version(
     builder: str,
     ext_path: str,
@@ -464,7 +441,9 @@ def _ensure_builder(ext_path: str, core_package_file: str) -> tuple[str, str]:
     if "/" in dep_version2:
         with (Path(ext_path) / dep_version2 / "package.json").open() as fid:
             dep_version2 = str(json.load(fid).get("version", ""))
-    if not (Path(ext_path) / "node_modules").exists():
+    # Offline, skip the install but still search the ancestors: in a workspace,
+    # the builder may be hoisted into a parent's node_modules.
+    if not (Path(ext_path) / "node_modules").exists() and not _is_offline():
         subprocess.check_call(["jlpm"], cwd=ext_path)  # noqa: S607
 
     # Find the marker package in node_modules using node module resolution.
@@ -474,6 +453,11 @@ def _ensure_builder(ext_path: str, core_package_file: str) -> tuple[str, str]:
     while not Path(target).joinpath("node_modules", *marker_parts).exists():
         if Path(target).parent == Path(target):
             msg = f"Could not find {marker_pkg}"
+            if _is_offline():
+                msg += (
+                    " (JPBLD_OFFLINE is set, so dependencies were not installed; "
+                    "run 'jlpm' with network access first)"
+                )
             raise ValueError(msg)
         target = str(Path(target).parent)
 
