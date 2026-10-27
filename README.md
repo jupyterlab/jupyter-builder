@@ -125,6 +125,23 @@ watch_labextension(
 )
 ```
 
+### Vendored Yarn version
+
+The Yarn CLI that `jlpm` runs is vendored as `jupyter_builder/yarn.js`. Its
+version, the SHA-256 of the bundle, and the `packageManager` value to put in a
+`package.json` are exported from the top level:
+
+```python
+from jupyter_builder import YARN_PACKAGE_MANAGER, YARN_SHA256, YARN_VERSION
+
+YARN_VERSION  # '3.5.0'
+YARN_PACKAGE_MANAGER  # 'yarn@3.5.0'
+YARN_SHA256  # 'f1e8c736...'
+```
+
+The same values are exported from the `@jupyter/builder` npm package, and
+`jupyter_builder._yarn_info.YARN_PATH` locates the bundle itself.
+
 ### Environment variables
 
 jupyter-builder supports the following environment variables to override network URLs —
