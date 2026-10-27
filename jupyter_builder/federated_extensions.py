@@ -12,6 +12,7 @@ import platform
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -33,7 +34,7 @@ else:
 from .commands import _test_overlap
 from .core_path import get_core_meta
 from .jlpm import _which_node_js
-from .jupyterlab_semver import clean, satisfies
+from .jupyterlab_semver import clean, make_range, make_semver
 
 DEPRECATED_ARGUMENT = object()
 
@@ -49,7 +50,7 @@ class ArgumentConflict(ValueError):  # noqa: N818
 # ------------------------------------------------------------------------------
 
 
-def develop_labextension(  # noqa: PLR0913, C901, PLR0912
+def develop_labextension(  # noqa: PLR0913, PLR0917, C901, PLR0912
     path: str | os.PathLike[str],
     symlink: bool = True,
     overwrite: bool = False,
@@ -162,7 +163,7 @@ def develop_labextension(  # noqa: PLR0913, C901, PLR0912
     return full_dest
 
 
-def develop_labextension_py(  # noqa: PLR0913
+def develop_labextension_py(  # noqa: PLR0913, PLR0917
     module: str,
     user: bool = False,
     sys_prefix: bool = False,
@@ -206,7 +207,7 @@ def develop_labextension_py(  # noqa: PLR0913
     return full_dests
 
 
-def build_labextension(  # noqa: PLR0913
+def build_labextension(  # noqa: PLR0913, PLR0917
     path: str | os.PathLike[str],
     logger: logging.Logger | None = None,
     development: bool = False,
@@ -259,7 +260,7 @@ def build_labextension(  # noqa: PLR0913
     subprocess.check_call(arguments, cwd=ext_path)  # noqa: S603
 
 
-def watch_labextension(  # noqa: PLR0913
+def watch_labextension(  # noqa: PLR0913, PLR0917
     path: str | os.PathLike[str],
     labextensions_path: list[str],
     logger: logging.Logger | None = None,
@@ -358,6 +359,29 @@ def _read_rspack_node_range(builder: str, ext_path: str) -> str:
     return _FALLBACK_NODE_RANGE
 
 
+def _satisfies_allowing_prerelease(current: str, node_range: str) -> bool:
+    """Return whether ``current`` satisfies ``node_range``, counting prereleases.
+
+    A prerelease has to clear the comparators both as itself and as its release,
+    so it can neither reach under a lower bound nor slip beneath an upper one:
+    ``22.12.0-alpha.1`` sorts before the ``22.12.0`` it needs to be, and
+    ``21.0.0-alpha.1`` is only ``<21.0.0`` because 21 is excluded to begin with.
+    """
+    try:
+        range_ = make_range(node_range, loose=True)  # type: ignore[no-untyped-call]
+        version = make_semver(current, loose=True)  # type: ignore[no-untyped-call]
+    except Exception:  # noqa: BLE001
+        return False
+    candidates = [version]
+    if version.prerelease:
+        release = f"{version.major}.{version.minor}.{version.patch}"
+        candidates.append(make_semver(release, loose=True))  # type: ignore[no-untyped-call]
+    return any(
+        all(comparator.test(candidate) for candidate in candidates for comparator in comparator_set)
+        for comparator_set in range_.set
+    )
+
+
 def _check_node_version(
     builder: str,
     ext_path: str,
@@ -371,11 +395,11 @@ def _check_node_version(
     except (OSError, subprocess.CalledProcessError):
         return
     current = clean(raw, loose=True)  # type: ignore[no-untyped-call]
-    if current is None or satisfies(current, node_range, loose=True):  # type: ignore[no-untyped-call]
+    if current is None or _satisfies_allowing_prerelease(current, node_range):
         return
     msg = (
         f"Building this extension requires Node.js {node_range} (found {raw}). "
-        "Please upgrade Node.js."
+        "Please install a compatible Node.js version."
     )
     if logger:
         logger.error(msg)
@@ -386,17 +410,26 @@ def _resolve_core_path_for_jupyterlab_builder(core_package_file: str) -> str:
     """Return the core path directory for @jupyterlab/builder.
 
     @jupyterlab/builder's downstream script expects a file named package.json
-    inside the core path directory. If core_package_file is not named
-    package.json, a copy named package.json is created in the same directory.
+    inside the core path directory, containing the data from
+    core_package_file. If core_package_file is already named package.json,
+    its directory is used directly.
+
+    Otherwise its directory cannot be reused as-is: that is the case for an
+    installed `@jupyterlab/core-meta` package, whose directory already ships
+    its own package.json (the npm manifest, with no `jupyterlab` key) rather
+    than the core data. Writing there would either be silently skipped
+    because a file already exists, leaving the builder to read the wrong
+    manifest, or overwrite a file this function doesn't own. So the core
+    data is copied into a package.json in a fresh temporary directory
+    instead, and node_modules is left untouched.
     """
     core_file = Path(core_package_file)
-    core_dir = core_file.parent
 
-    if core_file.name != "package.json":
-        target = core_dir / "package.json"
-        if not target.exists():
-            shutil.copy2(core_file, target)
+    if core_file.name == "package.json":
+        return str(core_file.parent)
 
+    core_dir = Path(tempfile.mkdtemp(prefix="jupyter_builder_core-"))
+    shutil.copy2(core_file, core_dir / "package.json")
     return str(core_dir)
 
 

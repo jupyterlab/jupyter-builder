@@ -2,6 +2,69 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 1.2.4
+
+([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v1.2.3...4978d1b850f0857c5c8aea25782f4aac48d0f6e3))
+
+### Enhancements made
+
+- Add a `jupyterlab.rspackConfig` alias [#167](https://github.com/jupyterlab/jupyter-builder/pull/167) ([@agriyakhetarpal](https://github.com/agriyakhetarpal), [@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+
+### Bugs fixed
+
+- Fix UTF-8 decoding in captured build tests [#184](https://github.com/jupyterlab/jupyter-builder/pull/184) ([@rastagan-git](https://github.com/rastagan-git), [@Darshan808](https://github.com/Darshan808))
+- Fix TypeError when package.json omits dependencies field (#182) [#183](https://github.com/jupyterlab/jupyter-builder/pull/183) ([@Yash990-bit](https://github.com/Yash990-bit), [@Darshan808](https://github.com/Darshan808))
+- Fix \_resolve_core_path_for_jupyterlab_builder overwriting installed package.json [#181](https://github.com/jupyterlab/jupyter-builder/pull/181) ([@agu2347](https://github.com/agu2347), [@Darshan808](https://github.com/Darshan808))
+
+### Maintenance and upkeep improvements
+
+- Pass `GITHUB_TOKEN` to the minimum-versions and prerelease test jobs [#186](https://github.com/jupyterlab/jupyter-builder/pull/186) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+- Fix flaky macOS CI tests by authenticating GitHub API calls [#178](https://github.com/jupyterlab/jupyter-builder/pull/178) ([@Yash990-bit](https://github.com/Yash990-bit), [@krassowski](https://github.com/krassowski))
+
+### Other merged PRs
+
+- Bump @rspack/core from 2.2.1 to 2.2.8 [#190](https://github.com/jupyterlab/jupyter-builder/pull/190) ([@Darshan808](https://github.com/Darshan808))
+- Bump @jupyterlab/core-meta from 4.6.3 to 4.6.4 [#189](https://github.com/jupyterlab/jupyter-builder/pull/189) ([@Darshan808](https://github.com/Darshan808))
+- Bump ruff from 0.16.5 to 0.16.9 in the pip group [#188](https://github.com/jupyterlab/jupyter-builder/pull/188) ([@Darshan808](https://github.com/Darshan808))
+- Bump @rspack/core from 2.1.7 to 2.2.1 [#173](https://github.com/jupyterlab/jupyter-builder/pull/173) ([@Darshan808](https://github.com/Darshan808))
+- Bump @jupyterlab/core-meta from 4.6.2 to 4.6.3 [#172](https://github.com/jupyterlab/jupyter-builder/pull/172) ([@Darshan808](https://github.com/Darshan808))
+- Bump apache/skywalking-eyes/header from 0.8.0 to 0.9.0 in the actions group [#171](https://github.com/jupyterlab/jupyter-builder/pull/171) ([@Darshan808](https://github.com/Darshan808))
+- Bump ruff from 0.16.0 to 0.16.5 in the pip group [#170](https://github.com/jupyterlab/jupyter-builder/pull/170) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-09-04&to=2026-10-27&type=c))
+
+@agriyakhetarpal ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Aagriyakhetarpal+updated%3A2026-09-04..2026-10-27&type=Issues)) | @agu2347 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Aagu2347+updated%3A2026-09-04..2026-10-27&type=Issues)) | @Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-09-04..2026-10-27&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-09-04..2026-10-27&type=Issues)) | @rastagan-git ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Arastagan-git+updated%3A2026-09-04..2026-10-27&type=Issues)) | @Yash990-bit ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3AYash990-bit+updated%3A2026-09-04..2026-10-27&type=Issues))
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
+## 1.2.3
+
+([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v1.2.2...1ea4d94719d6c4d384fa5b195383e4f34e56f123))
+
+### Bugs fixed
+
+- Support npm range specifiers in the `@jupyterlab/builder` version pin [#166](https://github.com/jupyterlab/jupyter-builder/pull/166) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+
+### Maintenance and upkeep improvements
+
+- Allow Node.js prereleases in the version check [#176](https://github.com/jupyterlab/jupyter-builder/pull/176) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+- Generate license report for the bundled `yarn.js` and correct license in `pyproject.toml` [#175](https://github.com/jupyterlab/jupyter-builder/pull/175) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+- Remove licence classifier (PEP 639) [#168](https://github.com/jupyterlab/jupyter-builder/pull/168) ([@mwtoews](https://github.com/mwtoews), [@krassowski](https://github.com/krassowski))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-08-06&to=2026-09-04&type=c))
+
+@Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-08-06..2026-09-04&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-08-06..2026-09-04&type=Issues)) | @mwtoews ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Amwtoews+updated%3A2026-08-06..2026-09-04&type=Issues))
+
 ## 1.2.2
 
 ([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v1.2.1...96bec6a7aee17b4c2e5c41d3e5edeaa0cc6b406b))
@@ -24,8 +87,6 @@ See [our definition of contributors](https://github-activity.readthedocs.io/en/l
 ([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-07-31&to=2026-08-06&type=c))
 
 @Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-07-31..2026-08-06&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-07-31..2026-08-06&type=Issues))
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 1.2.1
 
