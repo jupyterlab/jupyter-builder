@@ -1,11 +1,15 @@
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
+import contextlib
 import json
 import os
 import platform
 import re
+import shutil
+import signal
 import subprocess
+import sys
 import time
 from pathlib import Path
 from subprocess import Popen, run
@@ -174,6 +178,41 @@ def list_files_in_static(directory):
     return {f.name for f in Path(directory).glob("*")}
 
 
+@pytest.fixture
+def clean_watch_install():
+    """Undo the install that `jupyter-builder watch` makes into the environment.
+
+    `watch` pip-installs the extension in editable mode and links its
+    labextension into `<sys.prefix>/share/jupyter/labextensions`. Both point
+    into the test's `tmp_path`, which is deleted once the test passes, and
+    would make the next watch test fail.
+    """
+    yield
+    run([sys.executable, "-m", "pip", "uninstall", "-y", "myextension"], check=True)
+    labextension = Path(sys.prefix, "share", "jupyter", "labextensions", "myextension")
+    # `is_symlink` first: the link dangles once `tmp_path` is gone.
+    if labextension.is_symlink():
+        labextension.unlink()
+    elif labextension.exists():
+        shutil.rmtree(labextension)
+
+
+def stop_process_tree(process):
+    """Stop `process` along with the `node --watch` process it spawned."""
+    if platform.system() == "Windows":
+        run(["taskkill", "/F", "/T", "/PID", str(process.pid)], check=False)
+        process.wait()
+        return
+    # The group is already gone if the watcher exited early, e.g. on a failed start.
+    with contextlib.suppress(ProcessLookupError):
+        os.killpg(process.pid, signal.SIGTERM)
+    try:
+        process.wait(timeout=30)
+    except subprocess.TimeoutExpired:
+        os.killpg(process.pid, signal.SIGKILL)
+        process.wait()
+
+
 def assert_watch_rebuilds(extension_folder):
     """Start `jupyter-builder watch` and check that a source change rebuilds."""
     # Path to the TypeScript file to change
@@ -188,12 +227,13 @@ def assert_watch_rebuilds(extension_folder):
     initial_files = list_files_in_static(static_dir)
 
     is_windows = platform.system() == "Windows"
-    kwargs = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if is_windows else {}
 
+    # Start in a new process group/session so the whole tree can be stopped.
     watch_process = Popen(
         ["jupyter-builder", "watch", str(extension_folder)],
         cwd=extension_folder,
-        **kwargs,
+        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if is_windows else 0,
+        start_new_session=not is_windows,
     )
 
     try:
@@ -231,18 +271,15 @@ def assert_watch_rebuilds(extension_folder):
         )
 
     finally:
-        watch_process.terminate()
-        try:
-            watch_process.wait(timeout=30)
-        except subprocess.TimeoutExpired:
-            watch_process.kill()
-            watch_process.wait()
+        stop_process_tree(watch_process)
 
 
+@pytest.mark.usefixtures("clean_watch_install")
 def test_watch_functionality(extension_folder):
     assert_watch_rebuilds(extension_folder)
 
 
+@pytest.mark.usefixtures("clean_watch_install")
 def test_watch_functionality_jupyterlab_builder(jupyterlab_builder_extension_folder):
     assert_watch_rebuilds(jupyterlab_builder_extension_folder)
 
