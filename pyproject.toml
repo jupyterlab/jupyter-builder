@@ -47,7 +47,8 @@ test = [
     "pytest-cov>=7",
     "copier>=9.3,<10",
     "jinja2-time",
-    "deptry"
+    "deptry",
+    "jsonschema",
 ]
 # Check ruff version is aligned with the one in .pre-commit-config.yaml
 dev = ["build", "mypy", "pre-commit", "hatch", "ruff==0.16.9"]
