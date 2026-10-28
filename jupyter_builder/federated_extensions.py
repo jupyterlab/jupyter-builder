@@ -449,7 +449,7 @@ def _select_builder_marker(ext_data: dict[str, Any]) -> tuple[str | None, str | 
 def _resolve_local_builder_version(ext_path: str, dep_version: str) -> str:
     """Read package version if builder dependency is a local path or file: protocol."""
     clean_path = dep_version.removeprefix("file:")
-    if "/" in clean_path or "\\" in clean_path:
+    if clean_path != dep_version or "/" in clean_path or "\\" in clean_path:
         candidate_pkg_json = Path(ext_path) / clean_path / "package.json"
         if candidate_pkg_json.is_file():
             try:

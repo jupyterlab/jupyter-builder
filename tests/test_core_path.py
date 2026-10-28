@@ -989,11 +989,18 @@ def test_ensure_builder_with_jupyterlab_builder(tmp_path):
     assert marker_pkg == "@jupyterlab/builder"
 
 
-def test_ensure_builder_with_local_file_package(tmp_path):
+@pytest.mark.parametrize(
+    ("dep_spec", "local_builder"),
+    [
+        ("file:../local-builder", ("local-builder",)),
+        ("file:local-builder", ("ext", "local-builder")),
+    ],
+)
+def test_ensure_builder_with_local_file_package(tmp_path, dep_spec, local_builder):
     ext_path = tmp_path / "ext"
     core_path_dir = tmp_path / "core-meta"
     core_package_file = core_path_dir / "core.package.json"
-    local_builder_dir = tmp_path / "local-builder"
+    local_builder_dir = tmp_path.joinpath(*local_builder)
     builder_dir = ext_path / "node_modules" / "@jupyter" / "builder"
 
     builder_dir.mkdir(parents=True)
@@ -1002,10 +1009,11 @@ def test_ensure_builder_with_local_file_package(tmp_path):
 
     core_package_file.write_text(json.dumps({"devDependencies": {"@jupyter/builder": "^5.0.0"}}))
     (ext_path / "package.json").write_text(
-        json.dumps({"devDependencies": {"@jupyter/builder": "file:../local-builder"}}),
+        json.dumps({"devDependencies": {"@jupyter/builder": dep_spec}}),
     )
     (local_builder_dir / "package.json").write_text(json.dumps({"version": "5.0.0"}))
-    (builder_dir / "package.json").write_text(json.dumps({"version": "5.0.0"}))
+    # Incompatible on purpose: the check must pass on the version read from the local path.
+    (builder_dir / "package.json").write_text(json.dumps({"version": "4.0.0"}))
 
     builder_path, marker_pkg = _ensure_builder(str(ext_path), str(core_package_file))
 
@@ -1013,7 +1021,7 @@ def test_ensure_builder_with_local_file_package(tmp_path):
     assert marker_pkg == "@jupyter/builder"
 
 
-def test_ensure_builder_with_file_path(tmp_path):
+def test_ensure_builder_file_protocol_without_package_json_falls_back(tmp_path):
     ext_path = tmp_path / "ext"
     core_path_dir = tmp_path / "core-meta"
     core_package_file = core_path_dir / "core.package.json"
