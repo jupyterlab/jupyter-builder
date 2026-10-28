@@ -50,8 +50,11 @@ def _compare_ranges(  # noqa: C901, PLR0912
     is higher/newer than spec2.
     """
     # Test for overlapping semver ranges.
-    r1 = Range(spec1, True)  # type: ignore[no-untyped-call]
-    r2 = Range(spec2, True)  # type: ignore[no-untyped-call]
+    try:
+        r1 = Range(spec1, True)  # type: ignore[no-untyped-call]
+        r2 = Range(spec2, True)  # type: ignore[no-untyped-call]
+    except ValueError:
+        return None
 
     # If either range is empty, we cannot verify.
     if not r1.range or not r2.range:
