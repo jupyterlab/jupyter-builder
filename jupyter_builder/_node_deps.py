@@ -79,13 +79,51 @@ def is_workspace_root(path: Path) -> bool:
     return isinstance(workspaces, list) and len(workspaces) > 0
 
 
+def is_workspace_member(root: Path, ext_path: Path) -> bool:
+    """Return whether ``ext_path`` is an installed member of the workspace at ``root``.
+
+    npm and Yarn link every workspace member into the root's ``node_modules``
+    under its package name, so ``ext_path`` is a member if that link resolves
+    back to it. A package that only sits below ``root`` without being listed
+    in its ``workspaces`` (e.g. a standalone test fixture with its own
+    ``yarn.lock``) has no such link.
+
+    Parameters
+    ----------
+    root : Path
+        The workspace root directory.
+    ext_path : Path
+        The extension directory.
+
+    Returns
+    -------
+    bool
+        True if ``root/node_modules/<name>`` is ``ext_path``.
+
+    """
+    try:
+        with (ext_path / "package.json").open() as fid:
+            data = json.load(fid)
+    except (OSError, ValueError):
+        return False
+    name = data.get("name") if isinstance(data, dict) else None
+    if not isinstance(name, str) or not name:
+        return False
+    try:
+        return (root / "node_modules" / name).samefile(ext_path)
+    except OSError:
+        return False
+
+
 def ensure_dependencies_installed(ext_path: Path, probe: Sequence[str]) -> None:
     """Run ``jlpm`` in ``ext_path`` unless its dependencies are already available.
 
     The install is skipped when ``ext_path`` already has a ``node_modules``
     directory, or when ``probe`` resolves from an ancestor that is a workspace
-    root (dependencies hoisted in a monorepo). A ``node_modules`` in an
-    unrelated ancestor (e.g. the home directory) does not suppress the install.
+    root and ``ext_path`` is one of its installed members (dependencies hoisted
+    in a monorepo). A ``node_modules`` in an unrelated ancestor (e.g. the home
+    directory) or in a workspace that ``ext_path`` doesn't belong to does not
+    suppress the install.
 
     Parameters
     ----------
@@ -104,7 +142,7 @@ def ensure_dependencies_installed(ext_path: Path, probe: Sequence[str]) -> None:
     if (ext_path / "node_modules").exists():
         return
     owner = find_in_node_modules(ext_path, probe)
-    if owner is not None and is_workspace_root(owner):
+    if owner is not None and is_workspace_root(owner) and is_workspace_member(owner, ext_path):
         logger.debug(
             "Skipping jlpm in %s: %s resolves from workspace root %s",
             ext_path,

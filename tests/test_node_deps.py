@@ -10,6 +10,7 @@ from jupyter_builder import _node_deps
 from jupyter_builder._node_deps import (
     ensure_dependencies_installed,
     find_in_node_modules,
+    is_workspace_member,
     is_workspace_root,
 )
 
@@ -57,6 +58,50 @@ def test_is_workspace_root(tmp_path, package_json, pnpm_workspace, expected):
     assert is_workspace_root(tmp_path) is expected
 
 
+def _make_ext(path: Path, name: str) -> Path:
+    path.mkdir(parents=True)
+    (path / "package.json").write_text(json.dumps({"name": name}))
+    return path
+
+
+@pytest.mark.parametrize("name", ["ext", "@scope/ext"])
+def test_is_workspace_member_when_linked(tmp_path, link_dir, name):
+    ext_path = _make_ext(tmp_path / "packages" / "ext", name)
+    link_dir(ext_path, tmp_path / "node_modules" / name)
+
+    assert is_workspace_member(tmp_path, ext_path) is True
+
+
+def test_is_workspace_member_without_link(tmp_path):
+    ext_path = _make_ext(tmp_path / "tests" / "ext", "ext")
+    (tmp_path / "node_modules").mkdir()
+
+    assert is_workspace_member(tmp_path, ext_path) is False
+
+
+def test_is_workspace_member_when_name_links_elsewhere(tmp_path, link_dir):
+    member = _make_ext(tmp_path / "packages" / "ext", "ext")
+    link_dir(member, tmp_path / "node_modules" / "ext")
+    ext_path = _make_ext(tmp_path / "tests" / "ext", "ext")
+
+    assert is_workspace_member(tmp_path, ext_path) is False
+
+
+@pytest.mark.parametrize(
+    "package_json",
+    [None, "{not json", json.dumps(["not", "an", "object"]), json.dumps({"version": "1.0.0"})],
+)
+def test_is_workspace_member_without_usable_name(tmp_path, link_dir, package_json):
+    ext_path = tmp_path / "packages" / "ext"
+    ext_path.mkdir(parents=True)
+    if package_json is not None:
+        (ext_path / "package.json").write_text(package_json)
+    # The link is valid, so only the missing/unusable name can reject it.
+    link_dir(ext_path, tmp_path / "node_modules" / "ext")
+
+    assert is_workspace_member(tmp_path, ext_path) is False
+
+
 def test_find_in_node_modules_prefers_start(tmp_path):
     ext_path = tmp_path / "packages" / "ext"
     _install_probe(ext_path)
@@ -88,15 +133,33 @@ def test_ensure_dependencies_installed_skips_with_local_node_modules(tmp_path, j
     assert jlpm_calls == []
 
 
-def test_ensure_dependencies_installed_skips_for_workspace_root(tmp_path, jlpm_calls):
-    ext_path = tmp_path / "packages" / "ext"
-    ext_path.mkdir(parents=True)
+def test_ensure_dependencies_installed_skips_for_workspace_member(
+    tmp_path,
+    jlpm_calls,
+    link_dir,
+):
+    ext_path = _make_ext(tmp_path / "packages" / "ext", "ext")
+    (tmp_path / "package.json").write_text(json.dumps({"workspaces": ["packages/*"]}))
+    _install_probe(tmp_path)
+    link_dir(ext_path, tmp_path / "node_modules" / "ext")
+
+    ensure_dependencies_installed(ext_path, PROBE)
+
+    assert jlpm_calls == []
+
+
+def test_ensure_dependencies_installed_installs_for_non_member_below_workspace_root(
+    tmp_path,
+    jlpm_calls,
+):
+    ext_path = _make_ext(tmp_path / "tests" / "mock_packages" / "ext", "ext")
+    (ext_path / "yarn.lock").touch()
     (tmp_path / "package.json").write_text(json.dumps({"workspaces": ["packages/*"]}))
     _install_probe(tmp_path)
 
     ensure_dependencies_installed(ext_path, PROBE)
 
-    assert jlpm_calls == []
+    assert jlpm_calls == [(["jlpm"], ext_path)]
 
 
 def test_ensure_dependencies_installed_installs_for_non_workspace_ancestor(tmp_path, jlpm_calls):
