@@ -51,12 +51,25 @@ npm publish --access public
 
 ## Updating the vendored Yarn bundle
 
-`jupyter_builder/yarn.js` is a prebuilt copy of the Yarn CLI, and its third-party
-license report is generated. Vendoring a new bundle is therefore a two-part
-change:
+`jupyter_builder/yarn.js` is a prebuilt copy of the Yarn CLI; the version and
+SHA-256 it is exposed under, and its third-party license report, are both
+generated. Vendoring a new bundle is therefore a three-part change:
 
 1. Replace `jupyter_builder/yarn.js`, and update `packageManager` in `package.json`
    and `BERRY_TAG` in `.github/workflows/verify-yarn-bundle.yml` to match.
+
+1. Regenerate the version and integrity constants and commit the result:
+
+   ```bash
+   python scripts/update_yarn_version.py
+   ```
+
+   This rewrites the literals in `jupyter_builder/_yarn_info.py` and
+   `src/yarnInfo.ts`, which is where `YARN_VERSION`, `YARN_SHA256` and
+   `YARN_PACKAGE_MANAGER` come from. They are committed literals rather than
+   values computed at import time. `tests/test_yarn.py` fails if they drift, both in the
+   repository and against the bundle packaged in the built wheel; the same check
+   is available as `python scripts/update_yarn_version.py --check`.
 
 1. Regenerate the license report and commit the result:
 

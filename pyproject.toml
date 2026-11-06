@@ -65,6 +65,9 @@ ignore = ["W002", "W004"]
 exclude = ["venv", "\\.venv", "\\.direnv", "\\.git", "setup\\.py", "scripts"]
 
 [tool.deptry.per_rule_ignores]
+# `scripts/` is repo-local source, not a dependency: tests/test_yarn.py imports
+# the generator from it so that `extract_version` is covered by the test suite.
+DEP001 = ["update_yarn_version"]
 # CLI tools / pytest plugins that are invoked via subprocess or auto-discovered
 # entry points rather than imported directly, so deptry can't see their usage.
 DEP002 = [
@@ -216,5 +219,6 @@ notice-rgx = "(?i)Copyright \\(c\\) Jupyter Development Team\\."
 # rather than refactoring to Python idioms or adding annotations/docstrings.
 "jupyter_builder/jupyterlab_semver.py" = ["ALL"]
 "scripts/*" = ["INP001"]
-# T201 this generator is a CLI tool; its progress output *is* its interface
+# T201 these generators are CLI tools; their progress output *is* their interface
 "scripts/generate_yarn_licenses.py" = ["T201"]
+"scripts/update_yarn_version.py" = ["T201"]
