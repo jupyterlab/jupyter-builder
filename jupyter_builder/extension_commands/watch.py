@@ -40,11 +40,22 @@ class WatchLabExtensionApp(BaseExtensionApp):
         ),
     )
 
+    module_federation_version = Unicode(
+        "",
+        config=True,
+        help=(
+            "Module Federation runtime version to build with, either '1' or '2' "
+            "(default: '1'). Takes precedence over the extension's "
+            "jupyterlab.moduleFederationVersion."
+        ),
+    )
+
     aliases = {  # noqa: RUF012
         "core-package-file": "WatchLabExtensionApp.core_package_file",
         "development": "WatchLabExtensionApp.development",
         "source-map": "WatchLabExtensionApp.source_map",
         "core-version": "WatchLabExtensionApp.core_version",
+        "module-federation-version": "WatchLabExtensionApp.module_federation_version",
     }
 
     def run_task(self) -> None:
@@ -59,6 +70,7 @@ class WatchLabExtensionApp(BaseExtensionApp):
             source_map=self.source_map,
             core_version=self.core_version or None,
             core_package_file=self.core_package_file or None,
+            module_federation_version=self.module_federation_version or None,
         )
 
 

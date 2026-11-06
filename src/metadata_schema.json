@@ -104,6 +104,11 @@
       "default": null,
       "deprecated": true
     },
+    "moduleFederationVersion": {
+      "title": "Module Federation runtime version",
+      "description": "The Module Federation plugin to build with: 1 for Rspack's webpack-compatible ModuleFederationPluginV1, 2 for Rspack's built-in ModuleFederationPlugin (Module Federation 1.5 on the Module Federation runtime). Defaults to 1.",
+      "enum": [1, 2]
+    },
     "sharedPackages": {
       "description": "Modules that should be shared in the share scope. When provided, property names are used to match requested modules in this compilation.",
       "ref": "#/definitions/sharedObject"
