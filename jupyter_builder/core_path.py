@@ -8,7 +8,6 @@ import json
 import logging
 import os
 import re
-import subprocess
 import tarfile
 import urllib.error
 import urllib.request
@@ -16,6 +15,7 @@ from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as installed_version
 from pathlib import Path
 
+from ._node_deps import ensure_dependencies_installed, find_in_node_modules
 from .constants import JPBLD_NPM_URL, JPBLD_RAW_GITHUB_URL
 
 _MAX_CORE_META_BYTES = 5 * 1024 * 1024  # 5 MB — generous upper bound for core.package.json
@@ -482,14 +482,10 @@ def _download_github_core_meta(version: str, destination: Path) -> None:
 
 
 def _get_installed_core_meta(ext_path: Path) -> str | None:
-    if not (ext_path / "node_modules").exists():
-        subprocess.check_call(["jlpm"], cwd=ext_path)  # noqa: S607
+    probe = ("@jupyterlab", "core-meta", "core.package.json")
+    ensure_dependencies_installed(ext_path, probe)
 
-    target = ext_path
-    while True:
-        core_meta_path = target / "node_modules" / "@jupyterlab" / "core-meta"
-        if (core_meta_path / "core.package.json").exists():
-            return str(core_meta_path / "core.package.json")
-        if target.parent == target:
-            return None
-        target = target.parent
+    owner = find_in_node_modules(ext_path, probe)
+    if owner is None:
+        return None
+    return str(owner.joinpath("node_modules", *probe))
