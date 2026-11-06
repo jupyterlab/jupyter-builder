@@ -11,8 +11,8 @@ from unittest import mock
 
 import pytest
 
-from jupyter_builder.commands import _test_overlap
 from jupyter_builder import _node_deps, core_path, federated_extensions
+from jupyter_builder.commands import _test_overlap
 from jupyter_builder.federated_extensions import (
     _check_node_version,
     _ensure_builder,
