@@ -8,7 +8,6 @@ import json
 import logging
 import os
 import re
-import subprocess
 import tarfile
 import urllib.error
 import urllib.request
@@ -16,6 +15,7 @@ from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as installed_version
 from pathlib import Path
 
+from ._node_deps import ensure_dependencies_installed, find_in_node_modules
 from .constants import JPBLD_NPM_URL, JPBLD_RAW_GITHUB_URL
 
 _MAX_CORE_META_BYTES = 5 * 1024 * 1024  # 5 MB — generous upper bound for core.package.json
@@ -51,6 +51,8 @@ def _http_get(url: str, *, headers: dict[str, str] | None = None, timeout: int =
     request_headers = {"User-Agent": "jupyter-builder"}
     if headers:
         request_headers.update(headers)
+    if url.startswith("https://api.github.com/") and os.environ.get("GITHUB_TOKEN"):
+        request_headers["Authorization"] = f"Bearer {os.environ['GITHUB_TOKEN']}"
     req = urllib.request.Request(url, headers=request_headers)  # noqa: S310
     with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
         return bytes(resp.read())
@@ -64,8 +66,10 @@ def get_core_meta(
     """Return the path to the core package JSON, downloading it if needed."""
     if version is not None:
         # Accept both "vX.Y.Z" and "X.Y.Z" for an explicitly requested version, as
-        # well as partial specifiers such as "4" or "4.5".
-        requested_version = _expand_partial_version(_normalize_version(version))
+        # well as npm range specifiers such as "4", "4.5" or "^4.3.6 || ^3.6.8".
+        requested_version = _expand_partial_version(
+            _range_lower_bound(version) or _normalize_version(version),
+        )
         used_fallback_resolution = False
     else:
         installed_core_meta, requested_version, used_fallback_resolution = (
@@ -141,7 +145,7 @@ def _resolve_version_without_installed_core_meta(
                 legacy_version,
                 _LEGACY_BUILDER_MARKER,
             )
-        return None, _expand_partial_version(_normalize_version(legacy_version)), False
+        return None, _expand_partial_version(legacy_version), False
 
     if logger:
         logger.warning(
@@ -169,13 +173,59 @@ def _legacy_builder_marker_version(ext_path: Path) -> str | None:
     ) or ext_data.get("dependencies", {}).get(_LEGACY_BUILDER_MARKER)
     if not isinstance(version_spec, str) or "/" in version_spec:
         return None
-    version = re.sub(r"^[\^~<>=\s]+", "", version_spec)
-    return version if re.match(r"\d", version) else None
+    return _range_lower_bound(version_spec)
 
 
 def _normalize_version(version: str) -> str:
     """Strip a leading 'v' from a numeric version so 'vX.Y.Z' and 'X.Y.Z' are equivalent."""
     return version[1:] if re.match(r"v\d", version) else version
+
+
+def _range_lower_bound(spec: str) -> str | None:
+    """Reduce an npm version range to the single version it should be resolved against.
+
+    npm ranges can name more than one version: a union ("^4.3.6 || ^3.6.8"), a compound
+    range (">=4.3.6 <5.0.0") or a hyphen range ("4.1.0 - 4.5.0"). None of those can be
+    fetched from the registry or a git tag, so the highest alternative is selected — a
+    build should target the newest JupyterLab the extension claims to support — and
+    reduced to a single requestable version by `_alternative_bounds`.
+
+    Returns None when the specifier names no version at all, e.g. "latest", a branch
+    name, or "workspace:*".
+    """
+    candidates = [
+        bounds for alternative in spec.split("||") if (bounds := _alternative_bounds(alternative))
+    ]
+    if not candidates:
+        return None
+    # Alternatives are ranked by the version each one starts at, but it is the
+    # requestable form of the winning alternative that gets resolved.
+    _, requested_version = max(candidates, key=lambda bounds: _semver_key(bounds[0]))
+    return requested_version
+
+
+def _alternative_bounds(alternative: str) -> tuple[str, str] | None:
+    """Return `(lower_bound, requested_version)` for one union-free npm range.
+
+    The leading token is the lower bound for every range form npm accepts — "^4.5.7",
+    ">=4.5.7 <5.0.0" and "4.1.0 - 4.5.0" all start at the version they allow least of.
+    That bound is what alternatives are ranked against each other by.
+
+    The version actually requested differs from it only for a caret, which admits every
+    later patch release: "^4.5.7" is requested as "4.5.x". Both the npm registry and the
+    git tag list resolve a wildcard to its highest match, so the caret selects the newest
+    patch it allows behaving like the ">=4.5.7".
+
+    Returns None if the alternative holds no version-like token.
+    """
+    for token in alternative.split():
+        version = _normalize_version(re.sub(r"^[\^~<>=\s]+", "", token))
+        if not re.match(r"\d", version):
+            continue
+        if token.startswith("^"):
+            return version, re.sub(r"^(\d+\.\d+)\.\d+.*$", r"\1.x", version)
+        return version, version
+    return None
 
 
 def _expand_partial_version(version: str) -> str:
@@ -302,13 +352,24 @@ def _resolve_wildcard_npm_version(version: str) -> str:
     return max(matching, key=_semver_key)
 
 
-def _semver_key(v: str) -> tuple[tuple[int, ...], int, tuple[int, ...]]:
+def _semver_key(v: str) -> tuple[tuple[int, ...], int, tuple[tuple[int, int, str], ...]]:
     release, _, prerelease = v.partition("-")
     numeric = tuple(int(p) for p in release.split(".") if p.isdigit())
-    # Stable releases sort higher than pre-releases; within pre-releases,
-    # order by the numeric identifiers (e.g. alpha.3 < alpha.4).
-    pre_numeric = tuple(int(p) for p in prerelease.split(".") if p.isdigit())
-    return (numeric, 0 if prerelease else 1, pre_numeric)
+    # Stable releases sort higher than pre-releases of the same version.
+    return (numeric, 0 if prerelease else 1, _prerelease_key(prerelease))
+
+
+def _prerelease_key(prerelease: str) -> tuple[tuple[int, int, str], ...]:
+    """Order the dot-separated identifiers of a pre-release by semver precedence.
+
+    Each identifier becomes `(is_alphanumeric, number, text)` so that the series it
+    names is compared before the iteration within it: 'alpha.5' < 'beta.0' < 'rc.0'.
+    """
+    return tuple(
+        (0, int(identifier), "") if identifier.isdigit() else (1, 0, identifier)
+        for identifier in prerelease.split(".")
+        if identifier
+    )
 
 
 def _resolve_github_version(version: str) -> str:
@@ -421,14 +482,10 @@ def _download_github_core_meta(version: str, destination: Path) -> None:
 
 
 def _get_installed_core_meta(ext_path: Path) -> str | None:
-    if not (ext_path / "node_modules").exists():
-        subprocess.check_call(["jlpm"], cwd=ext_path)  # noqa: S607
+    probe = ("@jupyterlab", "core-meta", "core.package.json")
+    ensure_dependencies_installed(ext_path, probe)
 
-    target = ext_path
-    while True:
-        core_meta_path = target / "node_modules" / "@jupyterlab" / "core-meta"
-        if (core_meta_path / "core.package.json").exists():
-            return str(core_meta_path / "core.package.json")
-        if target.parent == target:
-            return None
-        target = target.parent
+    owner = find_in_node_modules(ext_path, probe)
+    if owner is None:
+        return None
+    return str(owner.joinpath("node_modules", *probe))

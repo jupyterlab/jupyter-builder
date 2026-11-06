@@ -11,11 +11,13 @@ from unittest import mock
 
 import pytest
 
-from jupyter_builder import core_path, federated_extensions
+from jupyter_builder import _node_deps, core_path, federated_extensions
 from jupyter_builder.federated_extensions import (
     _check_node_version,
     _ensure_builder,
     _read_rspack_node_range,
+    _resolve_core_path_for_jupyterlab_builder,
+    _satisfies_allowing_prerelease,
 )
 
 
@@ -63,7 +65,7 @@ def test_get_core_meta_installs_dependencies_before_searching(tmp_path, monkeypa
         core_meta_dir.mkdir(parents=True)
         (core_meta_dir / "core.package.json").write_text("{}")
 
-    monkeypatch.setattr(core_path.subprocess, "check_call", fake_check_call)
+    monkeypatch.setattr(_node_deps.subprocess, "check_call", fake_check_call)
 
     location = core_path.get_core_meta(ext_path=ext_path)
 
@@ -71,6 +73,127 @@ def test_get_core_meta_installs_dependencies_before_searching(tmp_path, monkeypa
     assert location == str(
         ext_path / "node_modules" / "@jupyterlab" / "core-meta" / "core.package.json",
     )
+
+
+def _make_workspace(root: Path) -> Path:
+    """Create a hoisted workspace at `root` and return a member ext without node_modules."""
+    (root / "package.json").write_text(json.dumps({"workspaces": ["packages/*"]}))
+    core_meta_dir = root / "node_modules" / "@jupyterlab" / "core-meta"
+    core_meta_dir.mkdir(parents=True)
+    (core_meta_dir / "core.package.json").write_text(
+        json.dumps({"devDependencies": {"@jupyter/builder": "^5.0.0"}}),
+    )
+    builder_dir = root / "node_modules" / "@jupyter" / "builder"
+    builder_dir.mkdir(parents=True)
+    (builder_dir / "package.json").write_text(json.dumps({"version": "5.0.0"}))
+    ext_path = root / "packages" / "ext"
+    ext_path.mkdir(parents=True)
+    (ext_path / "package.json").write_text(
+        json.dumps({"devDependencies": {"@jupyter/builder": "^5.0.0"}}),
+    )
+    return ext_path
+
+
+@pytest.fixture
+def jlpm_calls(monkeypatch):
+    """Record `jlpm` invocations; fail loudly if anything else is spawned."""
+    calls = []
+
+    def fake_check_call(args, cwd):
+        assert args == ["jlpm"]
+        calls.append(Path(cwd))
+
+    monkeypatch.setattr(_node_deps.subprocess, "check_call", fake_check_call)
+    return calls
+
+
+def test_get_core_meta_skips_install_in_workspace(tmp_path, jlpm_calls):
+    ext_path = _make_workspace(tmp_path)
+
+    location = core_path.get_core_meta(ext_path=ext_path)
+
+    assert jlpm_calls == []
+    assert location == str(
+        tmp_path / "node_modules" / "@jupyterlab" / "core-meta" / "core.package.json",
+    )
+
+
+def test_ensure_builder_skips_install_in_workspace(tmp_path, jlpm_calls):
+    ext_path = _make_workspace(tmp_path)
+    core_package_file = tmp_path / "node_modules" / "@jupyterlab" / "core-meta"
+
+    builder_path, marker_pkg = _ensure_builder(
+        str(ext_path),
+        str(core_package_file / "core.package.json"),
+    )
+
+    assert jlpm_calls == []
+    assert marker_pkg == "@jupyter/builder"
+    assert builder_path == str(
+        tmp_path / "node_modules" / "@jupyter" / "builder" / "lib" / "build-labextension.js",
+    )
+
+
+def test_get_core_meta_installs_when_ancestor_is_not_a_workspace(tmp_path, jlpm_calls):
+    ext_path = _make_workspace(tmp_path)
+    (tmp_path / "package.json").write_text(json.dumps({"name": "unrelated"}))
+
+    core_path.get_core_meta(ext_path=ext_path)
+
+    assert jlpm_calls == [ext_path]
+
+
+def test_get_core_meta_skips_install_with_local_node_modules_without_core_meta(
+    tmp_path,
+    jlpm_calls,
+    monkeypatch,
+):
+    # Legacy @jupyterlab/builder extensions have node_modules but no core-meta;
+    # they must not reinstall on every build.
+    ext_path = tmp_path / "ext"
+    (ext_path / "node_modules").mkdir(parents=True)
+    (ext_path / "package.json").write_text(
+        json.dumps({"devDependencies": {"@jupyterlab/builder": "~4.5.0"}}),
+    )
+    monkeypatch.setenv("HOME", str(tmp_path))
+    cache_root = tmp_path / ".cache" / "jupyterlab_builder" / "core"
+    cached_file = cache_root / "4.5.0" / "core.package.json"
+    cached_file.parent.mkdir(parents=True)
+    cached_file.write_text("{}")
+
+    location = core_path.get_core_meta(ext_path=ext_path)
+
+    assert jlpm_calls == []
+    assert location == str(cached_file)
+
+
+def test_build_flow_installs_at_most_once_for_standalone_ext(tmp_path, monkeypatch):
+    ext_path = tmp_path / "ext"
+    ext_path.mkdir()
+    (ext_path / "package.json").write_text(
+        json.dumps({"devDependencies": {"@jupyter/builder": "^5.0.0"}}),
+    )
+    calls = []
+
+    def fake_check_call(args, cwd):
+        calls.append((args, Path(cwd)))
+        node_modules = Path(cwd) / "node_modules"
+        core_meta_dir = node_modules / "@jupyterlab" / "core-meta"
+        core_meta_dir.mkdir(parents=True)
+        (core_meta_dir / "core.package.json").write_text(
+            json.dumps({"devDependencies": {"@jupyter/builder": "^5.0.0"}}),
+        )
+        builder_dir = node_modules / "@jupyter" / "builder"
+        builder_dir.mkdir(parents=True)
+        (builder_dir / "package.json").write_text(json.dumps({"version": "5.0.0"}))
+
+    monkeypatch.setattr(_node_deps.subprocess, "check_call", fake_check_call)
+
+    # Mirrors build_labextension(): get_core_meta() then _ensure_builder().
+    core_package_file = core_path.get_core_meta(ext_path=ext_path)
+    _ensure_builder(str(ext_path), core_package_file)
+
+    assert calls == [(["jlpm"], ext_path)]
 
 
 def test_get_core_meta_uses_cache_for_explicit_version_before_installed(tmp_path, monkeypatch):
@@ -116,7 +239,7 @@ def test_get_core_meta_fetches_npm_core_meta_before_github(tmp_path, monkeypatch
         msg = f"Unexpected URL {url}"
         raise AssertionError(msg)
 
-    monkeypatch.setattr(core_path.subprocess, "check_call", fake_check_call)
+    monkeypatch.setattr(_node_deps.subprocess, "check_call", fake_check_call)
     monkeypatch.setattr(core_path.urllib.request, "urlopen", fake_urlopen)
 
     location = core_path.get_core_meta(version="4.6.0-alpha.4", ext_path=ext_path)
@@ -264,6 +387,43 @@ def test_normalize_version_accepts_both_forms(version):
 )
 def test_expand_partial_version(version, expected):
     assert core_path._expand_partial_version(version) == expected
+
+
+@pytest.mark.parametrize(
+    ("spec", "expected"),
+    [
+        # A caret admits every later patch, so it becomes a patch wildcard; a tilde
+        # and an explicit lower bound stay pinned to the patch they name.
+        ("^4.5.7", "4.5.x"),
+        ("~4.5.7", "4.5.7"),
+        (">=v4.5.7", "4.5.7"),
+        ("4.5.7", "4.5.7"),
+        # A caret with no patch component is already a range of its own.
+        ("^4.5", "4.5"),
+        ("^4", "4"),
+        ("^4.5.x", "4.5.x"),
+        # A caret over a prerelease also allows every 4.6 patch.
+        ("^4.6.0-alpha.4", "4.6.x"),
+        # A union targets the newest JupyterLab the extension supports.
+        ("^4.3.6 || ^3.6.8", "4.3.x"),
+        ("^3 || ^4", "4"),
+        ("^4.5 || ^4.4.2", "4.5"),
+        # Alternatives are ranked by lower bound, so the tilde alternative wins here
+        # even though the caret alternative resolves to a wildcard.
+        ("^4.5.7 || ~4.6.0", "4.6.0"),
+        # Prereleases lose to the stable release of the same version.
+        ("~4.6.0-alpha.4 || ~4.6.0", "4.6.0"),
+        # Numeric, not lexical, ordering across alternatives.
+        ("~4.9.0 || ~4.10.0", "4.10.0"),
+        ("4.5.x", "4.5.x"),
+        # Specifiers that name no version at all.
+        ("latest", None),
+        ("main", None),
+        ("*", None),
+    ],
+)
+def test_range_lower_bound(spec, expected):
+    assert core_path._range_lower_bound(spec) == expected
 
 
 def test_get_core_meta_falls_back_to_github_for_prerelease(tmp_path, monkeypatch):
@@ -463,6 +623,87 @@ def test_resolve_wildcard_npm_version_matches_prerelease_versions(monkeypatch):
     resolved = core_path._resolve_wildcard_npm_version("4.6.x")
 
     assert resolved == "4.6.0-alpha.5"
+
+
+def test_semver_key_orders_prerelease_series():
+    """Pre-releases rank alpha < beta < rc < stable, by series before iteration."""
+    versions = [
+        "4.6.0",
+        "4.6.0-rc.1",
+        "4.6.0-alpha.4",
+        "4.6.0-beta.1",
+        "4.6.0-rc.0",
+        "4.6.0-beta.2",
+        "4.6.0-alpha.10",
+        "4.6.0-alpha",
+    ]
+
+    assert sorted(versions, key=core_path._semver_key) == [
+        # A pre-release that is a prefix of another ranks lower.
+        "4.6.0-alpha",
+        # Numeric identifiers compare as numbers, not lexically: alpha.4 < alpha.10.
+        "4.6.0-alpha.4",
+        "4.6.0-alpha.10",
+        "4.6.0-beta.1",
+        "4.6.0-beta.2",
+        "4.6.0-rc.0",
+        "4.6.0-rc.1",
+        # The stable release outranks every pre-release of the same version.
+        "4.6.0",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("lower", "higher"),
+    [
+        ("4.6.0-alpha.5", "4.6.0-beta.0"),
+        ("4.6.0-beta.1", "4.6.0-rc.0"),
+        ("4.6.0-alpha.9", "4.6.0-rc.0"),
+        ("4.6.0-rc.2", "4.6.0"),
+        ("4.6.0", "4.6.1-alpha.0"),
+        # A numeric identifier ranks below an alphanumeric one.
+        ("4.6.0-1", "4.6.0-alpha"),
+    ],
+)
+def test_semver_key_ranks_prerelease_transitions(lower, higher):
+    assert core_path._semver_key(lower) < core_path._semver_key(higher)
+
+
+def test_resolve_wildcard_npm_version_advances_across_prerelease_series(monkeypatch):
+    """A wildcard picks the newest series, not the highest number within an older one."""
+
+    def fake_urlopen(req_or_url, **_kwargs):
+        url = getattr(req_or_url, "full_url", req_or_url)
+        assert url == f"{core_path.JPBLD_NPM_URL}/@jupyterlab/core-meta"
+        return io.BytesIO(
+            json.dumps(
+                {
+                    "versions": {
+                        "4.7.0-alpha.9": {},
+                        "4.7.0-beta.1": {},
+                        "4.7.0-rc.0": {},
+                    },
+                },
+            ).encode(),
+        )
+
+    monkeypatch.setattr(core_path.urllib.request, "urlopen", fake_urlopen)
+
+    # No stable 4.7.0 yet, so the pre-release ordering is what decides the answer.
+    assert core_path._resolve_wildcard_npm_version("4.7.x") == "4.7.0-rc.0"
+
+
+@pytest.mark.parametrize(
+    ("spec", "expected"),
+    [
+        ("~4.6.0-alpha.9 || ~4.6.0-beta.1", "4.6.0-beta.1"),
+        ("~4.6.0-beta.1 || ~4.6.0-rc.0", "4.6.0-rc.0"),
+        ("~4.6.0-rc.0 || ~4.6.0-alpha.9", "4.6.0-rc.0"),
+    ],
+)
+def test_range_lower_bound_ranks_prerelease_alternatives(spec, expected):
+    """Union alternatives are ranked with the same pre-release precedence."""
+    assert core_path._range_lower_bound(spec) == expected
 
 
 def test_resolve_wildcard_npm_version_raises_when_no_matches(monkeypatch):
@@ -676,8 +917,9 @@ def test_get_core_meta_resolves_to_legacy_builder_marker_version(tmp_path, monke
     ext_path = tmp_path / "ext"
     ext_path.mkdir()
     (ext_path / "node_modules").mkdir()
+    # A tilde allows only patches of 4.5.7, so it stays pinned to the version it names.
     (ext_path / "package.json").write_text(
-        json.dumps({"devDependencies": {"@jupyterlab/builder": "^4.5.7"}}),
+        json.dumps({"devDependencies": {"@jupyterlab/builder": "~4.5.7"}}),
     )
     monkeypatch.setenv("HOME", str(tmp_path))
 
@@ -713,7 +955,8 @@ def test_get_core_meta_resolves_to_legacy_builder_marker_version(tmp_path, monke
     )
     logger.warning.assert_called_once()
     warning_message = logger.warning.call_args[0][0] % logger.warning.call_args[0][1:]
-    assert "@jupyterlab/builder@4.5.7" in warning_message
+    assert "@jupyterlab/builder" in warning_message
+    assert "core-meta 4.5.7" in warning_message
 
 
 def test_get_core_meta_legacy_builder_marker_skips_installed_jupyterlab_check(
@@ -725,7 +968,7 @@ def test_get_core_meta_legacy_builder_marker_skips_installed_jupyterlab_check(
     ext_path.mkdir()
     (ext_path / "node_modules").mkdir()
     (ext_path / "package.json").write_text(
-        json.dumps({"devDependencies": {"@jupyterlab/builder": "^4.5.7"}}),
+        json.dumps({"devDependencies": {"@jupyterlab/builder": "~4.5.7"}}),
     )
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setattr(core_path, "installed_version", lambda _package: "4.6.2")
@@ -792,11 +1035,19 @@ def test_get_core_meta_ignores_legacy_builder_marker_workspace_spec(tmp_path, mo
     ("version_spec", "expected"),
     [
         ("4.5.7", "4.5.7"),
-        ("^4.5.7", "4.5.7"),
+        ("^4.5.7", "4.5.x"),
         ("~4.5.7", "4.5.7"),
         (">=4.5.7", "4.5.7"),
+        # A union resolves to its highest alternative, whichever side it is on.
+        ("^4.3.6 || ^3.6.8", "4.3.x"),
+        ("^3.6.8 || ^4.3.6", "4.3.x"),
+        ("^3.6.8 || ^4.3.6 || ^5.0.0", "5.0.x"),
+        # Compound and hyphen ranges reduce to their lower bound.
+        (">=4.3.6 <5.0.0", "4.3.6"),
+        ("4.1.0 - 4.5.0", "4.1.0"),
         ("file:../builder", None),
         ("workspace:*", None),
+        ("*", None),
     ],
 )
 def test_legacy_builder_marker_version_parses_spec(tmp_path, version_spec, expected):
@@ -896,6 +1147,35 @@ def test_check_node_version_raises_on_old_node(tmp_path, monkeypatch):
         _check_node_version(str(ext_path), str(ext_path))
 
 
+@pytest.mark.parametrize(
+    ("version", "expected"),
+    [
+        # A prerelease of a version newer than the range is new enough to build.
+        ("26.8.0-alpha.0.0.0", True),
+        ("22.13.0-nightly1", True),
+        ("20.19.1-alpha.1", True),
+        # A prerelease of the oldest supported version predates it, so it is not.
+        ("22.12.0-alpha.1", False),
+        ("20.19.0-alpha.1", False),
+        # Prereleases must not widen the range itself, including under an
+        # upper bound: 21.0.0-alpha.1 is <21.0.0, but 21.0.0 is excluded.
+        ("21.0.0-alpha.1", False),
+        ("21.7.3-alpha.1", False),
+        ("18.20.8-alpha.1", False),
+        # Stable versions keep behaving as before.
+        ("26.8.0", True),
+        ("22.12.0", True),
+        ("20.19.0", True),
+        ("21.7.3", False),
+        ("18.20.8", False),
+        # Unparsable versions are rejected.
+        ("not-a-version", False),
+    ],
+)
+def test_satisfies_allowing_prerelease(version, expected):
+    assert _satisfies_allowing_prerelease(version, "^20.19.0 || >=22.12.0") is expected
+
+
 def test_check_node_version_passes_on_supported_node(tmp_path, monkeypatch):
     ext_path = tmp_path / "ext"
     ext_path.mkdir()
@@ -909,3 +1189,47 @@ def test_check_node_version_passes_on_supported_node(tmp_path, monkeypatch):
     )
 
     _check_node_version(str(ext_path), str(ext_path))
+
+
+CORE_DATA = {"jupyterlab": {"singletonPackages": ["@jupyterlab/application"]}}
+NPM_MANIFEST = {"name": "@jupyterlab/core-meta", "version": "4.6.2"}
+
+
+def test_resolve_core_path_returns_directory_when_already_named_package_json(tmp_path):
+    core_file = tmp_path / "package.json"
+    core_file.write_text(json.dumps(CORE_DATA))
+
+    core_path = _resolve_core_path_for_jupyterlab_builder(str(core_file))
+
+    assert core_path == str(tmp_path)
+
+
+def test_resolve_core_path_ignores_pre_existing_unrelated_package_json(tmp_path):
+    """Regression for #180: an installed @jupyterlab/core-meta ships both files."""
+    core_meta_dir = tmp_path / "node_modules" / "@jupyterlab" / "core-meta"
+    core_meta_dir.mkdir(parents=True)
+    core_file = core_meta_dir / "core.package.json"
+    core_file.write_text(json.dumps(CORE_DATA))
+    manifest_file = core_meta_dir / "package.json"
+    manifest_file.write_text(json.dumps(NPM_MANIFEST))
+
+    core_path = _resolve_core_path_for_jupyterlab_builder(str(core_file))
+
+    seen = json.loads((Path(core_path) / "package.json").read_text())
+    assert seen.get("jupyterlab") == CORE_DATA["jupyterlab"]
+
+    # node_modules itself must be untouched: the installed manifest survives
+    # exactly as npm published it.
+    assert json.loads(manifest_file.read_text()) == NPM_MANIFEST
+
+
+def test_resolve_core_path_does_not_write_into_node_modules(tmp_path):
+    core_meta_dir = tmp_path / "node_modules" / "@jupyterlab" / "core-meta"
+    core_meta_dir.mkdir(parents=True)
+    core_file = core_meta_dir / "core.package.json"
+    core_file.write_text(json.dumps(CORE_DATA))
+
+    core_path = _resolve_core_path_for_jupyterlab_builder(str(core_file))
+
+    assert "node_modules" not in core_path
+    assert {p.name for p in core_meta_dir.iterdir()} == {"core.package.json"}
