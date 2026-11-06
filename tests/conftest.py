@@ -184,3 +184,23 @@ def jupyterlab_builder_extension_folder(built_jupyterlab_builder_extension, tmp_
 def mismatch_extension_folder(installed_mismatch_extension, tmp_path):
     """Give the test its own isolated copy of the version-mismatch variant."""
     return _copy_extension(installed_mismatch_extension, tmp_path / "ext")
+
+
+@pytest.fixture
+def link_dir():
+    """Return a function that links `link` to the directory `target`.
+
+    Mirrors how npm/Yarn link workspace members into the root `node_modules`:
+    a symlink on POSIX, a junction on Windows (no symlink privilege needed).
+    """
+
+    def _link(target: Path, link: Path) -> None:
+        link.parent.mkdir(parents=True, exist_ok=True)
+        if os.name == "nt":
+            import _winapi  # noqa: PLC0415
+
+            _winapi.CreateJunction(str(target), str(link))
+        else:
+            link.symlink_to(target, target_is_directory=True)
+
+    return _link
