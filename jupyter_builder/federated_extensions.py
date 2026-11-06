@@ -31,6 +31,7 @@ if sys.version_info >= (3, 11):
 else:
     from tomli import load
 
+from ._node_deps import ensure_dependencies_installed, find_in_node_modules
 from .commands import _test_overlap
 from .core_path import get_core_meta
 from .jlpm import _which_node_js
@@ -475,18 +476,16 @@ def _ensure_builder(ext_path: str, core_package_file: str) -> tuple[str, str]:
 
     # If installed from disk (version is a file: protocol or path), read its version.
     dep_version2 = _resolve_local_builder_version(ext_path, dep_version2)
-    if not (Path(ext_path) / "node_modules").exists():
-        subprocess.check_call(["jlpm"], cwd=ext_path)  # noqa: S607
+    marker_parts = marker_pkg.split("/", 1)
+    ensure_dependencies_installed(Path(ext_path), marker_parts)
 
     # Find the marker package in node_modules using node module resolution.
     # We cannot use a script because the script path is a shell script on Windows.
-    marker_parts = marker_pkg.split("/", 1)
-    target = ext_path
-    while not Path(target).joinpath("node_modules", *marker_parts).exists():
-        if Path(target).parent == Path(target):
-            msg = f"Could not find {marker_pkg}"
-            raise ValueError(msg)
-        target = str(Path(target).parent)
+    owner = find_in_node_modules(Path(ext_path), marker_parts)
+    if owner is None:
+        msg = f"Could not find {marker_pkg}"
+        raise ValueError(msg)
+    target = str(owner)
 
     # Check for compatible versions
     dep_version1 = core_data.get("devDependencies", {}).get(marker_pkg)
