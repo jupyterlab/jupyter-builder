@@ -76,7 +76,7 @@ def test_get_core_meta_installs_dependencies_before_searching(tmp_path, monkeypa
     )
 
 
-def _make_workspace(root: Path) -> Path:
+def _make_workspace(root: Path, link_dir) -> Path:
     """Create a hoisted workspace at `root` and return a member ext without node_modules."""
     (root / "package.json").write_text(json.dumps({"workspaces": ["packages/*"]}))
     core_meta_dir = root / "node_modules" / "@jupyterlab" / "core-meta"
@@ -90,8 +90,9 @@ def _make_workspace(root: Path) -> Path:
     ext_path = root / "packages" / "ext"
     ext_path.mkdir(parents=True)
     (ext_path / "package.json").write_text(
-        json.dumps({"devDependencies": {"@jupyter/builder": "^5.0.0"}}),
+        json.dumps({"name": "ext", "devDependencies": {"@jupyter/builder": "^5.0.0"}}),
     )
+    link_dir(ext_path, root / "node_modules" / "ext")
     return ext_path
 
 
@@ -108,8 +109,8 @@ def jlpm_calls(monkeypatch):
     return calls
 
 
-def test_get_core_meta_skips_install_in_workspace(tmp_path, jlpm_calls):
-    ext_path = _make_workspace(tmp_path)
+def test_get_core_meta_skips_install_in_workspace(tmp_path, jlpm_calls, link_dir):
+    ext_path = _make_workspace(tmp_path, link_dir)
 
     location = core_path.get_core_meta(ext_path=ext_path)
 
@@ -119,8 +120,8 @@ def test_get_core_meta_skips_install_in_workspace(tmp_path, jlpm_calls):
     )
 
 
-def test_ensure_builder_skips_install_in_workspace(tmp_path, jlpm_calls):
-    ext_path = _make_workspace(tmp_path)
+def test_ensure_builder_skips_install_in_workspace(tmp_path, jlpm_calls, link_dir):
+    ext_path = _make_workspace(tmp_path, link_dir)
     core_package_file = tmp_path / "node_modules" / "@jupyterlab" / "core-meta"
 
     builder_path, marker_pkg = _ensure_builder(
@@ -135,13 +136,60 @@ def test_ensure_builder_skips_install_in_workspace(tmp_path, jlpm_calls):
     )
 
 
-def test_get_core_meta_installs_when_ancestor_is_not_a_workspace(tmp_path, jlpm_calls):
-    ext_path = _make_workspace(tmp_path)
+def test_get_core_meta_installs_when_ancestor_is_not_a_workspace(
+    tmp_path,
+    jlpm_calls,
+    link_dir,
+):
+    ext_path = _make_workspace(tmp_path, link_dir)
     (tmp_path / "package.json").write_text(json.dumps({"name": "unrelated"}))
 
     core_path.get_core_meta(ext_path=ext_path)
 
     assert jlpm_calls == [ext_path]
+
+
+def test_build_flow_installs_for_non_member_below_workspace_root(
+    tmp_path,
+    monkeypatch,
+    link_dir,
+):
+    # Like JupyterLab's mock_packages/test-hyphens: below the workspace root but
+    # not listed in `workspaces`, with its own (empty) yarn.lock. It must get
+    # its own install rather than build against the workspace's node_modules.
+    _make_workspace(tmp_path, link_dir)
+    ext_path = tmp_path / "tests" / "mock_packages" / "test-hyphens"
+    ext_path.mkdir(parents=True)
+    (ext_path / "package.json").write_text(
+        json.dumps({"name": "test-hyphens", "devDependencies": {"@jupyter/builder": "^5.0.0"}}),
+    )
+    (ext_path / "yarn.lock").touch()
+    calls = []
+
+    def fake_check_call(args, cwd):
+        calls.append((args, Path(cwd)))
+        node_modules = Path(cwd) / "node_modules"
+        core_meta_dir = node_modules / "@jupyterlab" / "core-meta"
+        core_meta_dir.mkdir(parents=True)
+        (core_meta_dir / "core.package.json").write_text(
+            json.dumps({"devDependencies": {"@jupyter/builder": "^5.0.0"}}),
+        )
+        builder_dir = node_modules / "@jupyter" / "builder"
+        builder_dir.mkdir(parents=True)
+        (builder_dir / "package.json").write_text(json.dumps({"version": "5.0.0"}))
+
+    monkeypatch.setattr(_node_deps.subprocess, "check_call", fake_check_call)
+
+    core_package_file = core_path.get_core_meta(ext_path=ext_path)
+    builder_path, _ = _ensure_builder(str(ext_path), core_package_file)
+
+    assert calls == [(["jlpm"], ext_path)]
+    assert core_package_file == str(
+        ext_path / "node_modules" / "@jupyterlab" / "core-meta" / "core.package.json",
+    )
+    assert builder_path == str(
+        ext_path / "node_modules" / "@jupyter" / "builder" / "lib" / "build-labextension.js",
+    )
 
 
 def test_get_core_meta_skips_install_with_local_node_modules_without_core_meta(
