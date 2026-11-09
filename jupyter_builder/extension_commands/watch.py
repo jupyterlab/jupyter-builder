@@ -47,6 +47,19 @@ class WatchLabExtensionApp(BaseExtensionApp):
         "core-version": "WatchLabExtensionApp.core_version",
     }
 
+    # Also accept boolean options without a value
+    flags = {  # noqa: RUF012
+        **BaseExtensionApp.flags,
+        "development": (
+            {"WatchLabExtensionApp": {"development": True}},
+            "Build in development mode",
+        ),
+        "source-map": (
+            {"WatchLabExtensionApp": {"source_map": True}},
+            "Generate source maps",
+        ),
+    }
+
     def run_task(self) -> None:
         """Watch the labextension and rebuild on changes."""
         self.extra_args = self.extra_args or [str(Path.cwd())]
