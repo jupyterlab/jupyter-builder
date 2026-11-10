@@ -177,8 +177,7 @@ def develop_labextension_py(  # noqa: PLR0913, PLR0917
 
     Returns a list of installed/updated directories.
 
-    `module` is the path to the extension source directory (not an importable
-    module name). See develop_labextension for the other parameters.
+    See develop_labextension for the other parameters.
     """
     m, labexts = _get_labextension_metadata(module)
     base_path = str(Path(m.__file__).parent)
