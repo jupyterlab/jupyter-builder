@@ -47,6 +47,8 @@ def test_shared_packages_rejects_non_object(metadata_schema, invalid_shared_pack
         {"singleton": "not-a-boolean"},
         {"strictVersion": "not-a-boolean"},
         {"requiredVersion": 123},
+        {"import": True},
+        {"version": 123},
     ],
 )
 def test_shared_packages_rejects_invalid_package_config(metadata_schema, invalid_config):
@@ -67,6 +69,8 @@ def test_shared_packages_rejects_invalid_package_config(metadata_schema, invalid
         {"my-pkg": {"requiredVersion": "^1.2.0"}},
         {"my-pkg": {"requiredVersion": False}},
         {"my-pkg": {"strictVersion": True}},
+        {"my-pkg": {"import": False}},
+        {"my-pkg": {"version": "0.0.0"}},
         {
             "pkg-a": False,
             "pkg-b": {
