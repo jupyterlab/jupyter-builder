@@ -177,7 +177,7 @@ def develop_labextension_py(  # noqa: PLR0913, PLR0917
 
     Returns a list of installed/updated directories.
 
-    See develop_labextension for the other parameters.
+    See develop_labextension for parameter information.
     """
     m, labexts = _get_labextension_metadata(module)
     base_path = str(Path(m.__file__).parent)
