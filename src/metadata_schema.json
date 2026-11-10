@@ -35,6 +35,10 @@
           "type": "boolean",
           "default": true
         },
+        "import": {
+          "description": "The module to bundle as a fallback. Set to false to use only the copy that JupyterLab or another extension provides, as with bundled: false.",
+          "anyOf": [{ "enum": [false] }, { "type": "string" }]
+        },
         "requiredVersion": {
           "description": "Version requirement from module in share scope. Defaults to the version required in the package.json, or false if the version cannot be determined. You can specify it here in case the version cannot be determined automatically.",
           "anyOf": [
@@ -56,6 +60,10 @@
         "strictVersion": {
           "description": "Throw an error (instead of a warning) if the shared module version does not satisfy the requiredVersion. Defaults to false when forced to use the system-provided version of the module (i.e., singleton is true or bundled is false), in which case we will just print a console warning if the system-provided version does not satisfy the requiredVersion. This has no effect if requiredVersion is false.",
           "type": "boolean"
+        },
+        "version": {
+          "description": "The version under which the bundled copy is shared with other extensions. Defaults to the version in the package.json of the module.",
+          "type": "string"
         }
       }
     }
