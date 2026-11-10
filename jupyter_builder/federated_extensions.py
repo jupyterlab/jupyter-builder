@@ -177,7 +177,8 @@ def develop_labextension_py(  # noqa: PLR0913, PLR0917
 
     Returns a list of installed/updated directories.
 
-    See develop_labextension for parameter information.
+    `module` is the path to the extension source directory (not an importable
+    module name). See develop_labextension for the other parameters.
     """
     m, labexts = _get_labextension_metadata(module)
     base_path = str(Path(m.__file__).parent)
@@ -643,10 +644,10 @@ def _find_namespace_packages(path: str) -> list[str]:
     return list(found)
 
 
-def _get_labextension_metadata(module: str) -> tuple[Any, list[dict[str, str]]]:  # noqa: C901
-    """Get the list of labextension paths associated with a Python module.
+def _get_labextension_metadata(module: str) -> tuple[Any, list[dict[str, str]]]:
+    """Get the list of labextension paths associated with a Python package.
 
-    Returns a tuple of (the module path,             [{
+    Returns a tuple of (the imported module, [{
         'src': 'mockextension',
         'dest': '_mockdestination'
     }])
@@ -654,24 +655,17 @@ def _get_labextension_metadata(module: str) -> tuple[Any, list[dict[str, str]]]:
     Parameters
     ----------
     module : str
-        Importable Python module exposing the
+        Path to the extension source directory, containing a `pyproject.toml`
+        or legacy `setup.py`, whose Python package exposes the
         magic-named `_jupyter_labextension_paths` function
 
     """
-    errors = []
-
-    # Check if `module` is an importable labextension module.
-    try:
-        m = importlib.import_module(module)
-        if hasattr(m, "_jupyter_labextension_paths"):
-            return m, m._jupyter_labextension_paths()  # noqa: SLF001
-    except Exception as exc:  # noqa: BLE001
-        errors.append(exc)
-
     mod_path = str(Path(module).resolve())
     if not Path(mod_path).exists():
         msg = f"The path `{mod_path}` does not exist."
         raise FileNotFoundError(msg)
+
+    errors = []
 
     # Try to get the package name
     package = None
