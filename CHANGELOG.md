@@ -2,6 +2,42 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 1.3.0
+
+([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v1.2.4...e7729f2590146595ffd617933363d3307436dc20))
+
+### Bugs fixed
+
+- Skip jlpm only for installed workspace members [#208](https://github.com/jupyterlab/jupyter-builder/pull/208) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+- Skip redundant jlpm installs in workspaces [#207](https://github.com/jupyterlab/jupyter-builder/pull/207) ([@lresende](https://github.com/lresende), [@Darshan808](https://github.com/Darshan808))
+- Fix schema validation for sharedPackages in metadata_schema.json [#202](https://github.com/jupyterlab/jupyter-builder/pull/202) ([@Yash990-bit](https://github.com/Yash990-bit), [@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+- Make `--development` and `--source-map` work without a value [#199](https://github.com/jupyterlab/jupyter-builder/pull/199) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+- fix: support file: protocol in \_ensure_builder [#195](https://github.com/jupyterlab/jupyter-builder/pull/195) ([@Yash990-bit](https://github.com/Yash990-bit), [@Darshan808](https://github.com/Darshan808))
+
+### Maintenance and upkeep improvements
+
+- Delete `tmp_path` directories of passing tests [#198](https://github.com/jupyterlab/jupyter-builder/pull/198) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+
+### Documentation improvements
+
+- Link announcement blog post and acknowledgement section in README [#192](https://github.com/jupyterlab/jupyter-builder/pull/192) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+
+### Other merged PRs
+
+- Bump @rspack/core from 2.2.8 to 2.3.0 [#205](https://github.com/jupyterlab/jupyter-builder/pull/205) ([@Darshan808](https://github.com/Darshan808))
+- Bump ruff from 0.16.9 to 0.17.3 in the pip group [#204](https://github.com/jupyterlab/jupyter-builder/pull/204) ([@Darshan808](https://github.com/Darshan808))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-10-27&to=2026-11-11&type=c))
+
+@Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-10-27..2026-11-11&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-10-27..2026-11-11&type=Issues)) | @lresende ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Alresende+updated%3A2026-10-27..2026-11-11&type=Issues)) | @Yash990-bit ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3AYash990-bit+updated%3A2026-10-27..2026-11-11&type=Issues))
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 1.2.4
 
 ([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v1.2.3...4978d1b850f0857c5c8aea25782f4aac48d0f6e3))
@@ -39,8 +75,6 @@ See [our definition of contributors](https://github-activity.readthedocs.io/en/l
 ([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-09-04&to=2026-10-27&type=c))
 
 @agriyakhetarpal ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Aagriyakhetarpal+updated%3A2026-09-04..2026-10-27&type=Issues)) | @agu2347 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Aagu2347+updated%3A2026-09-04..2026-10-27&type=Issues)) | @Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-09-04..2026-10-27&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-09-04..2026-10-27&type=Issues)) | @rastagan-git ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Arastagan-git+updated%3A2026-09-04..2026-10-27&type=Issues)) | @Yash990-bit ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3AYash990-bit+updated%3A2026-09-04..2026-10-27&type=Issues))
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 1.2.3
 
