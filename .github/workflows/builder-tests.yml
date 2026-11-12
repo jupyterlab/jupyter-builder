@@ -61,6 +61,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Checkout
+      uses: actions/checkout@v7
+      with:
+        # Into a subdirectory so the workspace root stays free of a
+        # `jupyter_builder/` package directory that would shadow the wheel.
+        path: repo
     - name: Install Python
       uses: actions/setup-python@v7
       with:
@@ -75,6 +81,16 @@ jobs:
         pip install jupyter_builder*.whl
         jupyter-builder --version
         jlpm --version
+
+    # The Yarn constants are committed literals, so the bundle that ends up in
+    # the wheel is what has to match them.
+    - name: Validate the yarn.js packaged in the wheel
+      run: |
+        set -eux
+        pip install pytest
+        cp repo/tests/test_yarn.py "$RUNNER_TEMP/test_yarn.py"
+        cd "$RUNNER_TEMP"
+        pytest -v -rs test_yarn.py
 
   test:
     runs-on: ${{ matrix.os }}
