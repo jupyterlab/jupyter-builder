@@ -77,7 +77,7 @@ module.exports = {
       crypto: false,
       // See https://github.com/webpack/webpack/blob/3471c776059ac2d26593ea39f9c47c1874253dbb/lib/ModuleNotFoundError.js#L13-L42
       path: require.resolve('path-browserify'),
-      process: require.resolve('process/browser')
+      process: require.resolve('./process-shim')
     }
   },
   watchOptions: {
@@ -89,7 +89,7 @@ module.exports = {
   },
   plugins: [
     new rspack.ProvidePlugin({
-      process: 'process/browser'
+      process: require.resolve('./process-shim')
     })
   ]
 };
