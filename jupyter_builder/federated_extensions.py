@@ -180,7 +180,13 @@ def develop_labextension_py(  # noqa: PLR0913, PLR0917
     See develop_labextension for parameter information.
     """
     m, labexts = _get_labextension_metadata(module)
-    base_path = str(Path(m.__file__).parent)
+    module_file = getattr(m, "__file__", None)
+    if module_file is not None:
+        base_path = str(Path(module_file).parent)
+    elif getattr(m, "__path__", None) and (first_path := next(iter(m.__path__), None)):
+        base_path = str(Path(first_path))
+    else:
+        base_path = str(Path.cwd())
 
     full_dests = []
 
