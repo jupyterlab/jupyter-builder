@@ -51,7 +51,7 @@ class ArgumentConflict(ValueError):  # noqa: N818
 # ------------------------------------------------------------------------------
 
 
-def develop_labextension(  # noqa: PLR0913, PLR0917, C901, PLR0912
+def develop_labextension(  # noqa: PLR0913, PLR0917, C901, PLR0912, PLR0915
     path: str | os.PathLike[str],
     symlink: bool = True,
     overwrite: bool = False,
@@ -125,11 +125,17 @@ def develop_labextension(  # noqa: PLR0913, PLR0917, C901, PLR0912
 
     if symlink:
         path = str(Path(path).resolve())
+        target_is_directory = not Path(path).is_file()
+        if Path(full_dest).is_symlink() and not Path(full_dest).exists():
+            if logger:
+                logger.info("Removing broken symlink: %s", full_dest)
+            Path(full_dest).unlink()
+
         if not Path(full_dest).exists():
             if logger:
                 logger.info("Symlinking: %s -> %s", full_dest, path)
             try:
-                Path(full_dest).symlink_to(path)
+                Path(full_dest).symlink_to(path, target_is_directory=target_is_directory)
             except OSError as e:
                 if platform.platform().startswith("Windows"):
                     msg = (
