@@ -28,7 +28,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
 ]
-dependencies = ["traitlets", "jupyter-core", "tomli; python_version < '3.11'"]
+dependencies = ["traitlets", "jupyter-core"]
 dynamic = ["version"]
 
 [project.urls]

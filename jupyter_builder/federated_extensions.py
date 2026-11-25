@@ -20,20 +20,15 @@ if TYPE_CHECKING:
     import logging
 
 from importlib.metadata import PackageNotFoundError, version
+from tomllib import load
 
 from jupyter_core.paths import ENV_JUPYTER_PATH, SYSTEM_JUPYTER_PATH, jupyter_data_dir
 from jupyter_core.utils import ensure_dir_exists
 
-from .federated_extensions_requirements import get_federated_extensions
-
-if sys.version_info >= (3, 11):
-    from tomllib import load
-else:
-    from tomli import load
-
 from ._node_deps import ensure_dependencies_installed, find_in_node_modules
 from .commands import _test_overlap
 from .core_path import get_core_meta
+from .federated_extensions_requirements import get_federated_extensions
 from .jlpm import _which_node_js
 from .jupyterlab_semver import clean, make_range, make_semver
 
@@ -724,7 +719,7 @@ def _get_labextension_metadata(module: str) -> tuple[Any, list[dict[str, str]]]:
             m = importlib.import_module(package)
             if hasattr(m, "_jupyter_labextension_paths"):
                 return m, m._jupyter_labextension_paths()  # noqa: SLF001
-        except Exception as exc:  # noqa: BLE001, PERF203
+        except Exception as exc:  # noqa: BLE001
             errors.append(exc)
 
     msg = f"There is no labextension at {module}. Errors encountered: {errors}"
