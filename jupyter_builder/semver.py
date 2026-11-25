@@ -1,4 +1,4 @@
-"""JupyterLab command handler."""
+"""Compare npm version ranges."""
 
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
@@ -11,7 +11,7 @@ from typing import Any
 from .jupyterlab_semver import Range, SemVer, gt, gte, lt, lte
 
 
-def _test_overlap(
+def ranges_overlap(
     spec1: str,
     spec2: str,
     drop_prerelease1: bool = False,
@@ -22,7 +22,7 @@ def _test_overlap(
     Returns `None` if we cannot determine compatibility,
     otherwise whether there is an overlap
     """
-    cmp = _compare_ranges(
+    cmp = compare_ranges(
         spec1,
         spec2,
         drop_prerelease1=drop_prerelease1,
@@ -75,7 +75,7 @@ def _branch_interval(
     return lo, lo_inc, hi, hi_inc
 
 
-def _compare_ranges(  # noqa: C901, PLR0912
+def compare_ranges(  # noqa: C901, PLR0912
     spec1: str,
     spec2: str,
     drop_prerelease1: bool = False,
