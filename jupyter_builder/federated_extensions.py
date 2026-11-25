@@ -35,7 +35,7 @@ from ._node_deps import ensure_dependencies_installed, find_in_node_modules
 from .core_path import get_core_meta
 from .jlpm import _which_node_js
 from .jupyterlab_semver import clean, make_range, make_semver
-from .semver import ranges_overlap
+from .version_ranges import ranges_overlap
 
 DEPRECATED_ARGUMENT = object()
 

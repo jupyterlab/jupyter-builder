@@ -1,7 +1,7 @@
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
-from jupyter_builder.semver import compare_ranges, ranges_overlap
+from jupyter_builder.version_ranges import compare_ranges, ranges_overlap
 
 
 def test_ranges_overlap_handles_invalid_semver_range():
