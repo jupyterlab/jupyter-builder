@@ -35,7 +35,7 @@
 
         - uses: actions/setup-python@v7
           with:
-            python-version: '3.10'
+            python-version: '3.11'
 
         - name: Clone Berry at ${{ env.BERRY_TAG }}
           run: |

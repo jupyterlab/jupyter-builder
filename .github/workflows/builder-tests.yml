@@ -64,7 +64,7 @@ jobs:
     - name: Install Python
       uses: actions/setup-python@v7
       with:
-        python-version: '3.10'
+        python-version: '3.11'
         architecture: 'x64'
     - uses: actions/download-artifact@v8
       with:
@@ -83,7 +83,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.10", "3.14"]
+        python-version: ["3.11", "3.14"]
         include:
           - os: ubuntu-latest
             python-version: "pypy-3.11"
@@ -126,7 +126,7 @@ jobs:
           dependency_type: minimum
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.10"
+          python-version: "3.11"
       - run: pip install -e ".[test,dev]"
       - name: Run the unit tests
         run: pytest
