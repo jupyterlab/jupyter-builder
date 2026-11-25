@@ -213,8 +213,6 @@ notice-rgx = "(?i)Copyright \\(c\\) Jupyter Development Team\\."
     "SLF001",
 ]
 "jupyter_builder/main.py" = ["RUF012"]
-# ANN401 noop helper must match the semver Callable signature which uses Any
-"jupyter_builder/commands.py" = ["ANN401"]
 # Ported from the node-semver JS library; preserve original style/structure
 # rather than refactoring to Python idioms or adding annotations/docstrings.
 "jupyter_builder/jupyterlab_semver.py" = ["ALL"]

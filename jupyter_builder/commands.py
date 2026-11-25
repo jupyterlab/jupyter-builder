@@ -6,12 +6,9 @@
 from __future__ import annotations
 
 import itertools
-from collections.abc import Callable
 from typing import Any
 
-from .jupyterlab_semver import Range, gt, gte, lt, lte
-
-_CmpFn = Callable[[str | Any, str | Any, bool], bool]
+from .jupyterlab_semver import Range, SemVer, gt, gte, lt, lte
 
 
 def _test_overlap(
@@ -34,6 +31,48 @@ def _test_overlap(
     if cmp is None:
         return None
     return cmp == 0
+
+
+def _branch_interval(
+    comparators: list[Any],
+    drop_prerelease: bool,
+) -> tuple[Any, bool, Any, bool] | None:
+    """Return the interval of versions that one branch of a range covers.
+
+    A branch is the part of a range between two `||`, such as
+    `>=1.0.0 <2.0.0`. Its first comparator is the lower bound and its last
+    comparator the upper bound. Returns `(lo, lo_inc, hi, hi_inc)`, where
+    the `_inc` flags say whether a bound is included and `hi` is `None`
+    for a branch that is unbounded above. Returns `None` for a branch that
+    starts with (<) or (<=), which we do not handle.
+    """
+    first, last = comparators[0], comparators[-1]
+    if first.operator.startswith("<"):
+        return None
+
+    # A strict (>) lower bound excludes its version: `>1.0.0` does not
+    # contain 1.0.0 itself.
+    lo, lo_inc = first.semver, first.operator != ">"
+    if last.operator.startswith(">"):
+        # A branch ending in (>) or (>=) is unbounded above.
+        hi, hi_inc = None, False
+    else:
+        # An upper bound is exclusive for (<), and inclusive for the (<=)
+        # end of a hyphen range and for a single version.
+        hi, hi_inc = last.semver, last.operator != "<"
+
+    if drop_prerelease and lo.prerelease:
+        # Raise the lower bound to its release, which the branch contains
+        # even when the bound was strict: `>4.7.0-beta.0` contains 4.7.0.
+        # Build a new SemVer, since `inc` changes it in place.
+        lo, lo_inc = SemVer(lo.version, True).inc("patch"), True  # type: ignore[no-untyped-call]
+        if hi is not None and (gt(lo, hi, True) if hi_inc else gte(lo, hi, True)):  # type: ignore[no-untyped-call]
+            # The release is past the upper bound, as in
+            # `4.0.0-alpha.0 - 4.0.0-rc.0`. The branch then stands for the
+            # release alone.
+            hi, hi_inc = lo, True
+
+    return lo, lo_inc, hi, hi_inc
 
 
 def _compare_ranges(  # noqa: C901, PLR0912
@@ -66,51 +105,48 @@ def _compare_ranges(  # noqa: C901, PLR0912
     # r1.set may be a list of ranges if the range involved an ||,
     # so we need to test for overlaps between each pair.
     for r1set, r2set in itertools.product(r1.set, r2.set):
-        x1 = r1set[0].semver
-        x2 = r1set[-1].semver
-        y1 = r2set[0].semver
-        y2 = r2set[-1].semver
-
-        if x1.prerelease and drop_prerelease1:
-            x1 = x1.inc("patch")
-
-        if y1.prerelease and drop_prerelease2:
-            y1 = y1.inc("patch")
-
-        o1 = r1set[0].operator
-        o2 = r2set[0].operator
+        x = _branch_interval(r1set, drop_prerelease1)
+        y = _branch_interval(r2set, drop_prerelease2)
 
         # We do not handle (<) specifiers.
-        if o1.startswith("<") or o2.startswith("<"):
+        if x is None or y is None:
             continue
 
-        # Handle single value specifiers.
-        lx: _CmpFn = lte if x1 == x2 else lt
-        ly: _CmpFn = lte if y1 == y2 else lt
-        gx: _CmpFn = gte if x1 == x2 else gt
-        gy: _CmpFn = gte if x1 == x2 else gt
+        x1, x1_inc, x2, x2_inc = x
+        y1, y1_inc, y2, y2_inc = y
 
-        # Handle unbounded (>) specifiers.
-        def noop(_x: str | Any, _y: str | Any, _z: bool) -> bool:
-            """Return True unconditionally, representing an unbounded range."""
-            return True
+        # Lower bound of the intersection.
+        if gt(x1, y1, True):  # type: ignore[no-untyped-call]
+            lo, lo_inc = x1, x1_inc
+        elif gt(y1, x1, True):  # type: ignore[no-untyped-call]
+            lo, lo_inc = y1, y1_inc
+        else:
+            lo, lo_inc = x1, x1_inc and y1_inc
 
-        if x1 == x2 and o1.startswith(">"):
-            lx = noop
-        if y1 == y2 and o2.startswith(">"):
-            ly = noop
+        # Upper bound of the intersection.
+        if x2 is None:
+            hi, hi_inc = y2, y2_inc
+        elif y2 is None or lt(x2, y2, True):  # type: ignore[no-untyped-call]
+            hi, hi_inc = x2, x2_inc
+        elif lt(y2, x2, True):  # type: ignore[no-untyped-call]
+            hi, hi_inc = y2, y2_inc
+        else:
+            hi, hi_inc = x2, x2_inc and y2_inc
 
-        # Check for overlap.
+        # The ranges overlap when the intersection is non-empty: either it
+        # spans versions, or it is a single version included in both.
         if (
-            (gte(x1, y1, True) and ly(x1, y2, True))  # type: ignore[no-untyped-call]
-            or (gy(x2, y1, True) and ly(x2, y2, True))
-            or (gte(y1, x1, True) and lx(y1, x2, True))  # type: ignore[no-untyped-call]
-            or (gx(y2, x1, True) and lx(y2, x2, True))
+            hi is None
+            or gt(hi, lo, True)  # type: ignore[no-untyped-call]
+            or (lo_inc and hi_inc and gte(hi, lo, True))  # type: ignore[no-untyped-call]
         ):
             # if we ever find an overlap, we can return immediately
             return 0
 
-        if gte(y1, x2, True):  # type: ignore[no-untyped-call]
+        # spec1 is lower when its upper end is at or below spec2's lower
+        # end (the shared point, if any, is excluded from at least one
+        # side, since a shared included point would be an overlap).
+        if x2 is not None and lte(x2, y1, True):  # type: ignore[no-untyped-call]
             if return_value is False:
                 # We can possibly return 1
                 return_value = 1
@@ -119,7 +155,7 @@ def _compare_ranges(  # noqa: C901, PLR0912
                 return_value = None
             continue
 
-        if gte(x1, y2, True):  # type: ignore[no-untyped-call]
+        if y2 is not None and lte(y2, x1, True):  # type: ignore[no-untyped-call]
             if return_value is False:
                 return_value = -1
             elif return_value == 1:
