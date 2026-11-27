@@ -12,7 +12,6 @@ from unittest import mock
 import pytest
 
 from jupyter_builder import _node_deps, core_path, federated_extensions
-from jupyter_builder.commands import _test_overlap
 from jupyter_builder.federated_extensions import (
     _check_node_version,
     _ensure_builder,
@@ -1209,12 +1208,6 @@ def test_ensure_builder_file_protocol_without_package_json_falls_back(tmp_path):
 
     assert builder_path == str(builder_dir / "lib" / "build-labextension.js")
     assert marker_pkg == "@jupyter/builder"
-
-
-def test_test_overlap_handles_invalid_semver_range():
-    assert _test_overlap("^1.0.0", "file:../builder") is None
-    assert _test_overlap("file:../builder", "^1.0.0") is None
-    assert _test_overlap("invalid-version", "another-invalid") is None
 
 
 def _write_rspack(ext_path: Path, node_range: str) -> None:

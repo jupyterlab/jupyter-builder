@@ -32,10 +32,10 @@ else:
     from tomli import load
 
 from ._node_deps import ensure_dependencies_installed, find_in_node_modules
-from .commands import _test_overlap
 from .core_path import get_core_meta
 from .jlpm import _which_node_js
 from .jupyterlab_semver import clean, make_range, make_semver
+from .version_ranges import ranges_overlap
 
 DEPRECATED_ARGUMENT = object()
 
@@ -490,7 +490,7 @@ def _ensure_builder(ext_path: str, core_package_file: str) -> tuple[str, str]:
     # Check for compatible versions
     dep_version1 = core_data.get("devDependencies", {}).get(marker_pkg)
     if dep_version1 is not None:
-        overlap = _test_overlap(
+        overlap = ranges_overlap(
             dep_version1,
             dep_version2,
             drop_prerelease1=True,
@@ -499,7 +499,7 @@ def _ensure_builder(ext_path: str, core_package_file: str) -> tuple[str, str]:
         if not overlap:
             with Path(target).joinpath("node_modules", *marker_parts, "package.json").open() as fid:
                 dep_version2 = str(json.load(fid).get("version", ""))
-            overlap = _test_overlap(
+            overlap = ranges_overlap(
                 dep_version1,
                 dep_version2,
                 drop_prerelease1=True,
