@@ -2,6 +2,30 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## 1.3.1
+
+([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v1.3.0...68f40af0084679794919898297dab0675f8981e4))
+
+### Bugs fixed
+
+- Fix version range overlap bounds [#215](https://github.com/jupyterlab/jupyter-builder/pull/215) ([@Darshan808](https://github.com/Darshan808), [@KUMAR-AKASH-M](https://github.com/KUMAR-AKASH-M), [@chrikrah](https://github.com/chrikrah), [@krassowski](https://github.com/krassowski))
+- Make `develop_labextension_py` path-only [#200](https://github.com/jupyterlab/jupyter-builder/pull/200) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+
+### Maintenance and upkeep improvements
+
+- Drop Python 3.10 [#217](https://github.com/jupyterlab/jupyter-builder/pull/217) ([@Darshan808](https://github.com/Darshan808), [@krassowski](https://github.com/krassowski))
+
+### Contributors to this release
+
+The following people contributed discussions, new ideas, code and documentation contributions, and review.
+See [our definition of contributors](https://github-activity.readthedocs.io/en/latest/use/#how-does-this-tool-define-contributions-in-the-reports).
+
+([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-11-11&to=2026-11-27&type=c))
+
+@chrikrah ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Achrikrah+updated%3A2026-11-11..2026-11-27&type=Issues)) | @Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-11-11..2026-11-27&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-11-11..2026-11-27&type=Issues)) | @KUMAR-AKASH-M ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3AKUMAR-AKASH-M+updated%3A2026-11-11..2026-11-27&type=Issues))
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## 1.3.0
 
 ([Full Changelog](https://github.com/jupyterlab/jupyter-builder/compare/v1.2.4...e7729f2590146595ffd617933363d3307436dc20))
@@ -35,8 +59,6 @@ See [our definition of contributors](https://github-activity.readthedocs.io/en/l
 ([GitHub contributors page for this release](https://github.com/jupyterlab/jupyter-builder/graphs/contributors?from=2026-10-27&to=2026-11-11&type=c))
 
 @Darshan808 ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3ADarshan808+updated%3A2026-10-27..2026-11-11&type=Issues)) | @krassowski ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Akrassowski+updated%3A2026-10-27..2026-11-11&type=Issues)) | @lresende ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3Alresende+updated%3A2026-10-27..2026-11-11&type=Issues)) | @Yash990-bit ([activity](https://github.com/search?q=repo%3Ajupyterlab%2Fjupyter-builder+involves%3AYash990-bit+updated%3A2026-10-27..2026-11-11&type=Issues))
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## 1.2.4
 
