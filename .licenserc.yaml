@@ -26,4 +26,4 @@ header:
     - 'jupyter_builder/py.typed'
     - THIRD_PARTY_LICENSES/**
 
-  comment: on-failure
+  comment: never
