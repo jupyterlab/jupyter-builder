@@ -54,9 +54,10 @@ repos:
     rev: "v1.15.0"
     hooks:
       - id: mypy
-        files: ^jupyter_builder/
+        # sbom_content.py is the build-time SBOM content provider at the repository root
+        files: ^(jupyter_builder/|sbom_content\.py$)
         additional_dependencies:
-          ["traitlets", "jupyter-core", "types-requests"]
+          ["traitlets", "jupyter-core", "types-requests", "python-sbom>=0.5,<0.6", "packageurl-python"]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # keep aligned with pyproject.toml
