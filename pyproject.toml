@@ -2,7 +2,14 @@
 # Distributed under the terms of the Modified BSD License.
 
 [build-system]
-requires = ["hatchling>=1.21.1", "hatch-nodejs-version>=0.3.2"]
+requires = [
+    "hatchling>=1.28",
+    "hatch-nodejs-version>=0.3.2",
+    # Pre-1.0 and changing quickly, so the minor version is pinned
+    "python-sbom[hatch]>=0.5,<0.6",
+    # Imported by sbom_content.py, the content provider named in [tool.python-sbom]
+    "packageurl-python",
+]
 build-backend = "hatchling.build"
 
 [project]
@@ -49,6 +56,9 @@ test = [
     "jinja2-time",
     "deptry",
     "jsonschema",
+    # Imported by sbom_content.py, which tests/test_sbom_content.py unit-tests
+    "packageurl-python",
+    "python-sbom>=0.5,<0.6",
 ]
 # Check ruff version is aligned with the one in .pre-commit-config.yaml
 dev = ["build", "mypy", "pre-commit", "hatch", "ruff==0.17.3"]
@@ -87,6 +97,14 @@ source = "nodejs"
 
 [tool.hatch.build.hooks.version]
 path = "jupyter_builder/_version.py"
+
+# Writes a PEP 770 CycloneDX SBOM into every wheel; options live in [tool.python-sbom]
+[tool.hatch.build.hooks.python-sbom]
+
+[tool.python-sbom]
+# Adds yarn.js, the packages bundled in it, and the node-semver port. A build-time module
+# at the repository root: the sdist carries it, the wheel does not.
+content-provider = "sbom_content:VendoredContent"
 
 [tool.hatch.build.targets.sdist]
 exclude = [".github"]
